@@ -1,0 +1,36 @@
+{
+  "name": "Rainbow Gradient",
+  "description": "Simple rainbow gradient test for Phase A",
+  "nodes": [
+    {
+      "id": "gradient_001",
+      "type": "gradient",
+      "parameters": {
+        "start_hue": 0.0,
+        "end_hue": 1.0
+      }
+    },
+    {
+      "id": "hsv_001",
+      "type": "hsv_to_rgb",
+      "parameters": {
+        "brightness": 0.8
+      }
+    },
+    {
+      "id": "output_001",
+      "type": "output",
+      "parameters": {}
+    }
+  ],
+  "wires": [
+    {
+      "from": "gradient_001",
+      "to": "hsv_001"
+    },
+    {
+      "from": "hsv_001",
+      "to": "output_001"
+    }
+  ]
+}

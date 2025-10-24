@@ -1,0 +1,39 @@
+# Build artifacts
+firmware/.pio/
+firmware/.vscode/
+codegen/dist/
+codegen/node_modules/
+*.bin
+*.elf
+
+# Generated files
+firmware/src/generated_effect.h
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Temporary
+*.tmp
+*.bak
+*~
+
+# Taskmaster
+.taskmaster/state.json
+.taskmaster/reports/
+.taskmaster/.locks/
+.env

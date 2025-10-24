@@ -1,0 +1,163 @@
+# K1.reinvented - Phase B: Node Type Expansion
+
+## Project Context
+
+K1.reinvented is an ESP32-S3 LED controller that compiles node graphs to native C++ code, achieving 450+ FPS with uncompromising artistic vision.
+
+**Core Philosophy:**
+- Radical minimalism (1,200 lines total)
+- Intentionality over convenience
+- Separation of concerns: Computer creates, device executes
+- No compromise between flexibility and performance
+
+**Phase A Status:** ✅ COMPLETE
+- Three proof-of-concept patterns (Departure, Lava, Twilight)
+- Node graph → C++ compilation working
+- 450+ FPS LED rendering verified
+- OTA updates with automatic rollback
+- Production-ready minimal codebase
+
+## Phase B Objectives
+
+Expand creative possibilities while maintaining radical minimalism.
+
+### 1. New Node Types
+
+**Geometric Nodes:**
+- Radial: Emanate from center point
+- Linear: Flow across strip
+- Wave: Sinusoidal distribution
+- Pulse: Rhythmic expansion/contraction
+
+**Color Transform Nodes:**
+- Hue Shift: Rotate color wheel
+- Saturation: Intensity control
+- Brightness: Luminosity adjustment
+- Color Mix: Blend two palettes
+
+**Motion Nodes:**
+- Speed Control: Time-based animation rate
+- Direction: Forward/backward/oscillate
+- Phase Offset: Stagger animations across LEDs
+- Easing: Smooth transitions (ease-in, ease-out, linear)
+
+**Composition Nodes:**
+- Layer: Blend multiple effects
+- Mask: Selective application
+- Mirror: Symmetrical patterns
+- Segment: Zone-based control
+
+### 2. Codegen Enhancements
+
+- Type validation for node connections
+- Optimize generated C++ (remove redundant operations)
+- Error messages that guide intentional design
+- Graph visualization export (for documentation)
+
+### 3. Pattern Library Expansion
+
+**New Intentional Patterns:**
+- Aurora: Northern lights inspiration (cool blues → greens → purples)
+- Ember: Dying fire (deep reds → orange → black)
+- Ocean: Wave motion (teals → deep blues → whites)
+- Forest: Natural progression (browns → greens → golds)
+
+Each pattern must:
+- Tell a story
+- Be emotionally resonant
+- Prove new node capabilities
+- Run at 450+ FPS
+
+### 4. Documentation Updates
+
+- Node type reference guide
+- Pattern creation philosophy guide
+- Compilation process deep-dive
+- Performance optimization techniques
+
+## Technical Requirements
+
+**Non-Negotiables:**
+- Maintain 450+ FPS performance
+- Keep total codebase under 2,000 lines (±66% growth allowed)
+- Zero tech debt
+- Every node type must serve artistic vision
+- All patterns must be intentional (no generic examples)
+
+**Code Quality:**
+- Clear variable names (but concise)
+- Functions under 50 lines
+- Comments for "why" not "what"
+- Delete anything that doesn't serve beauty
+
+**Testing Strategy:**
+- Each new node type: Unit test for compilation correctness
+- Each new pattern: Visual validation + FPS verification
+- Regression: Verify Phase A patterns still work
+- Stability: 5-minute runtime test for each pattern
+
+## Implementation Phases
+
+**Phase B.1: Core Node Types (Geometric + Color)**
+- Implement 4 geometric nodes
+- Implement 4 color transform nodes
+- Update codegen to handle new types
+- Create 1 proof-of-concept pattern
+
+**Phase B.2: Motion and Composition**
+- Implement 4 motion nodes
+- Implement 4 composition nodes
+- Optimize codegen output
+- Create 2 additional patterns
+
+**Phase B.3: Pattern Library**
+- Create Aurora, Ember patterns
+- Create Ocean, Forest patterns
+- Document each pattern's artistic intent
+- Verify all patterns at 450+ FPS
+
+**Phase B.4: Documentation and Validation**
+- Write node type reference
+- Write pattern creation guide
+- Full regression testing
+- Performance profiling report
+
+## Success Criteria
+
+**Phase B Complete When:**
+- [ ] 16 new node types implemented and validated
+- [ ] 4 new intentional patterns created and beautiful
+- [ ] All patterns run at 450+ FPS
+- [ ] Codebase remains under 2,000 lines
+- [ ] Documentation reflects new capabilities
+- [ ] No tech debt introduced
+- [ ] Every addition serves the core mission
+
+## Constraints and Warnings
+
+**What NOT to Do:**
+- ❌ Add features that don't serve artistic vision
+- ❌ Sacrifice performance for convenience
+- ❌ Create "example" patterns (every pattern must be intentional)
+- ❌ Add complexity that could be avoided
+- ❌ Accept mediocrity in visual output
+
+**Guiding Questions:**
+- Does this node type enable beauty that wasn't possible before?
+- Does this pattern tell a story or express emotion?
+- Can I explain why this code exists?
+- Is this the minimal implementation that serves the vision?
+
+## Phase C Preview (Future)
+
+After Phase B proves expanded node types work:
+- Visual node graph editor (Web-based UI)
+- Real-time preview without device upload
+- Pattern sharing/export system
+- Audio reactivity integration
+
+But Phase C only happens if Phase B maintains the uncompromising philosophy.
+
+---
+
+**Remember:** This project exists to prove you can have both artistic vision and execution perfection. Every decision must serve that truth.
