@@ -250,6 +250,38 @@ chromagram[0]
 }
 ```
 
+## Band Examples (Explicit spectrum_*)
+
+Use explicit `spectrum_range` and `spectrum_interpolate` to define bands. Avoid generic “bass/mid/treble” nodes so graphs remain deterministic across analyzers.
+
+Example 1: Bass Pulse (bins 0–8) gated by strongest beat
+
+```json
+{
+  "name": "Bass Pulse",
+  "nodes": [
+    { "id": "bass", "type": "spectrum_range", "parameters": { "start_bin": 0, "end_bin": 8 } },
+    { "id": "beat", "type": "beat", "parameters": { "tempo_bin": -1 } },
+    { "id": "mod", "type": "multiply", "inputs": ["bass", "beat"] },
+    { "id": "out", "type": "palette_interpolate", "inputs": ["mod"] }
+  ]
+}
+```
+
+Example 2: Spectrum Sweep across LED positions, beat-modulated
+
+```json
+{
+  "name": "Spectrum Sweep",
+  "nodes": [
+    { "id": "sweep", "type": "spectrum_interpolate", "parameters": { "start_bin": 0, "end_bin": 63 } },
+    { "id": "beat", "type": "beat", "parameters": { "tempo_bin": 0 } },
+    { "id": "mod", "type": "multiply", "inputs": ["sweep", "beat"] },
+    { "id": "out", "type": "palette_interpolate", "inputs": ["mod"] }
+  ]
+}
+```
+
 ## Integration Status
 
 - **File:** `/Users/spectrasynq/Workspace_Management/Software/K1.reinvented/codegen/src/index.ts`
