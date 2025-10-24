@@ -73,56 +73,6 @@ export function generateEssentialNodeCode(node: Node, graph: Graph): string {
  */
 export function generateAudioNodeCode(node: Node, graph: Graph): string {
     switch(node.type) {
-        case 'audio_bass': {
-            // Average bins 0-4 for bass frequencies (55-110Hz)
-            return `
-    // Node: ${node.id} (audio_bass)
-    // Bass frequencies: 55-110Hz (bins 0-4)
-    {
-        float bass = 0.0f;
-        for (int j = 0; j < 5; j++) {
-            bass += spectrogram[j];
-        }
-        bass /= 5.0f;
-        for (int i = 0; i < NUM_LEDS; i++) {
-            field_buffer[i] = bass;
-        }
-    }`;
-        }
-
-        case 'audio_mid': {
-            // Average bins 20-24 for mid frequencies (~800Hz-1.2kHz)
-            return `
-    // Node: ${node.id} (audio_mid)
-    // Mid frequencies: ~800Hz-1.2kHz (bins 20-24)
-    {
-        float mid = 0.0f;
-        for (int j = 20; j < 25; j++) {
-            mid += spectrogram[j];
-        }
-        mid /= 5.0f;
-        for (int i = 0; i < NUM_LEDS; i++) {
-            field_buffer[i] = mid;
-        }
-    }`;
-        }
-
-        case 'audio_treble': {
-            // Average bins 40-44 for treble frequencies (~3.2kHz-5kHz)
-            return `
-    // Node: ${node.id} (audio_treble)
-    // Treble frequencies: ~3.2kHz-5kHz (bins 40-44)
-    {
-        float treble = 0.0f;
-        for (int j = 40; j < 45; j++) {
-            treble += spectrogram[j];
-        }
-        treble /= 5.0f;
-        for (int i = 0; i < NUM_LEDS; i++) {
-            field_buffer[i] = treble;
-        }
-    }`;
-        }
 
         case 'audio_level': {
             // VU meter level (already normalized 0-1)
@@ -170,15 +120,59 @@ export function generateAudioNodeCode(node: Node, graph: Graph): string {
         }
 
         case 'spectrum_bin': {
-            // Access specific frequency bin
+            // Access specific frequency bin (0-63)
             const bin = Number(node.parameters?.bin ?? 0);
-            if (bin < 0 || bin > 63) {
+            if (!Number.isFinite(bin) || bin < 0 || bin > 63) {
                 throw new Error(`spectrum_bin: bin ${bin} out of range (0-63)`);
             }
             return `
     // Node: ${node.id} (spectrum_bin ${bin})
     for (int i = 0; i < NUM_LEDS; i++) {
         field_buffer[i] = spectrogram[${bin}];
+    }`;
+        }
+
+        case 'spectrum_range': {
+            // Average inclusive range of bins [start_bin, end_bin]
+            const start = Number(node.parameters?.start_bin ?? 0);
+            const end = Number(node.parameters?.end_bin ?? 10);
+            if (!Number.isFinite(start) || !Number.isFinite(end)) {
+                throw new Error('spectrum_range: start_bin/end_bin must be finite numbers');
+            }
+            const s = Math.max(0, Math.min(63, Math.floor(start)));
+            const e = Math.max(0, Math.min(63, Math.floor(end)));
+            const lo = Math.min(s, e);
+            const hi = Math.max(s, e);
+            const count = hi - lo + 1;
+            return `
+    // Node: ${node.id} (spectrum_range bins ${lo}-${hi})
+    float sum = 0.0f;
+    for (int b = ${lo}; b <= ${hi}; b++) { sum += spectrogram[b]; }
+    float avg = sum / ${count}.0f;
+    for (int i = 0; i < NUM_LEDS; i++) { field_buffer[i] = avg; }`;
+        }
+
+        case 'spectrum_interpolate': {
+            // Map LED position across [start_bin, end_bin], linear interpolate between neighboring bins
+            const startBin = Number(node.parameters?.start_bin ?? 0);
+            const endBin = Number(node.parameters?.end_bin ?? 63);
+            if (!Number.isFinite(startBin) || !Number.isFinite(endBin)) {
+                throw new Error('spectrum_interpolate: start_bin/end_bin must be finite numbers');
+            }
+            const s = Math.max(0, Math.min(63, Math.floor(startBin)));
+            const e = Math.max(0, Math.min(63, Math.floor(endBin)));
+            const span = Math.max(1, Math.abs(e - s));
+            return `
+    // Node: ${node.id} (spectrum_interpolate ${s}-${e})
+    for (int i = 0; i < NUM_LEDS; i++) {
+        float progress = (NUM_LEDS <= 1) ? 0.0f : (float)i / (float)(NUM_LEDS - 1);
+        float binf = ${s}.0f + progress * ${span}.0f * (${e} >= ${s} ? 1.0f : -1.0f);
+        int bin_low = (int)binf;
+        int bin_high = bin_low + ((${e} >= ${s}) ? 1 : -1);
+        bin_low = max(0, min(63, bin_low));
+        bin_high = max(0, min(63, bin_high));
+        float frac = fabsf(binf - (float)bin_low);
+        field_buffer[i] = spectrogram[bin_low] * (1.0f - frac) + spectrogram[bin_high] * frac;
     }`;
         }
 
@@ -227,12 +221,11 @@ export type ExtendedNodeType =
     | 'modulo'
     | 'scale'
     // Audio nodes
-    | 'audio_bass'
-    | 'audio_mid'
-    | 'audio_treble'
+    | 'spectrum_bin'
+    | 'spectrum_range'
+    | 'spectrum_interpolate'
     | 'audio_level'
     | 'beat'
-    | 'spectrum_bin'
     | 'chromagram'
     | 'tempo_confidence';
 
@@ -246,8 +239,8 @@ export function isValidNodeType(type: string): boolean {
         // Essential
         'constant', 'multiply', 'add', 'clamp', 'modulo', 'scale',
         // Audio
-        'audio_bass', 'audio_mid', 'audio_treble', 'audio_level',
-        'beat', 'spectrum_bin', 'chromagram', 'tempo_confidence'
+        'spectrum_bin', 'spectrum_range', 'spectrum_interpolate', 'audio_level',
+        'beat', 'chromagram', 'tempo_confidence'
     ];
     return validTypes.includes(type as ExtendedNodeType);
 }

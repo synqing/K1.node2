@@ -168,7 +168,7 @@ See `DEPENDENCIES.md` for complete details and stub implementations.
 8. Test tempo detection
 
 **Next Steps (Phase 2 - Codegen Integration):**
-1. Add audio node types to codegen (audio_bass, audio_mid, audio_treble, beat, audio_level)
+1. Add audio node types to codegen (spectrum_bin, spectrum_range, spectrum_interpolate, beat, audio_level)
 2. Add prerequisite math nodes (constant, multiply, add, clamp, modulo)
 3. Create example audio-reactive patterns
 4. Test compiled patterns with live audio

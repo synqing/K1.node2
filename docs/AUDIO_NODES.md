@@ -94,10 +94,7 @@ Average a range of frequency bins. Perfect for broad frequency band detection.
 ((spectrogram[3] + spectrogram[4] + spectrogram[5] + spectrogram[6] + spectrogram[7] + spectrogram[8]) / 6.0f)
 ```
 
-**Frequency Ranges:**
-- Bass: bins 0-10 (55-275 Hz)
-- Mid: bins 15-30 (800-2400 Hz)
-- Treble: bins 35-55 (3000-12000 Hz)
+Note on ranges: Emotiscope uses 64 bins (0–63) spanning ~55 Hz–6.4 kHz. Prefer explicit `spectrum_range` parameters over convenience labels like “bass/mid/treble” to keep graphs deterministic and portable.
 
 ---
 
