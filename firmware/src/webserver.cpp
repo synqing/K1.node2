@@ -67,32 +67,42 @@ void init_webserver() {
     // POST /api/params - Update parameters (partial update supported)
     server.on("/api/params", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
         [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-            // Parse JSON body
+            String *body = static_cast<String*>(request->_tempObject);
+            if (index == 0) {
+                body = new String();
+                body->reserve(total);
+                request->_tempObject = body;
+            }
+            body->concat(reinterpret_cast<const char*>(data), len);
+
+            if (index + len != total) {
+                return;  // Wait for more data
+            }
+
             StaticJsonDocument<512> doc;
-            DeserializationError error = deserializeJson(doc, data, len);
+            DeserializationError error = deserializeJson(doc, *body);
+            delete body;
+            request->_tempObject = nullptr;
 
             if (error) {
                 request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
                 return;
             }
 
-            // Get current parameters
             PatternParameters new_params = get_params();
 
-            // Apply partial updates
-            if (doc.containsKey("speed")) new_params.speed = doc["speed"];
-            if (doc.containsKey("brightness")) new_params.brightness = doc["brightness"];
-            if (doc.containsKey("palette_id")) new_params.palette_id = doc["palette_id"];
-            if (doc.containsKey("palette_shift")) new_params.palette_shift = doc["palette_shift"];
-            if (doc.containsKey("beat_sensitivity")) new_params.beat_sensitivity = doc["beat_sensitivity"];
-            if (doc.containsKey("spectrum_low")) new_params.spectrum_low = doc["spectrum_low"];
-            if (doc.containsKey("spectrum_mid")) new_params.spectrum_mid = doc["spectrum_mid"];
-            if (doc.containsKey("spectrum_high")) new_params.spectrum_high = doc["spectrum_high"];
-            if (doc.containsKey("custom_param_1")) new_params.custom_param_1 = doc["custom_param_1"];
-            if (doc.containsKey("custom_param_2")) new_params.custom_param_2 = doc["custom_param_2"];
-            if (doc.containsKey("custom_param_3")) new_params.custom_param_3 = doc["custom_param_3"];
+            if (doc.containsKey("speed")) new_params.speed = doc["speed"].as<float>();
+            if (doc.containsKey("brightness")) new_params.brightness = doc["brightness"].as<float>();
+            if (doc.containsKey("palette_id")) new_params.palette_id = doc["palette_id"].as<uint8_t>();
+            if (doc.containsKey("palette_shift")) new_params.palette_shift = doc["palette_shift"].as<float>();
+            if (doc.containsKey("beat_sensitivity")) new_params.beat_sensitivity = doc["beat_sensitivity"].as<float>();
+            if (doc.containsKey("spectrum_low")) new_params.spectrum_low = doc["spectrum_low"].as<float>();
+            if (doc.containsKey("spectrum_mid")) new_params.spectrum_mid = doc["spectrum_mid"].as<float>();
+            if (doc.containsKey("spectrum_high")) new_params.spectrum_high = doc["spectrum_high"].as<float>();
+            if (doc.containsKey("custom_param_1")) new_params.custom_param_1 = doc["custom_param_1"].as<float>();
+            if (doc.containsKey("custom_param_2")) new_params.custom_param_2 = doc["custom_param_2"].as<float>();
+            if (doc.containsKey("custom_param_3")) new_params.custom_param_3 = doc["custom_param_3"].as<float>();
 
-            // Validate and update (uses double buffering + bounds checking)
             bool success = update_params_safe(new_params);
 
             if (success) {
@@ -103,12 +113,25 @@ void init_webserver() {
             }
         });
 
-    // POST /api/pattern - Switch pattern by index or ID
-    server.on("/api/pattern", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
+    // POST /api/select - Switch pattern by index or ID
+    server.on("/api/select", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
         [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-            // Parse JSON body
+            String *body = static_cast<String*>(request->_tempObject);
+            if (index == 0) {
+                body = new String();
+                body->reserve(total);
+                request->_tempObject = body;
+            }
+            body->concat(reinterpret_cast<const char*>(data), len);
+
+            if (index + len != total) {
+                return;  // Wait for more data
+            }
+
             StaticJsonDocument<256> doc;
-            DeserializationError error = deserializeJson(doc, data, len);
+            DeserializationError error = deserializeJson(doc, *body);
+            delete body;
+            request->_tempObject = nullptr;
 
             if (error) {
                 request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
@@ -117,27 +140,28 @@ void init_webserver() {
 
             bool success = false;
 
-            // Try to switch by index
             if (doc.containsKey("index")) {
-                uint8_t pattern_index = doc["index"];
+                uint8_t pattern_index = doc["index"].as<uint8_t>();
                 success = select_pattern(pattern_index);
-            }
-            // Try to switch by ID
-            else if (doc.containsKey("id")) {
-                const char* pattern_id = doc["id"];
+            } else if (doc.containsKey("id")) {
+                const char* pattern_id = doc["id"].as<const char*>();
                 success = select_pattern_by_id(pattern_id);
+            } else {
+                request->send(400, "application/json", "{\"error\":\"Missing index or id\"}");
+                return;
             }
 
             if (success) {
                 StaticJsonDocument<256> response;
                 response["current_pattern"] = g_current_pattern_index;
+                response["id"] = get_current_pattern().id;
                 response["name"] = get_current_pattern().name;
 
                 String output;
                 serializeJson(response, output);
                 request->send(200, "application/json", output);
             } else {
-                request->send(400, "application/json", "{\"error\":\"Invalid pattern index or ID\"}");
+                request->send(404, "application/json", "{\"error\":\"Invalid pattern index or ID\"}");
             }
         });
 
@@ -235,7 +259,7 @@ void init_webserver() {
         }
 
         async function selectPattern(index) {
-            await fetch('/api/pattern', {
+            await fetch('/api/select', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({index})
