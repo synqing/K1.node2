@@ -1,0 +1,49 @@
+{
+  "name": "Lava Beat",
+  "description": "Position gradient pulsing with music beat. Shows rhythm-reactive intensity using Lava palette.",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [46, 18, 0, 0],
+    [96, 113, 0, 0],
+    [108, 142, 3, 1],
+    [119, 175, 17, 1],
+    [146, 213, 44, 2],
+    [174, 255, 82, 4],
+    [188, 255, 115, 4],
+    [202, 255, 156, 4],
+    [218, 255, 203, 4],
+    [234, 255, 255, 4],
+    [244, 255, 255, 71],
+    [255, 255, 255, 255]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "LED position 0-1 gradient"
+    },
+    {
+      "id": "beat",
+      "type": "beat",
+      "parameters": { "tempo_bin": -1 },
+      "description": "Auto-detected beat pulse (0-1)"
+    },
+    {
+      "id": "modulated",
+      "type": "multiply",
+      "inputs": ["position", "beat"],
+      "description": "Position multiplied by beat pulse"
+    },
+    {
+      "id": "out",
+      "type": "palette_interpolate",
+      "inputs": ["modulated"],
+      "description": "Map to Lava palette"
+    }
+  ],
+  "wires": [
+    { "from": "position", "to": "modulated" },
+    { "from": "beat", "to": "modulated" },
+    { "from": "modulated", "to": "out" }
+  ]
+}
