@@ -98,8 +98,9 @@ function generatePaletteInterpolation(paletteData: Array<[number, number, number
 function generateNodeCode(node: Node, graph: Graph): string {
     switch(node.type) {
         case 'position_gradient':
-            // Returns position normalized 0-1 for each LED
-            return '(float(i) / float(NUM_LEDS - 1))';
+            // CENTER-ORIGIN: Returns distance from center (0.0 at center → 1.0 at edges)
+            // FORBIDS edge-to-edge linear gradients (rainbows)
+            return '(abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH)';
 
         case 'palette_interpolate': {
             const palette = node.parameters?.palette as string || 'default';
@@ -107,8 +108,8 @@ function generateNodeCode(node: Node, graph: Graph): string {
                 throw new Error(`palette_interpolate node requires palette_data in graph`);
             }
 
-            // Determine position source - either from input or default to LED index
-            let positionExpr = 'float(i) / float(NUM_LEDS - 1)';
+            // Determine position source - either from input or default to center-origin
+            let positionExpr = '(abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH)';  // CENTER-ORIGIN
             if (node.inputs && node.inputs.length > 0) {
                 const inputNodeId = node.inputs[0];
                 const inputNode = graph.nodes.find(n => n.id === inputNodeId);
