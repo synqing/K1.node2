@@ -5,6 +5,7 @@
 #include "parameters.h"
 #include "pattern_registry.h"
 #include <ArduinoJson.h>
+#include <ESPmDNS.h>
 
 // Global async web server on port 80
 static AsyncWebServer server(80);
@@ -56,12 +57,16 @@ String build_patterns_json() {
 void init_webserver() {
     // GET /api/patterns - List all available patterns
     server.on("/api/patterns", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(200, "application/json", build_patterns_json());
+        auto *response = request->beginResponse(200, "application/json", build_patterns_json());
+        attach_cors_headers(response);
+        request->send(response);
     });
 
     // GET /api/params - Get current parameters
     server.on("/api/params", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(200, "application/json", build_params_json());
+        auto *response = request->beginResponse(200, "application/json", build_params_json());
+        attach_cors_headers(response);
+        request->send(response);
     });
 
     // POST /api/params - Update parameters (partial update supported)
@@ -85,7 +90,9 @@ void init_webserver() {
             request->_tempObject = nullptr;
 
             if (error) {
-                request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+                auto *response = request->beginResponse(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+                attach_cors_headers(response);
+                request->send(response);
                 return;
             }
 
@@ -106,10 +113,14 @@ void init_webserver() {
             bool success = update_params_safe(new_params);
 
             if (success) {
-                request->send(200, "application/json", build_params_json());
+                auto *response = request->beginResponse(200, "application/json", build_params_json());
+                attach_cors_headers(response);
+                request->send(response);
             } else {
-                request->send(400, "application/json",
-                    "{\"error\":\"Parameter validation failed (values clamped)\",\"params\":" + build_params_json() + "}");
+                String payload = "{\"error\":\"Parameter validation failed (values clamped)\",\"params\":" + build_params_json() + "}";
+                auto *response = request->beginResponse(400, "application/json", payload);
+                attach_cors_headers(response);
+                request->send(response);
             }
         });
 
@@ -134,7 +145,9 @@ void init_webserver() {
             request->_tempObject = nullptr;
 
             if (error) {
-                request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+                auto *response = request->beginResponse(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+                attach_cors_headers(response);
+                request->send(response);
                 return;
             }
 
@@ -161,7 +174,9 @@ void init_webserver() {
                 serializeJson(response, output);
                 request->send(200, "application/json", output);
             } else {
-                request->send(404, "application/json", "{\"error\":\"Invalid pattern index or ID\"}");
+                auto *response = request->beginResponse(404, "application/json", "{\"error\":\"Invalid pattern index or ID\"}");
+                attach_cors_headers(response);
+                request->send(response);
             }
         });
 
@@ -169,7 +184,22 @@ void init_webserver() {
     server.on("/api/reset", HTTP_POST, [](AsyncWebServerRequest *request) {
         PatternParameters defaults = get_default_params();
         update_params(defaults);
-        request->send(200, "application/json", build_params_json());
+        auto *response = request->beginResponse(200, "application/json", build_params_json());
+        attach_cors_headers(response);
+        request->send(response);
+    });
+
+    // OPTIONS preflight for CORS
+    server.onNotFound([](AsyncWebServerRequest *request) {
+        if (request->method() == HTTP_OPTIONS) {
+            auto *response = request->beginResponse(204);
+            attach_cors_headers(response);
+            request->send(response);
+            return;
+        }
+        auto *response = request->beginResponse(404, "application/json", "{\"error\":\"Not found\"}");
+        attach_cors_headers(response);
+        request->send(response);
     });
 
     // GET / - Serve web dashboard (simple HTML UI)
@@ -301,12 +331,9 @@ void init_webserver() {
 </body>
 </html>
 )HTML";
-        request->send(200, "text/html", html);
-    });
-
-    // 404 handler
-    server.onNotFound([](AsyncWebServerRequest *request) {
-        request->send(404, "application/json", "{\"error\":\"Not found\"}");
+        auto *response = request->beginResponse(200, "text/html", html);
+        attach_cors_headers(response);
+        request->send(response);
     });
 
     // Start server
@@ -318,4 +345,12 @@ void init_webserver() {
 void handle_webserver() {
     // AsyncWebServer handles requests in the background
     // No action needed in loop()
+}
+// Allow cross-origin requests for local dev tools / browsers
+static void attach_cors_headers(AsyncWebServerResponse *response) {
+    if (!response) return;
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    response->addHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    response->addHeader("Access-Control-Allow-Headers", "Content-Type");
+    response->addHeader("Access-Control-Allow-Credentials", "false");
 }
