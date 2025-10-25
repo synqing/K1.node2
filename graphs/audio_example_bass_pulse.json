@@ -7,7 +7,7 @@
     [255, 255, 255, 255]
   ],
   "nodes": [
-    { "id": "bass", "type": "spectrum_range", "parameters": { "start_bin": 0, "end_bin": 8 } },
+    { "id": "bass", "type": "spectrum_range", "parameters": { "band": "low" } },
     { "id": "beat", "type": "beat", "parameters": { "tempo_bin": -1 } },
     { "id": "mod", "type": "multiply", "inputs": ["bass", "beat"] },
     { "id": "clamped", "type": "clamp", "parameters": { "min": 0, "max": 1 }, "inputs": ["mod"] },

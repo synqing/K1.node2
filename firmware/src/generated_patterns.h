@@ -1,6 +1,6 @@
 
 // AUTO-GENERATED MULTI-PATTERN CODE - DO NOT EDIT
-// Generated at: 2025-10-25T09:08:16.835Z
+// Generated at: 2025-10-25T09:47:18.027Z
 // Patterns: Bass Pulse, Spectrum Sweep, Audio Test - Beat and Spectrum Interpolate, Audio Test - Comprehensive, Audio Test - Spectrum Bin, Aurora, Aurora Spectrum, Departure, Departure-Spectrum, Lava, Lava Beat, Twilight, Twilight Chroma
 
 #pragma once
@@ -18,7 +18,16 @@ void draw_bass_pulse(float time, const PatternParameters& params) {
     const int palette_size = 3;
 
     for (int i = 0; i < NUM_LEDS; i++) {
-        float position = fmod(fmax(0.0f, fmin(1.0f, (((spectrogram[0] + spectrogram[1] + spectrogram[2] + spectrogram[3] + spectrogram[4] + spectrogram[5] + spectrogram[6] + spectrogram[7] + spectrogram[8]) / 9.0f) * (tempi[0].beat * 0.5f + 0.5f)))), 1.0f);
+        float position = fmod(fmax(0.0f, fmin(1.0f, ((
+                    fmin(1.0f, fmax(0.0f, (
+                        spectrogram[0] + spectrogram[1] + spectrogram[2] + spectrogram[3] +
+                        spectrogram[4] + spectrogram[5] + spectrogram[6] + spectrogram[7] +
+                        spectrogram[8] + spectrogram[9] + spectrogram[10] + spectrogram[11] +
+                        spectrogram[12] + spectrogram[13] + spectrogram[14] + spectrogram[15] +
+                        spectrogram[16] + spectrogram[17] + spectrogram[18] + spectrogram[19] +
+                        spectrogram[20]
+                    ) / 21.0f)) * params.spectrum_low
+                ) * fmin(1.0f, (tempi[0].beat * 0.5f + 0.5f) * params.beat_sensitivity)))), 1.0f);
         int palette_index = int(position * (palette_size - 1));
         float interpolation_factor = (position * (palette_size - 1)) - palette_index;
 
@@ -33,6 +42,11 @@ void draw_bass_pulse(float time, const PatternParameters& params) {
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 
@@ -45,7 +59,7 @@ void draw_spectrum_sweep(float time, const PatternParameters& params) {
     const int palette_size = 5;
 
     for (int i = 0; i < NUM_LEDS; i++) {
-        float position = fmod((spectrogram[0 + int((float(i) / float(NUM_LEDS - 1)) * 63)] * (tempi[0].beat * 0.5f + 0.5f)), 1.0f);
+        float position = fmod((spectrogram[0 + int((float(i) / float(NUM_LEDS - 1)) * 63)] * fmin(1.0f, (tempi[0].beat * 0.5f + 0.5f) * params.beat_sensitivity)), 1.0f);
         int palette_index = int(position * (palette_size - 1));
         float interpolation_factor = (position * (palette_size - 1)) - palette_index;
 
@@ -60,6 +74,11 @@ void draw_spectrum_sweep(float time, const PatternParameters& params) {
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 
@@ -72,7 +91,7 @@ void draw_audio_test_beat_and_spectrum_interpolate(float time, const PatternPara
     const int palette_size = 4;
 
     for (int i = 0; i < NUM_LEDS; i++) {
-        float position = fmod((spectrogram[0 + int((float(i) / float(NUM_LEDS - 1)) * 63)] * (tempi[0].beat * 0.5f + 0.5f)), 1.0f);
+        float position = fmod((spectrogram[0 + int((float(i) / float(NUM_LEDS - 1)) * 63)] * fmin(1.0f, (tempi[0].beat * 0.5f + 0.5f) * params.beat_sensitivity)), 1.0f);
         int palette_index = int(position * (palette_size - 1));
         float interpolation_factor = (position * (palette_size - 1)) - palette_index;
 
@@ -87,6 +106,11 @@ void draw_audio_test_beat_and_spectrum_interpolate(float time, const PatternPara
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 
@@ -114,6 +138,11 @@ void draw_audio_test_comprehensive(float time, const PatternParameters& params) 
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 
@@ -141,6 +170,11 @@ void draw_audio_test_spectrum_bin(float time, const PatternParameters& params) {
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 
@@ -153,7 +187,7 @@ void draw_aurora(float time, const PatternParameters& params) {
     const int palette_size = 12;
 
     for (int i = 0; i < NUM_LEDS; i++) {
-        float position = fmod(fmin(1.0f, (abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH) + (sinf(time * 6.28318f) * 0.5f + 0.5f)), 1.0f);
+        float position = fmod(fmin(1.0f, (abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH) + (sinf((time * params.speed) * 6.28318f) * 0.5f + 0.5f)), 1.0f);
         int palette_index = int(position * (palette_size - 1));
         float interpolation_factor = (position * (palette_size - 1)) - palette_index;
 
@@ -168,6 +202,11 @@ void draw_aurora(float time, const PatternParameters& params) {
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 
@@ -180,7 +219,7 @@ void draw_aurora_spectrum(float time, const PatternParameters& params) {
     const int palette_size = 12;
 
     for (int i = 0; i < NUM_LEDS; i++) {
-        float position = fmod(fmin(1.0f, fmin(1.0f, (abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH) + (sinf(time * 6.28318f) * 0.5f + 0.5f)) + (((spectrogram[0] + spectrogram[1] + spectrogram[2] + spectrogram[3] + spectrogram[4] + spectrogram[5] + spectrogram[6] + spectrogram[7] + spectrogram[8]) / 9.0f) * 0.5f)), 1.0f);
+        float position = fmod(fmin(1.0f, fmin(1.0f, (abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH) + (sinf((time * params.speed) * 6.28318f) * 0.5f + 0.5f)) + (((spectrogram[0] + spectrogram[1] + spectrogram[2] + spectrogram[3] + spectrogram[4] + spectrogram[5] + spectrogram[6] + spectrogram[7] + spectrogram[8]) / 9.0f) * 0.5f)), 1.0f);
         int palette_index = int(position * (palette_size - 1));
         float interpolation_factor = (position * (palette_size - 1)) - palette_index;
 
@@ -195,6 +234,11 @@ void draw_aurora_spectrum(float time, const PatternParameters& params) {
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 
@@ -222,6 +266,11 @@ void draw_departure(float time, const PatternParameters& params) {
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 
@@ -249,6 +298,11 @@ void draw_departure_spectrum(float time, const PatternParameters& params) {
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 
@@ -276,6 +330,11 @@ void draw_lava(float time, const PatternParameters& params) {
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 
@@ -288,7 +347,7 @@ void draw_lava_beat(float time, const PatternParameters& params) {
     const int palette_size = 13;
 
     for (int i = 0; i < NUM_LEDS; i++) {
-        float position = fmod(((abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH) * (tempi[0].beat * 0.5f + 0.5f)), 1.0f);
+        float position = fmod(((abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH) * fmin(1.0f, (tempi[0].beat * 0.5f + 0.5f) * params.beat_sensitivity)), 1.0f);
         int palette_index = int(position * (palette_size - 1));
         float interpolation_factor = (position * (palette_size - 1)) - palette_index;
 
@@ -303,6 +362,11 @@ void draw_lava_beat(float time, const PatternParameters& params) {
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 
@@ -330,6 +394,11 @@ void draw_twilight(float time, const PatternParameters& params) {
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 
@@ -357,6 +426,11 @@ void draw_twilight_chroma(float time, const PatternParameters& params) {
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }
 }
 

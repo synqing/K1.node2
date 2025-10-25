@@ -10,6 +10,9 @@
 // Global async web server on port 80
 static AsyncWebServer server(80);
 
+// Forward declaration: Attach CORS headers to response
+static void attach_cors_headers(AsyncWebServerResponse *response);
+
 // Helper: Build JSON response for current parameters
 String build_params_json() {
     const PatternParameters& params = get_params();
@@ -112,16 +115,30 @@ void init_webserver() {
 
             bool success = update_params_safe(new_params);
 
-            if (success) {
-                auto *response = request->beginResponse(200, "application/json", build_params_json());
-                attach_cors_headers(response);
-                request->send(response);
-            } else {
-                String payload = "{\"error\":\"Parameter validation failed (values clamped)\",\"params\":" + build_params_json() + "}";
-                auto *response = request->beginResponse(400, "application/json", payload);
-                attach_cors_headers(response);
-                request->send(response);
-            }
+            // Always return 200 - parameters were applied (may be clamped, but still applied)
+            StaticJsonDocument<512> response_doc;
+            response_doc["success"] = true;
+            response_doc["clamped"] = !success;  // true if any values were clamped
+
+            const PatternParameters& params = get_params();
+            response_doc["params"]["speed"] = params.speed;
+            response_doc["params"]["brightness"] = params.brightness;
+            response_doc["params"]["palette_id"] = params.palette_id;
+            response_doc["params"]["palette_shift"] = params.palette_shift;
+            response_doc["params"]["beat_sensitivity"] = params.beat_sensitivity;
+            response_doc["params"]["spectrum_low"] = params.spectrum_low;
+            response_doc["params"]["spectrum_mid"] = params.spectrum_mid;
+            response_doc["params"]["spectrum_high"] = params.spectrum_high;
+            response_doc["params"]["custom_param_1"] = params.custom_param_1;
+            response_doc["params"]["custom_param_2"] = params.custom_param_2;
+            response_doc["params"]["custom_param_3"] = params.custom_param_3;
+
+            String output;
+            serializeJson(response_doc, output);
+
+            auto *response = request->beginResponse(200, "application/json", output);
+            attach_cors_headers(response);
+            request->send(response);
         });
 
     // POST /api/select - Switch pattern by index or ID
@@ -211,18 +228,29 @@ void init_webserver() {
     <title>K1.reinvented Control</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; background: #1a1a1a; color: #fff; }
+        body { font-family: Arial, sans-serif; max-width: 700px; margin: 50px auto; padding: 20px; background: #1a1a1a; color: #fff; }
         h1 { text-align: center; color: #ff6b35; }
+        h2 { color: #ff6b35; margin-top: 20px; margin-bottom: 15px; font-size: 1.2em; border-bottom: 2px solid #ff6b35; padding-bottom: 8px; }
         .section { background: #2a2a2a; padding: 20px; margin: 20px 0; border-radius: 8px; }
-        label { display: block; margin: 10px 0 5px; }
-        input[type="range"] { width: 100%; }
+        .subsection { margin-bottom: 25px; }
+        .param-group { margin-bottom: 15px; }
+        label { display: block; margin: 8px 0 4px; font-weight: 500; }
+        input[type="range"] { width: 100%; height: 6px; }
         input[type="number"] { width: 100%; padding: 8px; background: #3a3a3a; border: 1px solid #555; color: #fff; border-radius: 4px; }
-        button { background: #ff6b35; color: #fff; border: none; padding: 10px 20px; margin: 5px; cursor: pointer; border-radius: 4px; }
+        button { background: #ff6b35; color: #fff; border: none; padding: 10px 20px; margin: 5px; cursor: pointer; border-radius: 4px; font-size: 0.95em; }
         button:hover { background: #ff8555; }
+        button.reset-btn { background: #666; }
+        button.reset-btn:hover { background: #888; }
         .pattern-list { display: grid; gap: 10px; }
         .pattern-btn { text-align: left; padding: 15px; background: #3a3a3a; border: 2px solid #555; }
         .pattern-btn.active { border-color: #ff6b35; background: #4a4a4a; }
-        .value-display { display: inline-block; min-width: 60px; text-align: right; color: #ff6b35; }
+        .value-display { display: inline-block; min-width: 50px; text-align: right; color: #ffa500; font-weight: bold; }
+        .spectrum-indicator { display: inline-flex; gap: 4px; margin-left: 10px; vertical-align: middle; }
+        .spectrum-bar { width: 12px; height: 12px; border-radius: 2px; }
+        .spectrum-low { background: #ff4444; }
+        .spectrum-mid { background: #ffaa44; }
+        .spectrum-high { background: #44aaff; }
+        .button-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
     </style>
 </head>
 <body>
@@ -234,24 +262,63 @@ void init_webserver() {
     </div>
 
     <div class="section">
-        <h2>Parameters</h2>
-        <label>Speed: <span class="value-display" id="speed-val">1.0</span></label>
-        <input type="range" id="speed" min="0.1" max="10" step="0.1" value="1.0">
+        <h2>Animation Control</h2>
+        <div class="subsection">
+            <div class="param-group">
+                <label>Speed: <span class="value-display" id="speed-val">1.0</span></label>
+                <input type="range" id="speed" min="0.1" max="10" step="0.1" value="1.0">
+            </div>
+            <div class="param-group">
+                <label>Brightness: <span class="value-display" id="brightness-val">0.3</span></label>
+                <input type="range" id="brightness" min="0" max="1" step="0.01" value="0.3">
+            </div>
+            <div class="param-group">
+                <label>Palette ID: <span class="value-display" id="palette-val">0</span></label>
+                <input type="number" id="palette_id" min="0" max="7" value="0">
+            </div>
+            <div class="param-group">
+                <label>Palette Shift: <span class="value-display" id="shift-val">0.0</span></label>
+                <input type="range" id="palette_shift" min="0" max="1" step="0.01" value="0">
+            </div>
+        </div>
 
-        <label>Brightness: <span class="value-display" id="brightness-val">0.3</span></label>
-        <input type="range" id="brightness" min="0" max="1" step="0.01" value="0.3">
+        <h2>Audio Reactivity</h2>
+        <div class="subsection">
+            <div class="param-group">
+                <label>Beat Sensitivity: <span class="value-display" id="beat-val">1.0</span></label>
+                <input type="range" id="beat_sensitivity" min="0" max="2" step="0.1" value="1.0">
+            </div>
+            <div class="param-group">
+                <label>Spectrum Response <span class="spectrum-indicator"><span class="spectrum-bar spectrum-low" title="Bass"></span><span class="spectrum-bar spectrum-mid" title="Mid"></span><span class="spectrum-bar spectrum-high" title="Treble"></span></span></label>
+                <label style="margin-top: 10px;">Bass (Low): <span class="value-display" id="spectrum-low-val">0.5</span></label>
+                <input type="range" id="spectrum_low" min="0" max="1" step="0.05" value="0.5">
+                <label style="margin-top: 8px;">Mid: <span class="value-display" id="spectrum-mid-val">0.5</span></label>
+                <input type="range" id="spectrum_mid" min="0" max="1" step="0.05" value="0.5">
+                <label style="margin-top: 8px;">Treble (High): <span class="value-display" id="spectrum-high-val">0.5</span></label>
+                <input type="range" id="spectrum_high" min="0" max="1" step="0.05" value="0.5">
+            </div>
+        </div>
 
-        <label>Palette ID: <span class="value-display" id="palette-val">0</span></label>
-        <input type="number" id="palette_id" min="0" max="7" value="0">
+        <h2>Customization</h2>
+        <div class="subsection">
+            <div class="param-group">
+                <label>Custom Parameter 1: <span class="value-display" id="custom-1-val">0.5</span></label>
+                <input type="range" id="custom_param_1" min="0" max="1" step="0.01" value="0.5">
+            </div>
+            <div class="param-group">
+                <label>Custom Parameter 2: <span class="value-display" id="custom-2-val">0.5</span></label>
+                <input type="range" id="custom_param_2" min="0" max="1" step="0.01" value="0.5">
+            </div>
+            <div class="param-group">
+                <label>Custom Parameter 3: <span class="value-display" id="custom-3-val">0.5</span></label>
+                <input type="range" id="custom_param_3" min="0" max="1" step="0.01" value="0.5">
+            </div>
+        </div>
 
-        <label>Palette Shift: <span class="value-display" id="shift-val">0.0</span></label>
-        <input type="range" id="palette_shift" min="0" max="1" step="0.01" value="0">
-
-        <label>Beat Sensitivity: <span class="value-display" id="beat-val">1.0</span></label>
-        <input type="range" id="beat_sensitivity" min="0" max="2" step="0.1" value="1.0">
-
-        <button onclick="updateParams()">Apply Parameters</button>
-        <button onclick="resetParams()">Reset to Defaults</button>
+        <div class="button-group">
+            <button onclick="updateParams()">Apply Parameters</button>
+            <button class="reset-btn" onclick="resetParams()">Reset to Defaults</button>
+        </div>
     </div>
 
     <script>
@@ -276,6 +343,7 @@ void init_webserver() {
             const res = await fetch('/api/params');
             const params = await res.json();
 
+            // Animation Control
             document.getElementById('speed').value = params.speed;
             document.getElementById('speed-val').textContent = params.speed.toFixed(1);
             document.getElementById('brightness').value = params.brightness;
@@ -284,8 +352,24 @@ void init_webserver() {
             document.getElementById('palette-val').textContent = params.palette_id;
             document.getElementById('palette_shift').value = params.palette_shift;
             document.getElementById('shift-val').textContent = params.palette_shift.toFixed(2);
+
+            // Audio Reactivity
             document.getElementById('beat_sensitivity').value = params.beat_sensitivity;
             document.getElementById('beat-val').textContent = params.beat_sensitivity.toFixed(1);
+            document.getElementById('spectrum_low').value = params.spectrum_low;
+            document.getElementById('spectrum-low-val').textContent = params.spectrum_low.toFixed(2);
+            document.getElementById('spectrum_mid').value = params.spectrum_mid;
+            document.getElementById('spectrum-mid-val').textContent = params.spectrum_mid.toFixed(2);
+            document.getElementById('spectrum_high').value = params.spectrum_high;
+            document.getElementById('spectrum-high-val').textContent = params.spectrum_high.toFixed(2);
+
+            // Customization
+            document.getElementById('custom_param_1').value = params.custom_param_1;
+            document.getElementById('custom-1-val').textContent = params.custom_param_1.toFixed(2);
+            document.getElementById('custom_param_2').value = params.custom_param_2;
+            document.getElementById('custom-2-val').textContent = params.custom_param_2.toFixed(2);
+            document.getElementById('custom_param_3').value = params.custom_param_3;
+            document.getElementById('custom-3-val').textContent = params.custom_param_3.toFixed(2);
         }
 
         async function selectPattern(index) {
@@ -303,13 +387,23 @@ void init_webserver() {
                 brightness: parseFloat(document.getElementById('brightness').value),
                 palette_id: parseInt(document.getElementById('palette_id').value),
                 palette_shift: parseFloat(document.getElementById('palette_shift').value),
-                beat_sensitivity: parseFloat(document.getElementById('beat_sensitivity').value)
+                beat_sensitivity: parseFloat(document.getElementById('beat_sensitivity').value),
+                spectrum_low: parseFloat(document.getElementById('spectrum_low').value),
+                spectrum_mid: parseFloat(document.getElementById('spectrum_mid').value),
+                spectrum_high: parseFloat(document.getElementById('spectrum_high').value),
+                custom_param_1: parseFloat(document.getElementById('custom_param_1').value),
+                custom_param_2: parseFloat(document.getElementById('custom_param_2').value),
+                custom_param_3: parseFloat(document.getElementById('custom_param_3').value)
             };
-            await fetch('/api/params', {
+            const res = await fetch('/api/params', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(params)
             });
+            if (!res.ok) {
+                console.log('Note: Some parameters may have been clamped to valid ranges');
+            }
+            loadParams();
         }
 
         async function resetParams() {
@@ -317,12 +411,18 @@ void init_webserver() {
             loadParams();
         }
 
-        // Update value displays on slider change
+        // Update value displays on slider/input change
         document.getElementById('speed').oninput = (e) => document.getElementById('speed-val').textContent = parseFloat(e.target.value).toFixed(1);
         document.getElementById('brightness').oninput = (e) => document.getElementById('brightness-val').textContent = parseFloat(e.target.value).toFixed(2);
         document.getElementById('palette_id').oninput = (e) => document.getElementById('palette-val').textContent = e.target.value;
         document.getElementById('palette_shift').oninput = (e) => document.getElementById('shift-val').textContent = parseFloat(e.target.value).toFixed(2);
         document.getElementById('beat_sensitivity').oninput = (e) => document.getElementById('beat-val').textContent = parseFloat(e.target.value).toFixed(1);
+        document.getElementById('spectrum_low').oninput = (e) => document.getElementById('spectrum-low-val').textContent = parseFloat(e.target.value).toFixed(2);
+        document.getElementById('spectrum_mid').oninput = (e) => document.getElementById('spectrum-mid-val').textContent = parseFloat(e.target.value).toFixed(2);
+        document.getElementById('spectrum_high').oninput = (e) => document.getElementById('spectrum-high-val').textContent = parseFloat(e.target.value).toFixed(2);
+        document.getElementById('custom_param_1').oninput = (e) => document.getElementById('custom-1-val').textContent = parseFloat(e.target.value).toFixed(2);
+        document.getElementById('custom_param_2').oninput = (e) => document.getElementById('custom-2-val').textContent = parseFloat(e.target.value).toFixed(2);
+        document.getElementById('custom_param_3').oninput = (e) => document.getElementById('custom-3-val').textContent = parseFloat(e.target.value).toFixed(2);
 
         // Load initial state
         loadPatterns();

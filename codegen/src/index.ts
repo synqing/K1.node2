@@ -190,6 +190,11 @@ function generateNodeCode(node: Node, graph: Graph): string {
             leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
             leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
         }
+
+        // Apply runtime parameters: brightness multiplier
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
     }`;
         }
 
@@ -241,8 +246,8 @@ function generateNodeCode(node: Node, graph: Graph): string {
             return '';
 
         case 'time':
-            // Return the time parameter
-            return 'time';
+            // Return time scaled by speed parameter
+            return '(time * params.speed)';
 
         case 'sin': {
             // sin(input * 2*pi) normalized to 0-1 range
@@ -364,19 +369,60 @@ function generateNodeCode(node: Node, graph: Graph): string {
         }
 
         case 'spectrum_range': {
-            // Average frequency range (e.g., bass bins 3-8)
-            const startBin = Number(node.parameters?.start_bin ?? 0);
-            const endBin = Number(node.parameters?.end_bin ?? 10);
-            if (startBin < 0 || startBin > 63 || endBin < 0 || endBin > 63 || startBin >= endBin) {
-                throw new Error(`spectrum_range: invalid bin range [${startBin}, ${endBin}]`);
+            // Average frequency range with runtime parameter support
+            // Check if node specifies which spectrum band (low/mid/high) to use
+            const band = (node.parameters?.band as string) || 'custom';
+
+            if (band === 'low') {
+                // Bass: bins 0-20 (~0-175Hz), controlled by params.spectrum_low
+                return `(
+                    fmin(1.0f, fmax(0.0f, (
+                        spectrogram[0] + spectrogram[1] + spectrogram[2] + spectrogram[3] +
+                        spectrogram[4] + spectrogram[5] + spectrogram[6] + spectrogram[7] +
+                        spectrogram[8] + spectrogram[9] + spectrogram[10] + spectrogram[11] +
+                        spectrogram[12] + spectrogram[13] + spectrogram[14] + spectrogram[15] +
+                        spectrogram[16] + spectrogram[17] + spectrogram[18] + spectrogram[19] +
+                        spectrogram[20]
+                    ) / 21.0f)) * params.spectrum_low
+                )`;
+            } else if (band === 'mid') {
+                // Midrange: bins 20-42 (~175-366Hz), controlled by params.spectrum_mid
+                return `(
+                    fmin(1.0f, fmax(0.0f, (
+                        spectrogram[20] + spectrogram[21] + spectrogram[22] + spectrogram[23] +
+                        spectrogram[24] + spectrogram[25] + spectrogram[26] + spectrogram[27] +
+                        spectrogram[28] + spectrogram[29] + spectrogram[30] + spectrogram[31] +
+                        spectrogram[32] + spectrogram[33] + spectrogram[34] + spectrogram[35] +
+                        spectrogram[36] + spectrogram[37] + spectrogram[38] + spectrogram[39] +
+                        spectrogram[40] + spectrogram[41] + spectrogram[42]
+                    ) / 23.0f)) * params.spectrum_mid
+                )`;
+            } else if (band === 'high') {
+                // Treble: bins 42-63 (~366Hz+), controlled by params.spectrum_high
+                return `(
+                    fmin(1.0f, fmax(0.0f, (
+                        spectrogram[42] + spectrogram[43] + spectrogram[44] + spectrogram[45] +
+                        spectrogram[46] + spectrogram[47] + spectrogram[48] + spectrogram[49] +
+                        spectrogram[50] + spectrogram[51] + spectrogram[52] + spectrogram[53] +
+                        spectrogram[54] + spectrogram[55] + spectrogram[56] + spectrogram[57] +
+                        spectrogram[58] + spectrogram[59] + spectrogram[60] + spectrogram[61] +
+                        spectrogram[62] + spectrogram[63]
+                    ) / 22.0f)) * params.spectrum_high
+                )`;
+            } else {
+                // Custom hardcoded range (backward compatibility for graphs without band parameter)
+                const startBin = Number(node.parameters?.start_bin ?? 0);
+                const endBin = Number(node.parameters?.end_bin ?? 10);
+                if (startBin < 0 || startBin > 63 || endBin < 0 || endBin > 63 || startBin >= endBin) {
+                    throw new Error(`spectrum_range: invalid bin range [${startBin}, ${endBin}]`);
+                }
+                const numBins = endBin - startBin + 1;
+                let sumCode = '';
+                for (let b = startBin; b <= endBin; b++) {
+                    sumCode += (b > startBin ? ' + ' : '') + `spectrogram[${b}]`;
+                }
+                return `((${sumCode}) / ${numBins}.0f)`;
             }
-            const numBins = endBin - startBin + 1;
-            // Generate inline averaging code
-            let sumCode = '';
-            for (let b = startBin; b <= endBin; b++) {
-                sumCode += (b > startBin ? ' + ' : '') + `spectrogram[${b}]`;
-            }
-            return `((${sumCode}) / ${numBins}.0f)`;
         }
 
         case 'audio_level': {
@@ -385,17 +431,16 @@ function generateNodeCode(node: Node, graph: Graph): string {
         }
 
         case 'beat': {
-            // Beat detection pulse (-1 to 1, normalized to 0-1)
+            // Beat detection pulse (-1 to 1, normalized to 0-1) with sensitivity control
             const tempoBin = Number(node.parameters?.tempo_bin ?? -1);
             if (tempoBin === -1) {
-                // Auto-detect strongest tempo - need to generate more complex inline code
-                // For simplicity, return a placeholder that uses first tempo bin
-                return `(tempi[0].beat * 0.5f + 0.5f)`;
+                // Auto-detect strongest tempo with beat_sensitivity multiplier
+                return `fmin(1.0f, (tempi[0].beat * 0.5f + 0.5f) * params.beat_sensitivity)`;
             } else {
                 if (tempoBin < 0 || tempoBin > 63) {
                     throw new Error(`beat: tempo_bin ${tempoBin} out of range (0-63)`);
                 }
-                return `(tempi[${tempoBin}].beat * 0.5f + 0.5f)`;
+                return `fmin(1.0f, (tempi[${tempoBin}].beat * 0.5f + 0.5f) * params.beat_sensitivity)`;
             }
         }
 

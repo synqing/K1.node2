@@ -1,0 +1,7 @@
+{
+  "device_ip": "192.168.1.50",
+  "ota_method": "arduino",
+  "dashboard_path": "/",
+  "pattern": "Twilight",
+  "upload_port": "3232"
+}
