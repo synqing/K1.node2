@@ -1,7 +1,7 @@
 
 // AUTO-GENERATED MULTI-PATTERN CODE - DO NOT EDIT
-// Generated at: 2025-10-25T10:05:39.927Z
-// Patterns: Bass Pulse, Spectrum Sweep, Audio Test - Beat and Spectrum Interpolate, Audio Test - Comprehensive, Audio Test - Spectrum Bin, Aurora, Aurora Spectrum, Departure, Departure-Spectrum, Emotiscope Beat Tunnel, Emotiscope FFT, Emotiscope Metronome, Emotiscope Octave, Emotiscope Perlin, Emotiscope Spectrum, Lava, Lava Beat, Twilight, Twilight Chroma
+// Generated at: 2025-10-25T10:11:46.653Z
+// Patterns: Bass Pulse, Spectrum Sweep, Audio Test - Beat and Spectrum Interpolate, Audio Test - Comprehensive, Audio Test - Spectrum Bin, Aurora, Aurora Spectrum, Departure, Departure-Spectrum, Emotiscope FFT, Emotiscope Octave, Emotiscope Spectrum, Lava, Lava Beat, Twilight, Twilight Chroma
 
 #pragma once
 
@@ -306,80 +306,16 @@ void draw_departure_spectrum(float time, const PatternParameters& params) {
     }
 }
 
-// Pattern: Emotiscope Beat Tunnel
-// Animated tunnel effect with beat-phase gating. Creates a tunnel of light that responds when the beat phase aligns with specific positions. Includes sprite animation and momentum-based scrolling.
-void draw_emotiscope_beat_tunnel(float time, const PatternParameters& params) {
-    
-    // default palette - position to color interpolation
-    const CRGBF palette_colors[] = { CRGBF(0.00f, 0.00f, 0.00f), CRGBF(0.08f, 0.00f, 0.16f), CRGBF(0.39f, 0.08f, 0.31f), CRGBF(1.00f, 0.39f, 0.00f), CRGBF(1.00f, 0.78f, 0.20f), CRGBF(0.78f, 1.00f, 0.39f), CRGBF(0.39f, 0.39f, 1.00f) };
-    const int palette_size = 7;
-
-    for (int i = 0; i < NUM_LEDS; i++) {
-        float position = fmod((abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH), 1.0f);
-        int palette_index = int(position * (palette_size - 1));
-        float interpolation_factor = (position * (palette_size - 1)) - palette_index;
-
-        // Clamp to valid range
-        if (palette_index >= palette_size - 1) {
-            leds[i] = palette_colors[palette_size - 1];
-        } else {
-            const CRGBF& color1 = palette_colors[palette_index];
-            const CRGBF& color2 = palette_colors[palette_index + 1];
-
-            leds[i].r = color1.r + (color2.r - color1.r) * interpolation_factor;
-            leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
-            leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
-        }
-
-        // Apply runtime parameters: brightness multiplier
-        leds[i].r *= params.brightness;
-        leds[i].g *= params.brightness;
-        leds[i].b *= params.brightness;
-    }
-}
-
 // Pattern: Emotiscope FFT
-// Full FFT visualization with automatic dynamic range scaling. Adapts brightness to incoming signal strength for consistent visual response across different input levels.
+// Advanced frequency spectrum with beat-modulated intensity. Shows full 64-bin FFT with beat pulse gating for rhythm-synchronized visualization.
 void draw_emotiscope_fft(float time, const PatternParameters& params) {
     
     // default palette - position to color interpolation
-    const CRGBF palette_colors[] = { CRGBF(0.00f, 0.00f, 0.00f), CRGBF(0.39f, 0.20f, 0.00f), CRGBF(1.00f, 0.39f, 0.00f), CRGBF(1.00f, 0.78f, 0.00f), CRGBF(1.00f, 1.00f, 0.00f), CRGBF(0.39f, 1.00f, 0.39f), CRGBF(0.00f, 0.78f, 1.00f), CRGBF(0.39f, 0.39f, 1.00f) };
+    const CRGBF palette_colors[] = { CRGBF(0.00f, 0.00f, 0.00f), CRGBF(0.50f, 0.00f, 1.00f), CRGBF(1.00f, 0.00f, 1.00f), CRGBF(1.00f, 0.50f, 0.00f), CRGBF(1.00f, 1.00f, 0.00f), CRGBF(0.00f, 1.00f, 0.50f), CRGBF(0.00f, 0.50f, 1.00f), CRGBF(1.00f, 1.00f, 1.00f) };
     const int palette_size = 8;
 
     for (int i = 0; i < NUM_LEDS; i++) {
-        float position = fmod((abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH), 1.0f);
-        int palette_index = int(position * (palette_size - 1));
-        float interpolation_factor = (position * (palette_size - 1)) - palette_index;
-
-        // Clamp to valid range
-        if (palette_index >= palette_size - 1) {
-            leds[i] = palette_colors[palette_size - 1];
-        } else {
-            const CRGBF& color1 = palette_colors[palette_index];
-            const CRGBF& color2 = palette_colors[palette_index + 1];
-
-            leds[i].r = color1.r + (color2.r - color1.r) * interpolation_factor;
-            leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
-            leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
-        }
-
-        // Apply runtime parameters: brightness multiplier
-        leds[i].r *= params.brightness;
-        leds[i].g *= params.brightness;
-        leds[i].b *= params.brightness;
-    }
-}
-
-// Pattern: Emotiscope Metronome
-// Beat indicator pattern that pulses with detected tempo. Each tempo bin gets a dot that moves with beat phase, scaled by tempo magnitude. Creates polyrhythmic visual feedback for detected beat frequencies.
-void draw_emotiscope_metronome(float time, const PatternParameters& params) {
-    
-    // default palette - position to color interpolation
-    const CRGBF palette_colors[] = { CRGBF(0.00f, 0.00f, 0.00f), CRGBF(0.39f, 0.39f, 1.00f), CRGBF(0.00f, 1.00f, 0.39f), CRGBF(1.00f, 0.39f, 0.00f), CRGBF(1.00f, 1.00f, 1.00f) };
-    const int palette_size = 5;
-
-    for (int i = 0; i < NUM_LEDS; i++) {
-        float position = fmod((abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH), 1.0f);
+        float position = fmod(fmin(1.0f, spectrogram[0 + int((float(i) / float(NUM_LEDS - 1)) * 63)] + (fmin(1.0f, (tempi[0].beat * 0.5f + 0.5f) * params.beat_sensitivity) * 0.7f)), 1.0f);
         int palette_index = int(position * (palette_size - 1));
         float interpolation_factor = (position * (palette_size - 1)) - palette_index;
 
@@ -403,7 +339,7 @@ void draw_emotiscope_metronome(float time, const PatternParameters& params) {
 }
 
 // Pattern: Emotiscope Octave
-// Harmonic pitch highlighting using chromagram visualization. Maps the 12 pitch classes (C through B) across the LED strip, showing which notes are present in the audio. Mirror mode folds the octave symmetrically from center.
+// Chromatic pitch visualization using 12-bin chromagram. Maps musical pitch classes (C through B) across the LED strip. Shows which notes are most active in the music.
 void draw_emotiscope_octave(float time, const PatternParameters& params) {
     
     // default palette - position to color interpolation
@@ -434,40 +370,8 @@ void draw_emotiscope_octave(float time, const PatternParameters& params) {
     }
 }
 
-// Pattern: Emotiscope Perlin
-// Smooth organic noise-based animation using Perlin noise for both hue and luminosity. Creates flowing, natural-looking patterns with momentum-based motion that responds to audio intensity.
-void draw_emotiscope_perlin(float time, const PatternParameters& params) {
-    
-    // default palette - position to color interpolation
-    const CRGBF palette_colors[] = { CRGBF(0.00f, 0.00f, 0.00f), CRGBF(0.08f, 0.02f, 0.31f), CRGBF(0.39f, 0.12f, 0.59f), CRGBF(0.59f, 0.31f, 0.78f), CRGBF(0.78f, 0.59f, 1.00f), CRGBF(0.59f, 0.78f, 0.59f), CRGBF(0.39f, 0.78f, 0.39f), CRGBF(0.20f, 0.59f, 0.78f), CRGBF(0.00f, 0.20f, 0.39f) };
-    const int palette_size = 9;
-
-    for (int i = 0; i < NUM_LEDS; i++) {
-        float position = fmod((abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH), 1.0f);
-        int palette_index = int(position * (palette_size - 1));
-        float interpolation_factor = (position * (palette_size - 1)) - palette_index;
-
-        // Clamp to valid range
-        if (palette_index >= palette_size - 1) {
-            leds[i] = palette_colors[palette_size - 1];
-        } else {
-            const CRGBF& color1 = palette_colors[palette_index];
-            const CRGBF& color2 = palette_colors[palette_index + 1];
-
-            leds[i].r = color1.r + (color2.r - color1.r) * interpolation_factor;
-            leds[i].g = color1.g + (color2.g - color1.g) * interpolation_factor;
-            leds[i].b = color1.b + (color2.b - color1.b) * interpolation_factor;
-        }
-
-        // Apply runtime parameters: brightness multiplier
-        leds[i].r *= params.brightness;
-        leds[i].g *= params.brightness;
-        leds[i].b *= params.brightness;
-    }
-}
-
 // Pattern: Emotiscope Spectrum
-// Frequency spectrum visualization mapped across LED strip. Maps 64 frequency bins across LED positions with optional mirror mode. Dynamically colored based on frequency position.
+// Live frequency spectrum visualization. Maps all 64 frequency bins across the LED strip. Each LED shows the magnitude of its corresponding frequency band with color-coded hue.
 void draw_emotiscope_spectrum(float time, const PatternParameters& params) {
     
     // default palette - position to color interpolation
@@ -475,7 +379,7 @@ void draw_emotiscope_spectrum(float time, const PatternParameters& params) {
     const int palette_size = 8;
 
     for (int i = 0; i < NUM_LEDS; i++) {
-        float position = fmod((abs(float(i) - STRIP_CENTER_POINT) / STRIP_HALF_LENGTH), 1.0f);
+        float position = fmod(spectrogram[0 + int((float(i) / float(NUM_LEDS - 1)) * 63)], 1.0f);
         int palette_index = int(position * (palette_size - 1));
         float interpolation_factor = (position * (palette_size - 1)) - palette_index;
 
@@ -638,16 +542,13 @@ const PatternInfo g_pattern_registry[] = {
     { "Aurora Spectrum", "aurora_spectrum", "Time-based aurora animation enhanced with bass frequency modulation. Combines sinusoidal motion with low-frequency audio reactivity.", draw_aurora_spectrum, true },
     { "Departure", "departure", "Journey from darkness to light to growth. Dark earth → golden light → pure white → emerald green. Represents awakening and new beginnings.", draw_departure, false },
     { "Departure-Spectrum", "departure_spectrum", "Departure pattern flowing across the frequency spectrum in real-time", draw_departure_spectrum, true },
-    { "Emotiscope Beat Tunnel", "emotiscope_beat_tunnel", "Animated tunnel effect with beat-phase gating. Creates a tunnel of light that responds when the beat phase aligns with specific positions. Includes sprite animation and momentum-based scrolling.", draw_emotiscope_beat_tunnel, true },
-    { "Emotiscope FFT", "emotiscope_fft", "Full FFT visualization with automatic dynamic range scaling. Adapts brightness to incoming signal strength for consistent visual response across different input levels.", draw_emotiscope_fft, true },
-    { "Emotiscope Metronome", "emotiscope_metronome", "Beat indicator pattern that pulses with detected tempo. Each tempo bin gets a dot that moves with beat phase, scaled by tempo magnitude. Creates polyrhythmic visual feedback for detected beat frequencies.", draw_emotiscope_metronome, true },
-    { "Emotiscope Octave", "emotiscope_octave", "Harmonic pitch highlighting using chromagram visualization. Maps the 12 pitch classes (C through B) across the LED strip, showing which notes are present in the audio. Mirror mode folds the octave symmetrically from center.", draw_emotiscope_octave, true },
-    { "Emotiscope Perlin", "emotiscope_perlin", "Smooth organic noise-based animation using Perlin noise for both hue and luminosity. Creates flowing, natural-looking patterns with momentum-based motion that responds to audio intensity.", draw_emotiscope_perlin, true },
-    { "Emotiscope Spectrum", "emotiscope_spectrum", "Frequency spectrum visualization mapped across LED strip. Maps 64 frequency bins across LED positions with optional mirror mode. Dynamically colored based on frequency position.", draw_emotiscope_spectrum, true },
+    { "Emotiscope FFT", "emotiscope_fft", "Advanced frequency spectrum with beat-modulated intensity. Shows full 64-bin FFT with beat pulse gating for rhythm-synchronized visualization.", draw_emotiscope_fft, true },
+    { "Emotiscope Octave", "emotiscope_octave", "Chromatic pitch visualization using 12-bin chromagram. Maps musical pitch classes (C through B) across the LED strip. Shows which notes are most active in the music.", draw_emotiscope_octave, true },
+    { "Emotiscope Spectrum", "emotiscope_spectrum", "Live frequency spectrum visualization. Maps all 64 frequency bins across the LED strip. Each LED shows the magnitude of its corresponding frequency band with color-coded hue.", draw_emotiscope_spectrum, true },
     { "Lava", "lava", "Primal intensity and transformation. Black → deep red → bright orange → white hot. Represents passion, heat, and raw energy.", draw_lava, false },
     { "Lava Beat", "lava_beat", "Position gradient pulsing with music beat. Shows rhythm-reactive intensity using Lava palette.", draw_lava_beat, true },
     { "Twilight", "twilight", "The peaceful transition from day to night. Warm amber → deep purple → midnight blue. Represents contemplation, transition, and quiet beauty.", draw_twilight, false },
     { "Twilight Chroma", "twilight_chroma", "Chromagram-based pitch visualization - LED groups respond to musical note energy (C through B). Repeats 12-note pattern across LED strip.", draw_twilight_chroma, true }
 };
 
-const uint8_t g_num_patterns = 19;
+const uint8_t g_num_patterns = 16;

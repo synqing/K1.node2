@@ -1,8 +1,7 @@
 {
   "name": "Emotiscope Octave",
-  "description": "Harmonic pitch highlighting using chromagram visualization. Maps the 12 pitch classes (C through B) across the LED strip, showing which notes are present in the audio. Mirror mode folds the octave symmetrically from center.",
-  "artistic_intent": "Reveal the harmonic content of the music by highlighting which musical notes (pitch classes) are most active. Different notes light up in different colors, creating a musical visualization that follows melody and harmony.",
-  "emotiscope_source": "octave.h - Chromagram visualization with octave folding",
+  "description": "Chromatic pitch visualization using 12-bin chromagram. Maps musical pitch classes (C through B) across the LED strip. Shows which notes are most active in the music.",
+  "artistic_intent": "Visualize the harmonic content by showing which pitch classes (C, C#, D, etc.) have the most energy. Different notes light up in different colors, revealing melody and harmony structure.",
   "audio_inputs": "chromagram[12] - 12-bin constant-Q transform (one per semitone: C, C#, D, D#, E, F, F#, G, G#, A, A#, B)",
   "palette_data": [
     [0, 0, 0, 0],

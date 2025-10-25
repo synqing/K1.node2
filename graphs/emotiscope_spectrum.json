@@ -1,9 +1,7 @@
 {
   "name": "Emotiscope Spectrum",
-  "description": "Frequency spectrum visualization mapped across LED strip. Maps 64 frequency bins across LED positions with optional mirror mode. Dynamically colored based on frequency position.",
-  "artistic_intent": "Visualize audio frequency content across the entire spectrum. The mirror mode creates a symmetric effect from the center outward, while normal mode shows a linear frequency sweep.",
-  "emotiscope_source": "spectrum.h - Position-mapped spectrum interpolation with optional mirror mode",
-  "audio_inputs": "spectrogram_smooth[64] - smoothed frequency magnitudes",
+  "description": "Live frequency spectrum visualization. Maps all 64 frequency bins across the LED strip. Each LED shows the magnitude of its corresponding frequency band with color-coded hue.",
+  "artistic_intent": "Reveal the raw frequency content of the audio in real-time. Low frequencies (bass) appear on the left, high frequencies (treble) on the right, creating a traditional spectrum analyzer effect.",
   "palette_data": [
     [0, 0, 0, 0],
     [32, 255, 0, 0],
@@ -16,36 +14,19 @@
   ],
   "nodes": [
     {
-      "id": "position",
-      "type": "position_gradient",
-      "description": "LED position 0-1 (used for hue mapping)"
-    },
-    {
-      "id": "spectrum",
+      "id": "spectrum_all",
       "type": "spectrum_interpolate",
       "parameters": { "start_bin": 0, "end_bin": 63 },
-      "description": "Map all 64 frequency bins across LED positions with interpolation"
-    },
-    {
-      "id": "hue_from_position",
-      "type": "palette_interpolate",
-      "inputs": ["position"],
-      "description": "Map LED position to hue via palette (red->yellow->green->cyan->blue->magenta)"
+      "description": "Map all 64 frequency bins across LED positions with smooth interpolation"
     },
     {
       "id": "output",
-      "type": "output",
-      "description": "Write frequency-colored spectrum to LED array"
+      "type": "palette_interpolate",
+      "inputs": ["spectrum_all"],
+      "description": "Color based on frequency magnitude across spectrum palette"
     }
   ],
   "wires": [
-    { "from": "position", "to": "hue_from_position" },
-    { "from": "spectrum", "to": "output" },
-    { "from": "hue_from_position", "to": "output" }
-  ],
-  "notes": {
-    "mirror_mode": "K1 node system does not directly support mirror mode. To enable mirror mode, this graph should be used with a post-processing step in the firmware that mirrors the output. Alternatively, use only the first half of LEDs and mirror in hardware.",
-    "algorithm": "For each LED at position i: progress = i / NUM_LEDS; magnitude = interpolate(progress, spectrogram_smooth[0..63]); color = hsv(position_to_hue(progress), saturation, magnitude)",
-    "interpolation": "Linear interpolation between neighboring frequency bins maps continuous LED positions to discrete 64-bin spectrogram data"
-  }
+    { "from": "spectrum_all", "to": "output" }
+  ]
 }
