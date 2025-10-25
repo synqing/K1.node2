@@ -1,0 +1,65 @@
+{
+  "name": "Emotiscope FFT",
+  "description": "Full FFT visualization with automatic dynamic range scaling. Adapts brightness to incoming signal strength for consistent visual response across different input levels.",
+  "artistic_intent": "Show frequency content with adaptive scaling that keeps the visualization engaging regardless of overall volume. The auto-scaling smooths over time to avoid flickering while responding to changes in dynamics.",
+  "emotiscope_source": "fft.h - Auto-scaling frequency response with smoothed magnitudes",
+  "audio_inputs": "fft_smooth[64] - FFT magnitude spectrum with smoothing applied",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [32, 100, 50, 0],
+    [64, 255, 100, 0],
+    [96, 255, 200, 0],
+    [128, 255, 255, 0],
+    [160, 100, 255, 100],
+    [192, 0, 200, 255],
+    [255, 100, 100, 255]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "LED position 0-1 for hue mapping"
+    },
+    {
+      "id": "fft_spectrum",
+      "type": "spectrum_interpolate",
+      "parameters": { "start_bin": 4, "end_bin": 63 },
+      "description": "Map FFT bins 4-63 (skip DC and very low frequencies) across LED positions"
+    },
+    {
+      "id": "auto_scale",
+      "type": "spectrum_range",
+      "parameters": { "start_bin": 4, "end_bin": 63 },
+      "description": "Find max magnitude in active range for auto-scaling"
+    },
+    {
+      "id": "scaled_spectrum",
+      "type": "multiply",
+      "inputs": ["fft_spectrum", "auto_scale"],
+      "description": "Scale spectrum by inverse of max magnitude for normalization"
+    },
+    {
+      "id": "hue_from_position",
+      "type": "palette_interpolate",
+      "inputs": ["position"],
+      "description": "Map LED position to hue (orange->yellow->green->cyan->blue->magenta)"
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "description": "Write scaled FFT to LED array"
+    }
+  ],
+  "wires": [
+    { "from": "position", "to": "hue_from_position" },
+    { "from": "fft_spectrum", "to": "scaled_spectrum" },
+    { "from": "auto_scale", "to": "scaled_spectrum" },
+    { "from": "scaled_spectrum", "to": "output" },
+    { "from": "hue_from_position", "to": "output" }
+  ],
+  "notes": {
+    "auto_scaling": "K1 node system cannot directly implement time-smoothed auto-scaling in a single pass. The spectrum_range node provides instantaneous max detection. For proper auto-scaling with smoothing (as in original: auto_scale_smooth = smooth * 0.99 + auto_scale * 0.01), this would require state management in firmware codegen.",
+    "bin_offset": "Emotiscope skips first 4 bins (DC and very low frequencies); this graph starts from bin 4 to match that behavior",
+    "algorithm": "For each LED: progress = i / NUM_LEDS; magnitude = interpolate(progress, fft_smooth[4..63]); normalized = magnitude / max(fft_smooth[4..63]); color = hsv(position_to_hue(progress), saturation, normalized)"
+  }
+}

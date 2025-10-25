@@ -1,0 +1,94 @@
+{
+  "name": "Emotiscope Beat Tunnel",
+  "description": "Animated tunnel effect with beat-phase gating. Creates a tunnel of light that responds when the beat phase aligns with specific positions. Includes sprite animation and momentum-based scrolling.",
+  "artistic_intent": "Create a sense of motion and depth by animating a tunnel that pulses with the beat. The tunnel contracts and expands based on beat synchronization, creating a hypnotic visual experience.",
+  "emotiscope_source": "beat_tunnel.h - Sprite animation with beat phase gating and tunnel effect",
+  "audio_inputs": "tempi[64].phase - beat phase for 64 tempo bins; tempi_smooth[64] - smoothed tempo magnitudes; tempo_confidence - beat detection confidence",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [42, 20, 0, 40],
+    [85, 100, 20, 80],
+    [127, 255, 100, 0],
+    [170, 255, 200, 50],
+    [212, 200, 255, 100],
+    [255, 100, 100, 255]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "LED position 0-1"
+    },
+    {
+      "id": "time",
+      "type": "time",
+      "description": "Animation time for tunnel motion"
+    },
+    {
+      "id": "tunnel_animation",
+      "type": "sin",
+      "inputs": ["time"],
+      "description": "Smooth sinusoidal animation for tunnel sprite"
+    },
+    {
+      "id": "beat_tempo",
+      "type": "beat",
+      "parameters": { "tempo_bin": -1 },
+      "description": "Auto-detect strongest beat from tempi array"
+    },
+    {
+      "id": "tempo_magnitude",
+      "type": "spectrum_range",
+      "parameters": { "start_bin": 0, "end_bin": 63 },
+      "description": "Get overall tempo magnitude across all tempo bins"
+    },
+    {
+      "id": "beat_gate",
+      "type": "multiply",
+      "inputs": ["beat_tempo", "tempo_magnitude"],
+      "description": "Gate tempo magnitude by beat phase (pulse when beat aligns)"
+    },
+    {
+      "id": "tunnel_tunnel_position",
+      "type": "add",
+      "inputs": ["tunnel_animation", "position"],
+      "description": "Add animation to base position for tunnel motion"
+    },
+    {
+      "id": "tunnel_output",
+      "type": "multiply",
+      "inputs": ["tunnel_tunnel_position", "beat_gate"],
+      "description": "Modulate tunnel position by beat gate for synchronization"
+    },
+    {
+      "id": "hue_map",
+      "type": "palette_interpolate",
+      "inputs": ["position"],
+      "description": "Map position to palette hue"
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "description": "Write tunnel effect to LED array"
+    }
+  ],
+  "wires": [
+    { "from": "time", "to": "tunnel_animation" },
+    { "from": "beat_tempo", "to": "beat_gate" },
+    { "from": "tempo_magnitude", "to": "beat_gate" },
+    { "from": "tunnel_animation", "to": "tunnel_tunnel_position" },
+    { "from": "position", "to": "tunnel_tunnel_position" },
+    { "from": "tunnel_tunnel_position", "to": "tunnel_output" },
+    { "from": "beat_gate", "to": "tunnel_output" },
+    { "from": "position", "to": "hue_map" },
+    { "from": "tunnel_output", "to": "output" },
+    { "from": "hue_map", "to": "output" }
+  ],
+  "notes": {
+    "state_limitation": "Emotiscope uses persistent state buffers (tunnel_image, tunnel_image_prev, angle, sprite) for complex sprite animation. The K1 node graph system cannot directly represent this multi-frame state. This simplified graph captures the beat gating and animation core, but loses the sprite texture warping and momentum effects.",
+    "sprite_animation": "Original uses draw_sprite() function with fade-out (0.965 factor) for motion blur. Node system approximates this with sinusoidal animation. For full effect, firmware codegen would need sprite buffer management.",
+    "beat_phase_gating": "Original gates tempo response when fabs(phase - 0.65) < 0.02. K1 node system cannot express phase-specific gating without custom nodes. Current graph uses beat magnitude as approximation.",
+    "tempo_mapping": "Emotiscope uses NUM_TEMPI (64) tempo bins; K1 node system defaults to strongest beat detection. For polyrhythmic effects, would need per-tempo-bin nodes.",
+    "algorithm": "Simplified: position += sin(time) * speed; brightness = beat_magnitude when beat_phase near 0.65; color = hue_from_position"
+  }
+}
