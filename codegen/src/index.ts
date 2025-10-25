@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { readFileSync, writeFileSync } from 'fs';
-import { resolve } from 'path';
+import { readFileSync, writeFileSync, readdirSync } from 'fs';
+import { resolve, join, basename } from 'path';
 import { program } from 'commander';
 import Handlebars from 'handlebars';
 
@@ -30,7 +30,7 @@ export interface Graph {
     palette_data?: Array<[number, number, number, number]>;
 }
 
-// C++ code template
+// C++ code template for single pattern
 const effectTemplate = `
 // AUTO-GENERATED CODE - DO NOT EDIT
 // Generated at: {{timestamp}}
@@ -45,6 +45,39 @@ void draw_generated_effect(float time) {
     {{{this}}}
     {{/each}}
 }
+`;
+
+// C++ code template for multi-pattern registry
+const multiPatternTemplate = `
+// AUTO-GENERATED MULTI-PATTERN CODE - DO NOT EDIT
+// Generated at: {{timestamp}}
+// Patterns: {{#each patterns}}{{name}}{{#unless @last}}, {{/unless}}{{/each}}
+
+#pragma once
+
+#include "pattern_registry.h"
+
+extern CRGBF leds[NUM_LEDS];
+
+{{#each patterns}}
+// Pattern: {{name}}
+// {{description}}
+void draw_{{safe_id}}(float time, const PatternParameters& params) {
+    {{#each steps}}
+    {{{this}}}
+    {{/each}}
+}
+
+{{/each}}
+
+// Pattern registry array
+const PatternInfo g_pattern_registry[] = {
+{{#each patterns}}
+    { "{{name}}", "{{safe_id}}", "{{description}}", draw_{{safe_id}}, {{is_audio_reactive}} }{{#unless @last}},{{/unless}}
+{{/each}}
+};
+
+const uint8_t g_num_patterns = {{patterns.length}};
 `;
 
 function generatePaletteData(paletteData: Array<[number, number, number, number]> | undefined): string {
@@ -120,7 +153,18 @@ function generateNodeCode(node: Node, graph: Graph): string {
             }
 
             // Generate palette data as C++ array
-            const paletteColors = graph.palette_data.map(([pos, r, g, b]) => {
+            // Support both array format [pos, r, g, b] and object format {position, r, g, b}
+            const paletteColors = graph.palette_data.map((entry: any) => {
+                let r, g, b;
+                if (Array.isArray(entry)) {
+                    // Array format: [pos, r, g, b]
+                    [, r, g, b] = entry;
+                } else {
+                    // Object format: {position, r, g, b}
+                    r = entry.r;
+                    g = entry.g;
+                    b = entry.b;
+                }
                 return `CRGBF(${(r/255).toFixed(2)}f, ${(g/255).toFixed(2)}f, ${(b/255).toFixed(2)}f)`;
             }).join(', ');
 
@@ -267,7 +311,7 @@ function generateNodeCode(node: Node, graph: Graph): string {
             if (!inputNode) throw new Error(`clamp input node not found: ${inputNodeId}`);
 
             const inputCode = generateNodeCode(inputNode, graph);
-            return `fmax(${min}f, fmin(${max}f, ${inputCode}))`;
+            return `fmax(${min.toFixed(1)}f, fmin(${max.toFixed(1)}f, ${inputCode}))`;
         }
 
         case 'modulo': {
@@ -337,7 +381,7 @@ function generateNodeCode(node: Node, graph: Graph): string {
 
         case 'audio_level': {
             // VU meter / overall volume (0-1)
-            return `vu_level`;
+            return `audio_level`;
         }
 
         case 'beat': {
@@ -378,7 +422,54 @@ function generateNodeCode(node: Node, graph: Graph): string {
     }
 }
 
+// Validate graph for center-origin architecture compliance
+// Prevents architectural violations that bypass center-origin coordinate system
+function validateCenterOriginCompliance(graph: Graph): void {
+    for (const node of graph.nodes) {
+        // RULE 1: Forbid gradient node (legacy linear gradient)
+        // This creates edge-to-edge rainbow effects (forbidden)
+        if (node.type === 'gradient') {
+            throw new Error(
+                `Center-origin violation: Node "${node.id}" uses forbidden gradient type.\n` +
+                `Linear gradients create edge-to-edge rainbows (NO RAINBOWS EVER).\n` +
+                `Use position_gradient + palette_interpolate for center-origin radial effects.`
+            );
+        }
+
+        // RULE 2: Warn on hsv_to_rgb (legacy rainbow converter)
+        // This is typically used with gradient to create rainbows
+        if (node.type === 'hsv_to_rgb') {
+            console.warn(
+                `Warning: Node "${node.id}" uses hsv_to_rgb (legacy rainbow converter).\n` +
+                `Ensure this is not creating edge-to-edge rainbow gradients.\n` +
+                `Prefer palette_interpolate with center-origin position_gradient.`
+            );
+        }
+    }
+}
+
+// Generate URL-safe ID from pattern name
+// "Lava Beat" -> "lava_beat"
+function generateSafeId(name: string): string {
+    return name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+// Detect if pattern uses audio-reactive nodes
+function isAudioReactive(graph: Graph): boolean {
+    const audioNodeTypes = [
+        'spectrum_bin', 'spectrum_interpolate', 'spectrum_range',
+        'audio_level', 'beat', 'tempo_magnitude', 'chromagram'
+    ];
+    return graph.nodes.some(node => audioNodeTypes.includes(node.type));
+}
+
 function compileGraph(graph: Graph): string {
+    // Validate center-origin architecture compliance
+    validateCenterOriginCompliance(graph);
+
     // Topological sort: generators first, output last
     const orderedNodes = [...graph.nodes].sort((a, b) => {
         // Input/generator nodes first (position_gradient, gradient, constant)
@@ -409,12 +500,80 @@ function compileGraph(graph: Graph): string {
     });
 }
 
+// Compile multiple graphs into a single pattern registry file
+function compileMultiPattern(graphs: Graph[]): string {
+    // Prepare pattern data
+    const patterns = graphs.map(graph => {
+        try {
+            console.log(`  Compiling: ${graph.name}`);
+
+            // Validate center-origin compliance
+            validateCenterOriginCompliance(graph);
+
+            // Generate code steps
+            const orderedNodes = [...graph.nodes].sort((a, b) => {
+                const aIsGenerator = a.type === 'position_gradient' || a.type === 'gradient' || a.type === 'constant';
+                const bIsGenerator = b.type === 'position_gradient' || b.type === 'gradient' || b.type === 'constant';
+                if (aIsGenerator && !bIsGenerator) return -1;
+                if (!aIsGenerator && bIsGenerator) return 1;
+                if (a.type === 'output') return 1;
+                if (b.type === 'output') return -1;
+                return 0;
+            });
+
+            const steps = orderedNodes
+                .filter(node => node.type === 'palette_interpolate')
+                .map(node => generateNodeCode(node, graph));
+
+            return {
+                name: graph.name || 'Unnamed Pattern',
+                description: graph.description || 'No description',
+                safe_id: generateSafeId(graph.name || 'unnamed'),
+                is_audio_reactive: isAudioReactive(graph) ? 'true' : 'false',
+                steps
+            };
+        } catch (error) {
+            console.error(`  ERROR compiling "${graph.name}": ${error}`);
+            throw error;
+        }
+    });
+
+    // Compile template
+    const template = Handlebars.compile(multiPatternTemplate);
+    return template({
+        timestamp: new Date().toISOString(),
+        patterns
+    });
+}
+
+// Load all JSON graph files from a directory
+function loadGraphsFromDirectory(dirPath: string): Graph[] {
+    const files = readdirSync(dirPath)
+        .filter(f => f.endsWith('.json'))
+        .sort();  // Alphabetical order for deterministic registry
+
+    if (files.length === 0) {
+        throw new Error(`No JSON files found in ${dirPath}`);
+    }
+
+    return files.map(file => {
+        const filePath = join(dirPath, file);
+        const json = readFileSync(filePath, 'utf-8');
+        const graph = JSON.parse(json) as Graph;
+        console.log(`  Loaded: ${file} (${graph.name || 'Unnamed'})`);
+        return graph;
+    });
+}
+
 // CLI setup
 program
     .version('0.1.0')
-    .description('Compile node graphs to C++ for K1.reinvented')
-    .argument('<input>', 'Input graph JSON file')
-    .argument('<output>', 'Output C++ file')
+    .description('Compile node graphs to C++ for K1.reinvented');
+
+// Single pattern compilation (original mode)
+program
+    .command('single <input> <output>')
+    .description('Compile single graph to C++ (original mode)')
     .action((input: string, output: string) => {
         try {
             console.log(`Compiling ${input} -> ${output}`);
@@ -432,6 +591,57 @@ program
             console.log(`✓ Generated ${output}`);
             console.log(`  ${graph.nodes.length} nodes compiled`);
             console.log(`  ${cppCode.split('\n').length} lines of C++ generated`);
+        } catch (error) {
+            console.error('Compilation failed:', error);
+            process.exit(1);
+        }
+    });
+
+// Multi-pattern compilation (new mode)
+program
+    .command('multi <input_dir> <output>')
+    .description('Compile all graphs in directory to multi-pattern registry')
+    .action((inputDir: string, output: string) => {
+        try {
+            console.log(`Compiling multi-pattern from ${inputDir} -> ${output}`);
+
+            // Load all graphs from directory
+            const graphs = loadGraphsFromDirectory(resolve(inputDir));
+
+            // Compile to multi-pattern C++
+            const cppCode = compileMultiPattern(graphs);
+
+            // Write output
+            writeFileSync(resolve(output), cppCode);
+
+            console.log(`✓ Generated ${output}`);
+            console.log(`  ${graphs.length} patterns compiled`);
+            console.log(`  ${cppCode.split('\n').length} lines of C++ generated`);
+        } catch (error) {
+            console.error('Multi-pattern compilation failed:', error);
+            process.exit(1);
+        }
+    });
+
+// Default behavior (backward compatibility)
+program
+    .argument('[input]', 'Input graph JSON file or directory')
+    .argument('[output]', 'Output C++ file')
+    .action((input?: string, output?: string) => {
+        // If no arguments, show help
+        if (!input || !output) {
+            program.help();
+            return;
+        }
+
+        // Delegate to single command for backward compatibility
+        try {
+            console.log(`Compiling ${input} -> ${output}`);
+            const graphJson = readFileSync(resolve(input), 'utf-8');
+            const graph = JSON.parse(graphJson) as Graph;
+            const cppCode = compileGraph(graph);
+            writeFileSync(resolve(output), cppCode);
+            console.log(`✓ Generated ${output}`);
         } catch (error) {
             console.error('Compilation failed:', error);
             process.exit(1);

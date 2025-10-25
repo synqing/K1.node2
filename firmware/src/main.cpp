@@ -5,8 +5,11 @@
 #include "types.h"
 #include "led_driver.h"
 #include "profiler.h"
-#include "audio_stubs.h"  // Phase D: Audio-reactive globals (demo stubs) - MUST come before generated_effect.h
-#include "generated_effect.h"
+#include "audio_stubs.h"  // Audio-reactive globals (demo stubs) - MUST come before generated_patterns.h
+#include "parameters.h"
+#include "pattern_registry.h"
+#include "generated_patterns.h"
+#include "webserver.h"
 
 // Configuration (hardcoded for Phase A simplicity)
 #define WIFI_SSID "OPTUS_738CC0N"
@@ -60,6 +63,21 @@ void setup() {
     Serial.println("Initializing audio-reactive stubs...");
     init_audio_stubs();
 
+    // Initialize parameter system
+    Serial.println("Initializing parameters...");
+    init_params();
+
+    // Initialize pattern registry
+    Serial.println("Initializing pattern registry...");
+    init_pattern_registry();
+    Serial.printf("  Loaded %d patterns\n", g_num_patterns);
+    Serial.printf("  Starting pattern: %s\n", get_current_pattern().name);
+
+    // Initialize web server
+    Serial.println("Initializing web server...");
+    init_webserver();
+    Serial.printf("  Control UI: http://%s.local/\n", ArduinoOTA.getHostname());
+
     Serial.println("Ready!");
     Serial.println("Upload new effects with:");
     Serial.printf("  pio run -t upload --upload-port %s.local\n", ArduinoOTA.getHostname());
@@ -76,8 +94,11 @@ void loop() {
     static uint32_t start_time = millis();
     float time = (millis() - start_time) / 1000.0f;
 
-    // Draw the generated effect (uses spectrogram[], tempi[], etc. if pattern is audio-reactive)
-    draw_generated_effect(time);
+    // Get current parameters (thread-safe read from active buffer)
+    const PatternParameters& params = get_params();
+
+    // Draw current pattern with runtime parameters
+    draw_current_pattern(time, params);
 
     // Transmit to LEDs via RMT
     transmit_leds();
@@ -86,4 +107,4 @@ void loop() {
     watch_cpu_fps();
     print_fps();
 }
-// Generated effect is included from generated_effect.h
+// All patterns are included from generated_patterns.h
