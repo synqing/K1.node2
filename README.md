@@ -239,6 +239,46 @@ cd firmware && pio run -t upload
 
 ---
 
+## Runtime Control (Registry, Parameters, Web)
+
+**Pattern Registry (firmware)**
+- Files: `firmware/src/pattern_registry.h`, `firmware/src/generated_patterns.h`
+- Concept: Patterns are registered with metadata and a function pointer. Switch at runtime without recompiling firmware.
+- API highlights:
+  - `select_pattern(uint8_t index)` → switch by index (bounds-checked)
+  - `select_pattern_by_id(const char* id)` → switch by stable ID string
+  - `get_current_pattern()` → inspect current selection
+  - `draw_current_pattern(time, params)` → renders the selected pattern
+
+Minimal example (inside your loop):
+```cpp
+extern float g_time; // your time accumulator
+draw_current_pattern(g_time, get_params());
+```
+
+**Runtime Parameters (thread-safe)**
+- Files: `firmware/src/parameters.h`, `firmware/src/parameters.cpp`
+- Concept: Double‑buffered parameters updated on Core 0 (e.g., web) and read on Core 1 (render) without tearing.
+- API highlights:
+  - `init_params()` → initialize buffers with `get_default_params()`
+  - `get_params()` → read active parameter set in render loop
+  - `update_params_safe(new_params)` → validate and swap atomically
+
+Parameter struct includes: `speed`, `brightness`, `palette_id`, `palette_shift`, `beat_sensitivity`, `spectrum_low/mid/high`, `custom_param_1..3`.
+
+**Web Server (optional, async)**
+- File: `firmware/src/webserver.h`
+- Initialize with `init_webserver()` in `setup()`; non‑blocking, safe to use alongside render loop.
+- Intended REST surface (subject to implementation):
+  - `GET /api/patterns` → list: `[ { id, name, is_audio_reactive }, ... ]`
+  - `POST /api/select` body: `{ id: "lava" }` → returns `{ ok: true }`
+  - `GET /api/params` → returns current `PatternParameters`
+  - `POST /api/params` body: `PatternParameters` → updates via `update_params_safe`
+
+Note: Web endpoints are scaffolding; consult `webserver.cpp` in this repo for current status.
+
+---
+
 ## What Comes Next
 
 **Phase A (Now):** Prove the vision works. Prove it's fast. Prove it's beautiful.
