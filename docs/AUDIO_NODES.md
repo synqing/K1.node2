@@ -6,7 +6,7 @@ Audio-reactive nodes enable K1.reinvented patterns to respond to music and sound
 ## Audio Globals Available
 - `spectrogram[64]` - Frequency spectrum analysis (0-63 bins)
 - `spectrogram_smooth[64]` - Smoothed frequency spectrum
-- `vu_level` - Overall volume level (0-1)
+- `audio_level` - Overall volume level (0-1)
 - `tempi[64]` - Tempo/beat detection data
 - `chromagram[12]` - Pitch class energy (C through B)
 
@@ -113,7 +113,7 @@ Overall volume level from VU meter (already normalized 0-1).
 
 **Generated Code:**
 ```cpp
-vu_level
+audio_level
 ```
 
 **Use Cases:**
