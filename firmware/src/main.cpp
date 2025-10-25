@@ -5,6 +5,7 @@
 #include "types.h"
 #include "led_driver.h"
 #include "profiler.h"
+#include "audio_stubs.h"  // Phase D: Audio-reactive globals (demo stubs) - MUST come before generated_effect.h
 #include "generated_effect.h"
 
 // Configuration (hardcoded for Phase A simplicity)
@@ -55,6 +56,10 @@ void setup() {
     });
     ArduinoOTA.begin();
 
+    // Initialize audio stubs (demo audio-reactive globals)
+    Serial.println("Initializing audio-reactive stubs...");
+    init_audio_stubs();
+
     Serial.println("Ready!");
     Serial.println("Upload new effects with:");
     Serial.printf("  pio run -t upload --upload-port %s.local\n", ArduinoOTA.getHostname());
@@ -64,11 +69,14 @@ void loop() {
     // Handle OTA updates
     ArduinoOTA.handle();
 
+    // Update audio-reactive globals (demo stubs for now)
+    update_audio_stubs();
+
     // Track time for animation
     static uint32_t start_time = millis();
     float time = (millis() - start_time) / 1000.0f;
 
-    // Draw the generated effect
+    // Draw the generated effect (uses spectrogram[], tempi[], etc. if pattern is audio-reactive)
     draw_generated_effect(time);
 
     // Transmit to LEDs via RMT
