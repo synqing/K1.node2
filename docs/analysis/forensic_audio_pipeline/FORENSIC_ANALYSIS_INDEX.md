@@ -439,10 +439,10 @@ Basis:
 
 ## Document Links
 
-- **Full Technical Analysis:** `/firmware/FORENSIC_ANALYSIS_POST_OPTIMIZATION.md`
-- **Quick Reference Tables:** `/firmware/BOTTLENECK_ELIMINATION_SUMMARY.md`
-- **Metrics & Checklist:** `/firmware/METRICS_BEFORE_AFTER.txt`
-- **This Index:** `/FORENSIC_ANALYSIS_INDEX.md`
+- **Full Technical Analysis:** `FORENSIC_ANALYSIS_POST_OPTIMIZATION.md`
+- **Quick Reference Tables:** `BOTTLENECK_ELIMINATION_SUMMARY.md`
+- **Metrics & Checklist:** `METRICS_BEFORE_AFTER.txt`
+- **This Index:** `docs/analysis/forensic_audio_pipeline/FORENSIC_ANALYSIS_INDEX.md`
 
 ---
 

@@ -61,11 +61,11 @@ Successfully deployed **5 specialized agents in parallel** to execute a comprehe
 
 **Files Created**:
 - `firmware/src/pattern_audio_interface.h` (14 KB)
-- `firmware/PATTERN_AUDIO_API_REFERENCE.md` (18 KB)
-- `firmware/PHASE_2_PATTERN_MIGRATION_EXAMPLES.md` (22 KB)
-- `firmware/PHASE_2_VALIDATION_CHECKLIST.md` (18 KB)
-- `firmware/PHASE_2_IMPLEMENTATION_SUMMARY.md` (17 KB)
-- `firmware/PATTERN_AUDIO_QUICK_REFERENCE.md` (5 KB)
+- `../resources/patterns/PATTERN_AUDIO_API_REFERENCE.md` (18 KB)
+- `../analysis/forensic_audio_pipeline/PHASE_2_PATTERN_MIGRATION_EXAMPLES.md` (22 KB)
+- `../analysis/forensic_audio_pipeline/PHASE_2_VALIDATION_CHECKLIST.md` (18 KB)
+- `../analysis/forensic_audio_pipeline/PHASE_2_IMPLEMENTATION_SUMMARY.md` (17 KB)
+- `../resources/patterns/PATTERN_AUDIO_QUICK_REFERENCE.md` (5 KB)
 
 ---
 
@@ -198,10 +198,10 @@ Documentation/
 ├── ../resources/AUDIO_SYNCHRONIZATION_GUIDE.md (650 lines)
 ├── ../resources/PATTERN_DEVELOPER_GUIDE.md (700+ lines)
 ├── ../../Implementation.plans/runbooks/DEPLOYMENT_CHECKLIST.md (580 lines)
-├── PATTERN_AUDIO_API_REFERENCE.md (18 KB)
-├── PHASE_2_PATTERN_MIGRATION_EXAMPLES.md (22 KB)
-├── PHASE_2_VALIDATION_CHECKLIST.md (18 KB)
-├── PHASE_2_IMPLEMENTATION_SUMMARY.md (17 KB)
+├── ../resources/patterns/PATTERN_AUDIO_API_REFERENCE.md (18 KB)
+├── ../analysis/forensic_audio_pipeline/PHASE_2_PATTERN_MIGRATION_EXAMPLES.md (22 KB)
+├── ../analysis/forensic_audio_pipeline/PHASE_2_VALIDATION_CHECKLIST.md (18 KB)
+├── ../analysis/forensic_audio_pipeline/PHASE_2_IMPLEMENTATION_SUMMARY.md (17 KB)
 ├── PHASE_4_VALIDATION_REPORT.md (22 KB)
 ├── CODEGEN_PHASE2_SUMMARY.md
 ├── CODEGEN_EXAMPLES.md
@@ -468,8 +468,8 @@ cat PHASE_4_VALIDATION_REPORT.md              # Test procedures
 cat ../../Implementation.plans/runbooks/DEPLOYMENT_CHECKLIST.md                   # Pre-deployment checks
 
 # Reference
-cat firmware/PATTERN_AUDIO_API_REFERENCE.md   # API documentation
-cat firmware/PATTERN_AUDIO_QUICK_REFERENCE.md # One-page cheat sheet
+cat ../resources/patterns/PATTERN_AUDIO_API_REFERENCE.md   # API documentation
+cat ../resources/patterns/PATTERN_AUDIO_QUICK_REFERENCE.md # One-page cheat sheet
 ```
 
 ---

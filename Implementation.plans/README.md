@@ -3,7 +3,7 @@
 Active execution artifacts only. Archive completed work under `../docs/`.
 
 ## Structure
-- `runbooks/` — repeatable operational workflows (e.g. `DEPLOYMENT_CHECKLIST.md`)
+- `runbooks/` — repeatable operational workflows (e.g. `DEPLOYMENT_CHECKLIST.md`, `test-ultra-supreme-workflow.yaml`)
 - `roadmaps/` — phase or sprint plans that are currently in motion
 - `backlog/` — prioritised task stacks awaiting scheduling
 

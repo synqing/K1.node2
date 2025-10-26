@@ -19,6 +19,12 @@ docs/resources/
 │   ├── embedded_firmware_engineer_cheatsheet.md
 │   ├── code_reviewer_quality_validator_cheatsheet.md
 │   └── multiplier_orchestrator_cheatsheet.md
+├── patterns/
+│   ├── ADVANCED_CHOREOGRAPHY_PATTERNS.md
+│   ├── PATTERN_AUDIO_API_REFERENCE.md
+│   ├── PATTERN_AUDIO_QUICK_REFERENCE.md
+│   ├── PATTERN_QUICK_START.md
+│   └── PATTERN_VISUAL_GUIDE.md
 ├── performance_baseline_schema.md
 ├── testing_standards.md
 └── [other references as added]

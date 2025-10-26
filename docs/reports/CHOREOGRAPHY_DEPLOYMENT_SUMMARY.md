@@ -141,7 +141,7 @@ Successfully created 8 advanced audio-reactive light show patterns optimized for
 
 ```
 /firmware/
-├── ADVANCED_CHOREOGRAPHY_PATTERNS.md  (18 KB, comprehensive reference)
+├── ../resources/patterns/ADVANCED_CHOREOGRAPHY_PATTERNS.md  (18 KB, comprehensive reference)
 ├── PATTERN_QUICK_START.md             (12 KB, 5-minute tutorial)
 ├── PATTERN_AUDIO_API_REFERENCE.md     (existing, 15 KB)
 └── PATTERN_DEVELOPER_GUIDE.md         (existing, 20 KB)
@@ -356,10 +356,10 @@ The dual-core optimization has enabled sophisticated audio-reactive choreography
 
 ## Support & Documentation
 
-- **Comprehensive Reference**: `firmware/ADVANCED_CHOREOGRAPHY_PATTERNS.md`
-- **Quick Start Guide**: `firmware/PATTERN_QUICK_START.md`
-- **Audio API Reference**: `firmware/PATTERN_AUDIO_API_REFERENCE.md`
-- **Developer Guide**: `firmware/PATTERN_DEVELOPER_GUIDE.md`
+- **Comprehensive Reference**: `../resources/patterns/ADVANCED_CHOREOGRAPHY_PATTERNS.md`
+- **Quick Start Guide**: `../resources/patterns/PATTERN_QUICK_START.md`
+- **Audio API Reference**: `../resources/patterns/PATTERN_AUDIO_API_REFERENCE.md`
+- **Developer Guide**: `../resources/PATTERN_DEVELOPER_GUIDE.md`
 
 ---
 

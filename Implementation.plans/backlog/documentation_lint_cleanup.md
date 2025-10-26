@@ -25,7 +25,7 @@ Bring legacy Markdown files up to the linting baseline surfaced by
 ## Follow-Up Queue
 
 - Audit `docs/reports/` for large tables causing MD013; consider scoped disables with comments.
-- Review firmware documentation under `firmware/` (e.g., `PATTERN_AUDIO_API_REFERENCE.md`) for missing fence languages.
+- Review pattern documentation under `docs/resources/patterns/` (e.g., `PATTERN_AUDIO_API_REFERENCE.md`) for missing fence languages.
 - Track completion status in the weekly doc triage log.
 
 ## Notes
