@@ -94,7 +94,7 @@ const commandResponses: Record<string, { type: 'success' | 'error' | 'info'; tex
   },
 };
 
-export function TerminalView({ isConnected }: TerminalViewProps) {
+export function TerminalView({ isConnected, k1Client }: TerminalViewProps) {
   const [logs, setLogs] = useState<LogEntry[]>(initialLogs);
   const [commandInput, setCommandInput] = useState('');
   const [commandHistory, setCommandHistory] = useState<CommandHistoryEntry[]>([]);
