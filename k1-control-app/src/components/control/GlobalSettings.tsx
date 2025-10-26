@@ -52,7 +52,7 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
             max={100}
             step={1}
             value={[brightness]}
-            onValueChange={([value]) => setBrightness(value)}
+            onValueChange={([value]: number[]) => setBrightness(value)}
             disabled={disabled}
             className="w-full"
           />
@@ -94,7 +94,7 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
               max={100}
               step={25}
               value={[blur]}
-              onValueChange={([value]) => setBlur(value)}
+              onValueChange={([value]: number[]) => setBlur(value)}
               disabled={disabled}
               className="w-full"
             />
@@ -124,7 +124,7 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
             max={100}
             step={1}
             value={[softness]}
-            onValueChange={([value]) => setSoftness(value)}
+            onValueChange={([value]: number[]) => setSoftness(value)}
             disabled={disabled}
             className="w-full"
           />
