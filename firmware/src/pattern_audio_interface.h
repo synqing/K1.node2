@@ -273,6 +273,86 @@ inline float get_audio_band_energy(const AudioDataSnapshot& audio,
 #define AUDIO_TREBLE()   get_audio_band_energy(audio, 48, 63)  // 1.76-6.4 kHz
 
 // ============================================================================
+// TEMPO BIN ACCESS (Advanced: Per-Tempo-Bin Beat Detection & Phase Tracking)
+// ============================================================================
+
+/**
+ * AUDIO_TEMPO_MAGNITUDE(bin)
+ *
+ * Access the magnitude (strength) of a specific tempo bin (0-63).
+ * Range: 0.0-1.0 (auto-ranged)
+ *
+ * USE CASES:
+ *   - Multi-tempo visualizations (different color per tempo bin)
+ *   - Polyrhythmic effects (e.g., kick at 100 BPM, hi-hat at 200 BPM)
+ *   - Find strongest tempo: iterate to find max value
+ *   - Tempo confidence filtering (only render if magnitude > threshold)
+ *
+ * EXAMPLE:
+ *   // Find strongest tempo bin
+ *   int strongest = 0;
+ *   for (int i = 1; i < NUM_TEMPI; i++) {
+ *       if (AUDIO_TEMPO_MAGNITUDE(i) > AUDIO_TEMPO_MAGNITUDE(strongest)) {
+ *           strongest = i;
+ *       }
+ *   }
+ *
+ * PERFORMANCE NOTE:
+ *   - Array lookup is O(1)
+ *   - Safe to call in inner loops
+ *   - Bounds-checked at generation time (all indices 0-63 valid)
+ */
+#define AUDIO_TEMPO_MAGNITUDE(bin)  (audio.tempo_magnitude[(bin)])
+
+/**
+ * AUDIO_TEMPO_PHASE(bin)
+ *
+ * Access the phase angle (in radians, -π to π) of a specific tempo bin.
+ * Allows beat-locked animations synchronized to specific tempo hypothesis.
+ *
+ * USE CASES:
+ *   - Phase-locked effects (brightness follows sin(phase) for smooth pulse)
+ *   - Beat synchronization (effects trigger at specific phase angles)
+ *   - Polyrhythmic rendering (different phases for different instruments)
+ *   - Visual beat indicators (direction/rotation based on phase)
+ *
+ * EXAMPLE (Beat Pulse Synchronized to Tempo Bin 32):
+ *   float bin_32_phase = AUDIO_TEMPO_PHASE(32);
+ *   float brightness = 0.5 + 0.5 * sin(bin_32_phase);  // 0.0-1.0
+ *   fill_solid(leds, NUM_LEDS, CRGBF(brightness, 0, 0));
+ *
+ * EXAMPLE (Find and Sync to Strongest Tempo):
+ *   int strongest_bin = find_strongest_tempo_bin();  // Your helper
+ *   float phase = AUDIO_TEMPO_PHASE(strongest_bin);
+ *   float beat = sin(phase);  // -1.0 to 1.0
+ *   // Use beat for synchronized animation
+ *
+ * RANGE:
+ *   - -π (-3.14159) to +π (+3.14159) radians
+ *   - Phase wraps: phase > π becomes phase - 2π
+ *   - Phase wraps: phase < -π becomes phase + 2π
+ *   - Best practice: Use sin(phase) or cos(phase) to get normalized -1 to 1
+ */
+#define AUDIO_TEMPO_PHASE(bin)      (audio.tempo_phase[(bin)])
+
+/**
+ * AUDIO_TEMPO_BEAT(bin)  [Derived from phase]
+ *
+ * Convenience macro: Converts phase to beat signal (-1.0 to 1.0).
+ * Equivalent to sin(AUDIO_TEMPO_PHASE(bin)).
+ *
+ * USE CASES:
+ *   - Direct beat amplitude without phase math
+ *   - Simpler code than manually calling sin(AUDIO_TEMPO_PHASE(bin))
+ *   - Natural beat oscillation for brightness/color
+ *
+ * EXAMPLE:
+ *   float beat = AUDIO_TEMPO_BEAT(32);  // Simplified
+ *   float brightness = 0.5 + 0.5 * beat;  // 0.0-1.0
+ */
+#define AUDIO_TEMPO_BEAT(bin)       (sinf(AUDIO_TEMPO_PHASE(bin)))
+
+// ============================================================================
 // MIGRATION EXAMPLE: Before and After
 // ============================================================================
 

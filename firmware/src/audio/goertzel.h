@@ -71,11 +71,12 @@ struct freq {
 
 // Tempo detection structure - represents a single tempo hypothesis
 typedef struct {
-	float magnitude;           // Current beat magnitude
+	float magnitude;           // Current beat magnitude (normalized, auto-ranged 0.0-1.0)
+	float magnitude_full_scale; // Full-scale magnitude before auto-ranging
 	float magnitude_smooth;    // Smoothed beat magnitude
-	float beat;                // Beat trigger (0.0 - 1.0)
-	float phase;               // Beat phase
-	float target_tempo_hz;     // Target tempo frequency
+	float beat;                // Beat trigger (-1.0 to 1.0, sin(phase))
+	float phase;               // Beat phase (radians, -π to π)
+	float target_tempo_hz;     // Target tempo frequency (Hz)
 	uint16_t block_size;
 	float window_step;
 	float coeff;

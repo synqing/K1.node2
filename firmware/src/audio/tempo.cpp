@@ -175,6 +175,10 @@ float calculate_magnitude_of_tempo(uint16_t tempo_bin) {
 	float magnitude = sqrt(magnitude_squared);
 	float normalized_magnitude = magnitude / (block_size / 2.0);
 
+	// CRITICAL FIX: Store full-scale magnitude in struct (was missing!)
+	// This field is needed by calculate_tempo_magnitudes() for auto-ranging
+	tempi[tempo_bin].magnitude_full_scale = normalized_magnitude;
+
 	return normalized_magnitude;
 }
 
@@ -182,8 +186,10 @@ void calculate_tempo_magnitudes(uint32_t block_index) {
 	// Calculate all tempo bin magnitudes with auto-ranging
 	float max_val = 0.0;
 
+	// First pass: calculate all magnitudes and find max
 	for (uint16_t i = 0; i < NUM_TEMPI; i++) {
 		float magnitude = calculate_magnitude_of_tempo(i);
+		// Now tempi[i].magnitude_full_scale has been set in calculate_magnitude_of_tempo()
 
 		if (magnitude > max_val) {
 			max_val = magnitude;
@@ -196,9 +202,10 @@ void calculate_tempo_magnitudes(uint32_t block_index) {
 
 	float autoranger_scale = 1.0 / max_val;
 
-	// Normalize and store magnitudes
+	// Second pass: normalize and store magnitudes
 	for (uint16_t i = 0; i < NUM_TEMPI; i++) {
-		float scaled_magnitude = tempi[i].magnitude * autoranger_scale;
+		// CRITICAL FIX: Use magnitude_full_scale (which was just computed) not old magnitude
+		float scaled_magnitude = tempi[i].magnitude_full_scale * autoranger_scale;
 		if (scaled_magnitude < 0.0) {
 			scaled_magnitude = 0.0;
 		}
