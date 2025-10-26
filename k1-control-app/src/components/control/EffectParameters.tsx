@@ -173,7 +173,7 @@ export function EffectParameters({ selectedEffect, disabled }: EffectParametersP
                   max={param.max}
                   step={param.step}
                   value={[Number(paramValues[param.id] ?? param.defaultValue)]}
-                  onValueChange={([value]) => handleValueChange(param.id, value)}
+                  onValueChange={([value]: number[]) => handleValueChange(param.id, value)}
                   disabled={disabled}
                   className="w-full"
                 />
@@ -187,7 +187,7 @@ export function EffectParameters({ selectedEffect, disabled }: EffectParametersP
                   <Switch
                     id={param.id}
                     checked={Boolean(paramValues[param.id] ?? param.defaultValue)}
-                    onCheckedChange={(checked) => handleValueChange(param.id, checked)}
+                    onCheckedChange={(checked: boolean) => handleValueChange(param.id, checked)}
                     disabled={disabled}
                   />
                 </div>
@@ -196,7 +196,7 @@ export function EffectParameters({ selectedEffect, disabled }: EffectParametersP
               {param.type === 'select' && (
                 <Select
                   value={String(paramValues[param.id] ?? param.defaultValue)}
-                  onValueChange={(value) => handleValueChange(param.id, value)}
+                  onValueChange={(value: string) => handleValueChange(param.id, value)}
                   disabled={disabled}
                 >
                   <SelectTrigger id={param.id}>
