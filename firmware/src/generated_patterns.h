@@ -156,6 +156,124 @@ CRGBF color_from_palette(uint8_t palette_index, float progress, float brightness
 }
 
 // ============================================================================
+// HELPER FUNCTIONS - Infrastructure for ported light shows
+// ============================================================================
+
+/**
+ * HSV to RGB color conversion
+ * Input: h, s, v all in range 0.0-1.0
+ * Output: CRGBF with r, g, b in range 0.0-1.0
+ *
+ * Used by beat/tempo reactive patterns to generate colors from hue values
+ */
+CRGBF hsv(float h, float s, float v) {
+	// Normalize hue to 0-1 range
+	h = fmodf(h, 1.0f);
+	if (h < 0.0f) h += 1.0f;
+
+	// Clamp saturation and value
+	s = fmaxf(0.0f, fminf(1.0f, s));
+	v = fmaxf(0.0f, fminf(1.0f, v));
+
+	// Handle achromatic (gray) case
+	if (s == 0.0f) {
+		return CRGBF(v, v, v);
+	}
+
+	// Convert HSV to RGB using standard algorithm
+	float h_i = h * 6.0f;
+	int i = (int)h_i;
+	float f = h_i - floorf(h_i);
+
+	float p = v * (1.0f - s);
+	float q = v * (1.0f - s * f);
+	float t = v * (1.0f - s * (1.0f - f));
+
+	CRGBF result;
+	switch (i % 6) {
+		case 0: result = CRGBF(v, t, p); break;
+		case 1: result = CRGBF(q, v, p); break;
+		case 2: result = CRGBF(p, v, t); break;
+		case 3: result = CRGBF(p, q, v); break;
+		case 4: result = CRGBF(t, p, v); break;
+		case 5: result = CRGBF(v, p, q); break;
+		default: result = CRGBF(0, 0, 0); break;
+	}
+
+	return result;
+}
+
+/**
+ * Apply mirror/split mode to LED array
+ * Copies first half to second half in reverse for symmetrical patterns
+ */
+inline void apply_mirror_mode(CRGBF* leds, bool enabled) {
+	if (!enabled) return;
+
+	int half = NUM_LEDS / 2;
+	for (int i = 0; i < half; i++) {
+		leds[NUM_LEDS - 1 - i] = leds[i];
+	}
+}
+
+/**
+ * Alpha-blend two color arrays
+ * Used for sprite rendering and persistence effects (tunnel, etc)
+ * Result: dest[i] = dest[i] * (1 - alpha) + sprite[i] * alpha
+ */
+inline void blend_sprite(CRGBF* dest, const CRGBF* sprite, uint32_t length, float alpha) {
+	// Clamp alpha
+	alpha = fmaxf(0.0f, fminf(1.0f, alpha));
+	float inv_alpha = 1.0f - alpha;
+
+	for (uint32_t i = 0; i < length; i++) {
+		dest[i].r = dest[i].r * inv_alpha + sprite[i].r * alpha;
+		dest[i].g = dest[i].g * inv_alpha + sprite[i].g * alpha;
+		dest[i].b = dest[i].b * inv_alpha + sprite[i].b * alpha;
+	}
+}
+
+/**
+ * Convenient inline macros for LED position lookups
+ * Eliminates repeated division operations in pattern loops
+ */
+#define LED_PROGRESS(i) ((float)(i) / (float)NUM_LEDS)
+#define TEMPO_PROGRESS(i) ((float)(i) / (float)NUM_TEMPI)
+
+/**
+ * Perlin-like noise function (pseudo-random based on sine)
+ * Not true Perlin noise but provides smooth variation
+ * Used by procedural patterns like Perlin noise mode
+ */
+inline float perlin_noise_simple(float x, float y) {
+	float n = sinf(x * 12.9898f + y * 78.233f) * 43758.5453f;
+	return fmodf(n, 1.0f);
+}
+
+/**
+ * Fill array with Perlin-like noise values
+ * Used for procedural noise pattern generation
+ */
+inline void fill_array_with_perlin(float* array, uint16_t length, float x, float y, float scale) {
+	for (uint16_t i = 0; i < length; i++) {
+		float t = i / (float)length;
+		float noise_x = x + t * scale;
+		float noise_y = y + scale * 0.5f;
+		array[i] = perlin_noise_simple(noise_x, noise_y);
+	}
+}
+
+/**
+ * Get hue from position (0.0-1.0) across visible spectrum
+ * Maps: red → orange → yellow → green → cyan → blue → magenta → red
+ * Used to create rainbow gradients across LED strips
+ */
+inline float get_hue_from_position(float position) {
+	// Map position (0.0-1.0) directly to hue
+	return fmodf(position, 1.0f);
+}
+
+// ============================================================================
 // DOMAIN 1: STATIC INTENTIONAL PATTERNS
 // ============================================================================
 
@@ -442,6 +560,197 @@ void draw_bloom(float time, const PatternParameters& params) {
 	}
 }
 
+/**
+ * Pattern: Pulse (Beat-Reactive Waves)
+ * Emotion: Heartbeat - spawns concentric waves on beat detection
+ *
+ * Architecture (Emotiscope pulse.h reference):
+ * - Maintains pool of 6 concurrent waves
+ * - Each wave: Gaussian bell curve with exponential decay
+ * - Color from dominant chromatic note
+ * - Additive blending for overlapping waves
+ * - Speed parameter controls wave propagation
+ */
+
+#define MAX_PULSE_WAVES 6
+
+typedef struct {
+	float position;      // 0.0-1.0 normalized position from center
+	float speed;         // LEDs per frame
+	float hue;           // Color from dominant chroma note
+	float brightness;    // Initial amplitude from beat strength
+	uint16_t age;        // Frames since spawned
+	bool active;         // Is this wave active?
+} pulse_wave;
+
+static pulse_wave pulse_waves[MAX_PULSE_WAVES];
+
+// Helper: get dominant chromatic note (highest energy in chromagram)
+float get_dominant_chroma_hue() {
+	AudioDataSnapshot audio = {0};
+	bool audio_available = get_audio_snapshot(&audio);
+
+	if (!audio_available) {
+		return 0.0f;  // Default to C if no audio available
+	}
+
+	float max_chroma = 0.0f;
+	uint16_t max_index = 0;
+
+	for (uint16_t i = 0; i < 12; i++) {
+		if (audio.chromagram[i] > max_chroma) {
+			max_chroma = audio.chromagram[i];
+			max_index = i;
+		}
+	}
+
+	// Map chromagram index (0-11) to hue (0.0-1.0)
+	return (float)max_index / 12.0f;
+}
+
+void draw_pulse(float time, const PatternParameters& params) {
+	PATTERN_AUDIO_START();
+
+	// Fallback to ambient if no audio
+	if (!AUDIO_IS_AVAILABLE()) {
+		for (int i = 0; i < NUM_LEDS; i++) {
+			leds[i] = color_from_palette(params.palette_id, 0.5f, params.background * 0.3f);
+		}
+		return;
+	}
+
+	// Beat detection and wave spawning
+	float beat_threshold = 0.3f;
+	if (AUDIO_TEMPO_CONFIDENCE > beat_threshold) {
+		// Spawn new wave on beat
+		for (uint16_t i = 0; i < MAX_PULSE_WAVES; i++) {
+			if (!pulse_waves[i].active) {
+				pulse_waves[i].position = 0.0f;
+				pulse_waves[i].speed = (0.2f + params.speed * 0.4f);
+				pulse_waves[i].hue = get_dominant_chroma_hue();
+				pulse_waves[i].brightness = sqrtf(AUDIO_TEMPO_CONFIDENCE);
+				pulse_waves[i].age = 0;
+				pulse_waves[i].active = true;
+				break; // Only spawn one wave per frame
+			}
+		}
+	}
+
+	// Clear LED buffer
+	for (int i = 0; i < NUM_LEDS; i++) {
+		leds[i] = CRGBF(0, 0, 0);
+	}
+
+	// Update and render all active waves
+	float decay_factor = 0.02f + (params.softness * 0.03f);
+	float base_width = 0.08f;
+	float width_growth = 0.05f;
+
+	for (uint16_t w = 0; w < MAX_PULSE_WAVES; w++) {
+		if (!pulse_waves[w].active) continue;
+
+		// Update wave position
+		pulse_waves[w].position += pulse_waves[w].speed;
+		pulse_waves[w].age++;
+
+		// Deactivate if wave traveled past LEDs
+		if (pulse_waves[w].position > 1.5f) {
+			pulse_waves[w].active = false;
+			continue;
+		}
+
+		// Render wave as Gaussian bell curve
+		float decay = expf(-(float)pulse_waves[w].age * decay_factor);
+		float wave_width = base_width + width_growth * pulse_waves[w].age;
+
+		for (int i = 0; i < (NUM_LEDS >> 1); i++) {
+			float led_progress = LED_PROGRESS(i);
+
+			// Gaussian bell curve centered at wave position
+			float distance = fabsf(led_progress - pulse_waves[w].position);
+			float gaussian = expf(-(distance * distance) / (2.0f * wave_width * wave_width));
+
+			// Combine brightness with decay
+			float intensity = pulse_waves[w].brightness * gaussian * decay;
+			intensity = fmaxf(0.0f, fminf(1.0f, intensity));
+
+			// Get color from palette using hue
+			CRGBF color = color_from_palette(params.palette_id, pulse_waves[w].hue, intensity);
+
+			// Additive blending for overlapping waves
+			leds[i].r = fmaxf(0.0f, fminf(1.0f, leds[i].r + color.r * intensity));
+			leds[i].g = fmaxf(0.0f, fminf(1.0f, leds[i].g + color.g * intensity));
+			leds[i].b = fmaxf(0.0f, fminf(1.0f, leds[i].b + color.b * intensity));
+		}
+	}
+
+	// Mirror from center
+	apply_mirror_mode(leds, true);
+
+	// Apply global brightness
+	for (int i = 0; i < NUM_LEDS; i++) {
+		leds[i].r *= params.brightness;
+		leds[i].g *= params.brightness;
+		leds[i].b *= params.brightness;
+	}
+}
+
+/**
+ * Pattern: Tempiscope (Tempo Visualization)
+ * Emotion: Rhythm - displays beat phase across tempo spectrum
+ *
+ * Architecture (Emotiscope tempiscope.h reference):
+ * - Visualizes all 64 tempo bins
+ * - Shows beat phase with sine modulation
+ * - Color gradient across tempo frequency range
+ * - Responds to tempo confidence
+ */
+void draw_tempiscope(float time, const PatternParameters& params) {
+	PATTERN_AUDIO_START();
+
+	// Fallback to animated gradient if no audio
+	if (!AUDIO_IS_AVAILABLE()) {
+		float phase = fmodf(time * params.speed * 0.3f, 1.0f);
+		for (int i = 0; i < NUM_LEDS; i++) {
+			float position = fmodf(phase + LED_PROGRESS(i), 1.0f);
+			leds[i] = color_from_palette(params.palette_id, position, params.background * 0.5f);
+		}
+		return;
+	}
+
+	// Clear LED buffer
+	for (int i = 0; i < NUM_LEDS; i++) {
+		leds[i] = CRGBF(0, 0, 0);
+	}
+
+	// Render tempo bins with phase modulation
+	float tempo_confidence = AUDIO_TEMPO_CONFIDENCE;
+	float freshness_factor = AUDIO_IS_STALE() ? 0.5f : 1.0f;
+
+	// Only render if confident beat detected
+	if (tempo_confidence > 0.2f) {
+		for (uint16_t i = 0; i < NUM_TEMPI && i < NUM_LEDS; i++) {
+			// Phase modulation with sine (approximate - no tempo phase data yet)
+			float phase_sine = sinf(time * 6.28318f * (50.0f + i * 50.0f) / 1000.0f);
+			float phase_factor = 1.0f - ((phase_sine + 1.0f) * 0.5f);
+
+			// Tempo magnitude (approximate - use confidence for all bins)
+			float magnitude = tempo_confidence * freshness_factor * phase_factor;
+			magnitude = fmaxf(0.005f, magnitude); // Minimum brightness threshold
+			magnitude = fmaxf(0.0f, fminf(1.0f, magnitude));
+
+			// Color gradient across tempo range
+			float hue_progress = LED_PROGRESS(i);
+			CRGBF color = color_from_palette(params.palette_id, hue_progress, magnitude);
+
+			// Apply brightness and saturation
+			leds[i].r = color.r * params.brightness * params.saturation;
+			leds[i].g = color.g * params.brightness * params.saturation;
+			leds[i].b = color.b * params.brightness * params.saturation;
+		}
+	}
+}
+
 // ============================================================================
 // PATTERN REGISTRY
 // ============================================================================
@@ -489,6 +798,21 @@ const PatternInfo g_pattern_registry[] = {
 		"bloom",
 		"VU-meter with persistence",
 		draw_bloom,
+		true
+	},
+	// Domain 3: Beat/Tempo Reactive Patterns (Ported from Emotiscope)
+	{
+		"Pulse",
+		"pulse",
+		"Beat-synchronized radial waves",
+		draw_pulse,
+		true
+	},
+	{
+		"Tempiscope",
+		"tempiscope",
+		"Tempo visualization with phase",
+		draw_tempiscope,
 		true
 	}
 };
