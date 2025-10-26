@@ -14,6 +14,7 @@
 #include "pattern_registry.h"
 #include "generated_patterns.h"
 #include "webserver.h"
+#include "cpu_monitor.h"
 #include "connection_state.h"
 #include "wifi_monitor.h"
 
@@ -40,6 +41,10 @@ void handle_wifi_connected() {
     if (!network_services_started) {
         Serial.println("Initializing web server...");
         init_webserver();
+        
+        Serial.println("Initializing CPU monitor...");
+        cpu_monitor.init();
+        
         network_services_started = true;
     }
 
@@ -216,6 +221,9 @@ void loop() {
     // Handle OTA updates (non-blocking check)
     ArduinoOTA.handle();
 
+    // Handle web server (includes WebSocket cleanup)
+    handle_webserver();
+
     // Run audio processing at fixed cadence to avoid throttling render FPS
     static uint32_t last_audio_ms = 0;
     const uint32_t audio_interval_ms = 20; // ~50 Hz audio processing
@@ -223,6 +231,16 @@ void loop() {
     if ((now_ms - last_audio_ms) >= audio_interval_ms) {
         run_audio_pipeline_once();
         last_audio_ms = now_ms;
+    }
+
+    // Broadcast real-time data to WebSocket clients at 10 Hz
+    static uint32_t last_broadcast_ms = 0;
+    const uint32_t broadcast_interval_ms = 100; // 10 Hz broadcast rate
+    if ((now_ms - last_broadcast_ms) >= broadcast_interval_ms) {
+        // Update CPU monitor before broadcasting
+        cpu_monitor.update();
+        broadcast_realtime_data();
+        last_broadcast_ms = now_ms;
     }
 
     // Track time for animation

@@ -7,14 +7,103 @@
 #include "audio/goertzel.h"  // For audio configuration (microphone gain)
 #include "palettes.h"        // For palette metadata API
 #include "wifi_monitor.h"    // For WiFi link options API
+#include "connection_state.h" // For connection state reporting
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
+#include "profiler.h"        // For performance metrics (FPS, micro-timings)
+#include "cpu_monitor.h"     // For CPU usage monitoring
+#include <AsyncWebSocket.h>  // For WebSocket real-time updates
+
+// Forward declaration: Attach CORS headers to response
+static void attach_cors_headers(AsyncWebServerResponse *response);
+
+// Forward declaration: Create standardized error response
+static AsyncWebServerResponse* create_error_response(AsyncWebServerRequest *request, int status_code, const char* error_code, const char* message = nullptr);
+
+// Forward declaration: Apply partial parameter updates from JSON
+static void apply_params_json(const JsonObjectConst& root);
+
+// Forward declaration: WebSocket event handler
+static void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
 
 // Global async web server on port 80
 static AsyncWebServer server(80);
 
-// Forward declaration: Attach CORS headers to response
-static void attach_cors_headers(AsyncWebServerResponse *response);
+// Global WebSocket server at /ws endpoint
+static AsyncWebSocket ws("/ws");
+
+// Method-aware rate limiting
+enum RouteMethod { ROUTE_GET = 0, ROUTE_POST = 1 };
+struct RouteWindow { const char* path; RouteMethod method; uint32_t window_ms; uint32_t last_ms; };
+
+// Route key constants (extend here for future endpoints)
+static const char* ROUTE_PARAMS = "/api/params";
+static const char* ROUTE_WIFI_LINK_OPTIONS = "/api/wifi/link-options";
+static const char* ROUTE_SELECT = "/api/select";
+static const char* ROUTE_AUDIO_CONFIG = "/api/audio-config";
+static const char* ROUTE_RESET = "/api/reset";
+static const char* ROUTE_METRICS = "/metrics";
+static const char* ROUTE_PATTERNS = "/api/patterns";
+static const char* ROUTE_PALETTES = "/api/palettes";
+static const char* ROUTE_DEVICE_INFO = "/api/device/info";
+static const char* ROUTE_TEST_CONNECTION = "/api/test-connection";
+static const char* ROUTE_DEVICE_PERFORMANCE = "/api/device/performance";
+static const char* ROUTE_CONFIG_BACKUP = "/api/config/backup";
+static const char* ROUTE_CONFIG_RESTORE = "/api/config/restore";
+
+// Per-route windows; GET requests are not rate limited by default
+static RouteWindow control_windows[] = {
+    {ROUTE_PARAMS, ROUTE_POST, 300, 0},
+    {ROUTE_WIFI_LINK_OPTIONS, ROUTE_POST, 300, 0},
+    {ROUTE_SELECT, ROUTE_POST, 200, 0},
+    {ROUTE_AUDIO_CONFIG, ROUTE_POST, 300, 0},
+    {ROUTE_RESET, ROUTE_POST, 1000, 0},
+    {ROUTE_METRICS, ROUTE_GET, 200, 0},
+    {ROUTE_PARAMS, ROUTE_GET, 150, 0},
+    {ROUTE_AUDIO_CONFIG, ROUTE_GET, 500, 0},
+    {ROUTE_WIFI_LINK_OPTIONS, ROUTE_GET, 500, 0},
+    {ROUTE_PATTERNS, ROUTE_GET, 1000, 0},
+    {ROUTE_PALETTES, ROUTE_GET, 2000, 0},
+    {ROUTE_DEVICE_INFO, ROUTE_GET, 1000, 0},
+    {ROUTE_TEST_CONNECTION, ROUTE_GET, 200, 0},
+    {ROUTE_DEVICE_PERFORMANCE, ROUTE_GET, 500, 0},
+    {ROUTE_CONFIG_BACKUP, ROUTE_GET, 2000, 0},
+    {ROUTE_CONFIG_RESTORE, ROUTE_POST, 2000, 0},
+};
+
+static bool route_is_rate_limited(const char* path, RouteMethod method, uint32_t* out_window_ms = nullptr, uint32_t* out_next_allowed_ms = nullptr) {
+    uint32_t now = millis();
+    for (size_t i = 0; i < sizeof(control_windows)/sizeof(control_windows[0]); ++i) {
+        RouteWindow& w = control_windows[i];
+        if (strcmp(w.path, path) == 0 && w.method == method) {
+            if (w.window_ms == 0) {
+                if (out_window_ms) *out_window_ms = 0;
+                if (out_next_allowed_ms) *out_next_allowed_ms = 0;
+                return false;
+            }
+            if (w.last_ms != 0 && (now - w.last_ms) < w.window_ms) {
+                if (out_window_ms) *out_window_ms = w.window_ms;
+                uint32_t remaining = (w.last_ms + w.window_ms > now) ? (w.last_ms + w.window_ms - now) : 0;
+                if (out_next_allowed_ms) *out_next_allowed_ms = remaining;
+                return true;
+            }
+            // Not limited; update last_ms
+            w.last_ms = now;
+            if (out_window_ms) *out_window_ms = w.window_ms;
+            if (out_next_allowed_ms) *out_next_allowed_ms = 0;
+            return false;
+        }
+    }
+    // Default: GET is unlimited; unknown POST routes treated as unlimited unless added
+    if (method == ROUTE_GET) {
+        if (out_window_ms) *out_window_ms = 0;
+        if (out_next_allowed_ms) *out_next_allowed_ms = 0;
+        return false;
+    }
+    if (out_window_ms) *out_window_ms = 0;
+    if (out_next_allowed_ms) *out_next_allowed_ms = 0;
+    return false;
+}
 
 // Helper: Build JSON response for current parameters
 String build_params_json() {
@@ -93,31 +182,87 @@ String build_palettes_json() {
     return output;
 }
 
+
+
 // Initialize web server with REST API endpoints
 void init_webserver() {
     // GET /api/patterns - List all available patterns
-    server.on("/api/patterns", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on(ROUTE_PATTERNS, HTTP_GET, [](AsyncWebServerRequest *request) {
+        uint32_t window_ms = 0, next_ms = 0;
+        if (route_is_rate_limited(ROUTE_PATTERNS, ROUTE_GET, &window_ms, &next_ms)) {
+            auto *resp429 = create_error_response(request, 429, "rate_limited", "Too many requests");
+            resp429->addHeader("X-RateLimit-Window", String(window_ms));
+            resp429->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+            request->send(resp429);
+            return;
+        }
         auto *response = request->beginResponse(200, "application/json", build_patterns_json());
         attach_cors_headers(response);
         request->send(response);
     });
 
     // GET /api/params - Get current parameters
-    server.on("/api/params", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on(ROUTE_PARAMS, HTTP_GET, [](AsyncWebServerRequest *request) {
+        // Per-route rate limiting with debug headers (GET)
+        uint32_t window_ms = 0, next_ms = 0;
+        if (route_is_rate_limited(ROUTE_PARAMS, ROUTE_GET, &window_ms, &next_ms)) {
+            auto *resp429 = create_error_response(request, 429, "rate_limited", "Too many requests");
+            resp429->addHeader("X-RateLimit-Window", String(window_ms));
+            resp429->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+            request->send(resp429);
+            return;
+        }
+
         auto *response = request->beginResponse(200, "application/json", build_params_json());
         attach_cors_headers(response);
         request->send(response);
     });
 
-    // GET /api/palettes - Get palette metadata
-    server.on("/api/palettes", HTTP_GET, [](AsyncWebServerRequest *request) {
+    // GET /api/palettes - List all available palettes
+    server.on(ROUTE_PALETTES, HTTP_GET, [](AsyncWebServerRequest *request) {
+        uint32_t window_ms = 0, next_ms = 0;
+        if (route_is_rate_limited(ROUTE_PALETTES, ROUTE_GET, &window_ms, &next_ms)) {
+            auto *resp429 = create_error_response(request, 429, "rate_limited", "Too many requests");
+            resp429->addHeader("X-RateLimit-Window", String(window_ms));
+            resp429->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+            request->send(resp429);
+            return;
+        }
         auto *response = request->beginResponse(200, "application/json", build_palettes_json());
         attach_cors_headers(response);
         request->send(response);
     });
 
+    // GET /api/device/info - Device information snapshot
+    server.on(ROUTE_DEVICE_INFO, HTTP_GET, [](AsyncWebServerRequest *request) {
+        uint32_t window_ms = 0, next_ms = 0;
+        if (route_is_rate_limited(ROUTE_DEVICE_INFO, ROUTE_GET, &window_ms, &next_ms)) {
+            auto *resp429 = create_error_response(request, 429, "rate_limited", "Too many requests");
+            resp429->addHeader("X-RateLimit-Window", String(window_ms));
+            resp429->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+            request->send(resp429);
+            return;
+        }
+
+        StaticJsonDocument<256> doc;
+        doc["device"] = "K1.reinvented";
+        #ifdef ESP_ARDUINO_VERSION
+        doc["firmware"] = String(ESP.getSdkVersion());
+        #else
+        doc["firmware"] = "Unknown";
+        #endif
+        doc["uptime"] = (uint32_t)(millis() / 1000);
+        doc["ip"] = WiFi.localIP().toString();
+        doc["mac"] = WiFi.macAddress();
+        String output;
+        serializeJson(doc, output);
+        auto *resp = request->beginResponse(200, "application/json", output);
+        attach_cors_headers(resp);
+        request->send(resp);
+    });
+
     // POST /api/params - Update parameters (partial update supported)
-    server.on("/api/params", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
+    server.on(ROUTE_PARAMS, HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
         [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
             String *body = static_cast<String*>(request->_tempObject);
             if (index == 0) {
@@ -131,63 +276,42 @@ void init_webserver() {
                 return;  // Wait for more data
             }
 
-            StaticJsonDocument<512> doc;
-            DeserializationError error = deserializeJson(doc, *body);
-            delete body;
+            // Per-route rate limiting with debug headers
+            uint32_t window_ms = 0, next_ms = 0;
+            if (route_is_rate_limited(ROUTE_PARAMS, ROUTE_POST, &window_ms, &next_ms)) {
+                delete body;
+                request->_tempObject = nullptr;
+                auto *response = create_error_response(request, 429, "rate_limited", "Too many requests");
+                response->addHeader("X-RateLimit-Window", String(window_ms));
+                response->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+                request->send(response);
+                return;
+            }
+            
+            String *bodyStr = static_cast<String*>(request->_tempObject);
+            StaticJsonDocument<1024> doc;
+            DeserializationError error = deserializeJson(doc, *bodyStr);
+            delete bodyStr;
             request->_tempObject = nullptr;
 
             if (error) {
-                auto *response = request->beginResponse(400, "application/json", "{\"error\":\"Invalid JSON\"}");
-                attach_cors_headers(response);
+                auto *response = create_error_response(request, 400, "invalid_json", "Request body contains invalid JSON");
                 request->send(response);
                 return;
             }
 
-            PatternParameters new_params = get_params();
+            // Apply partial parameter updates
+            apply_params_json(doc.as<JsonObjectConst>());
 
-            // Global visual controls
-            if (doc.containsKey("brightness")) new_params.brightness = doc["brightness"].as<float>();
-            if (doc.containsKey("softness")) new_params.softness = doc["softness"].as<float>();
-            if (doc.containsKey("color")) new_params.color = doc["color"].as<float>();
-            if (doc.containsKey("color_range")) new_params.color_range = doc["color_range"].as<float>();
-            if (doc.containsKey("saturation")) new_params.saturation = doc["saturation"].as<float>();
-            if (doc.containsKey("warmth")) new_params.warmth = doc["warmth"].as<float>();
-            if (doc.containsKey("background")) new_params.background = doc["background"].as<float>();
-            // Pattern-specific
-            if (doc.containsKey("speed")) new_params.speed = doc["speed"].as<float>();
-            if (doc.containsKey("palette_id")) new_params.palette_id = doc["palette_id"].as<uint8_t>();
-
-            // Validate and clamp parameters
-            bool success = update_params_safe(new_params);
-            // Then update directly (same as /reset endpoint which works correctly)
-            update_params(new_params);
-
-            // Always return 200 - parameters were applied (may be clamped, but still applied)
-            StaticJsonDocument<512> response_doc;
-            response_doc["success"] = true;
-            response_doc["clamped"] = !success;  // true if any values were clamped
-
-            const PatternParameters& params = get_params();
-            response_doc["params"]["brightness"] = params.brightness;
-            response_doc["params"]["softness"] = params.softness;
-            response_doc["params"]["color"] = params.color;
-            response_doc["params"]["color_range"] = params.color_range;
-            response_doc["params"]["saturation"] = params.saturation;
-            response_doc["params"]["warmth"] = params.warmth;
-            response_doc["params"]["background"] = params.background;
-            response_doc["params"]["speed"] = params.speed;
-            response_doc["params"]["palette_id"] = params.palette_id;
-
-            String output;
-            serializeJson(response_doc, output);
-
-            auto *response = request->beginResponse(200, "application/json", output);
-            attach_cors_headers(response);
-            request->send(response);
+            // Respond with updated params
+            String response = build_params_json();
+            auto *resp = request->beginResponse(200, "application/json", response);
+            attach_cors_headers(resp);
+            request->send(resp);
         });
 
     // POST /api/select - Switch pattern by index or ID
-    server.on("/api/select", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
+    server.on(ROUTE_SELECT, HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
         [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
             String *body = static_cast<String*>(request->_tempObject);
             if (index == 0) {
@@ -199,6 +323,19 @@ void init_webserver() {
 
             if (index + len != total) {
                 return;  // Wait for more data
+            }
+
+            // Per-route rate limiting with debug headers
+            uint32_t window_ms = 0, next_ms = 0;
+            if (route_is_rate_limited(ROUTE_SELECT, ROUTE_POST, &window_ms, &next_ms)) {
+                delete body;
+                request->_tempObject = nullptr;
+                auto *response = request->beginResponse(429, "application/json", "{\"error\":\"rate_limited\"}");
+                response->addHeader("X-RateLimit-Window", String(window_ms));
+                response->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+                attach_cors_headers(response);
+                request->send(response);
+                return;
             }
 
             StaticJsonDocument<256> doc;
@@ -236,14 +373,23 @@ void init_webserver() {
                 serializeJson(response, output);
                 request->send(200, "application/json", output);
             } else {
-                auto *response = request->beginResponse(404, "application/json", "{\"error\":\"Invalid pattern index or ID\"}");
-                attach_cors_headers(response);
+                auto *response = create_error_response(request, 404, "pattern_not_found", "Invalid pattern index or ID");
                 request->send(response);
             }
         });
 
     // POST /api/reset - Reset parameters to defaults
-    server.on("/api/reset", HTTP_POST, [](AsyncWebServerRequest *request) {
+    server.on(ROUTE_RESET, HTTP_POST, [](AsyncWebServerRequest *request) {
+        // Per-route rate limiting with debug headers
+        uint32_t window_ms = 0, next_ms = 0;
+        if (route_is_rate_limited(ROUTE_RESET, ROUTE_POST, &window_ms, &next_ms)) {
+            auto *rl = request->beginResponse(429, "application/json", "{\"error\":\"rate_limited\"}");
+            rl->addHeader("X-RateLimit-Window", String(window_ms));
+            rl->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+            attach_cors_headers(rl);
+            request->send(rl);
+            return;
+        }
         PatternParameters defaults = get_default_params();
         update_params(defaults);
         auto *response = request->beginResponse(200, "application/json", build_params_json());
@@ -252,7 +398,16 @@ void init_webserver() {
     });
 
     // GET /api/audio-config - Get audio configuration (microphone gain)
-    server.on("/api/audio-config", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on(ROUTE_AUDIO_CONFIG, HTTP_GET, [](AsyncWebServerRequest *request) {
+        uint32_t window_ms = 0, next_ms = 0;
+        if (route_is_rate_limited(ROUTE_AUDIO_CONFIG, ROUTE_GET, &window_ms, &next_ms)) {
+            auto *resp429 = request->beginResponse(429, "application/json", "{\"error\":\"rate_limited\"}");
+            resp429->addHeader("X-RateLimit-Window", String(window_ms));
+            resp429->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+            attach_cors_headers(resp429);
+            request->send(resp429);
+            return;
+        }
         StaticJsonDocument<128> doc;
         doc["microphone_gain"] = configuration.microphone_gain;
         String response;
@@ -263,7 +418,7 @@ void init_webserver() {
     });
 
     // POST /api/audio-config - Update audio configuration
-    server.on("/api/audio-config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
+    server.on(ROUTE_AUDIO_CONFIG, HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
         [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
             String *body = static_cast<String*>(request->_tempObject);
             if (index == 0) {
@@ -275,6 +430,19 @@ void init_webserver() {
 
             if (index + len != total) {
                 return;  // Wait for more data
+            }
+
+            // Per-route rate limiting with debug headers
+            uint32_t window_ms = 0, next_ms = 0;
+            if (route_is_rate_limited(ROUTE_AUDIO_CONFIG, ROUTE_POST, &window_ms, &next_ms)) {
+                delete body;
+                request->_tempObject = nullptr;
+                auto *response = request->beginResponse(429, "application/json", "{\"error\":\"rate_limited\"}");
+                response->addHeader("X-RateLimit-Window", String(window_ms));
+                response->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+                attach_cors_headers(response);
+                request->send(response);
+                return;
             }
 
             StaticJsonDocument<128> doc;
@@ -321,7 +489,16 @@ void init_webserver() {
     });
 
     // GET /api/wifi/link-options - Get current WiFi link options
-    server.on("/api/wifi/link-options", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on(ROUTE_WIFI_LINK_OPTIONS, HTTP_GET, [](AsyncWebServerRequest *request) {
+        uint32_t window_ms = 0, next_ms = 0;
+        if (route_is_rate_limited(ROUTE_WIFI_LINK_OPTIONS, ROUTE_GET, &window_ms, &next_ms)) {
+            auto *resp429 = request->beginResponse(429, "application/json", "{\"error\":\"rate_limited\"}");
+            resp429->addHeader("X-RateLimit-Window", String(window_ms));
+            resp429->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+            attach_cors_headers(resp429);
+            request->send(resp429);
+            return;
+        }
         WifiLinkOptions opts;
         wifi_monitor_get_link_options(opts);
         StaticJsonDocument<128> doc;
@@ -335,7 +512,7 @@ void init_webserver() {
     });
 
     // POST /api/wifi/link-options - Update WiFi link options (persist to NVS)
-    server.on("/api/wifi/link-options", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
+    server.on(ROUTE_WIFI_LINK_OPTIONS, HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
         [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
             String *body = static_cast<String*>(request->_tempObject);
             if (index == 0) {
@@ -347,6 +524,19 @@ void init_webserver() {
 
             if (index + len != total) {
                 return;  // Wait for more data
+            }
+
+            // Per-route rate limiting with debug headers
+            uint32_t window_ms = 0, next_ms = 0;
+            if (route_is_rate_limited(ROUTE_WIFI_LINK_OPTIONS, ROUTE_POST, &window_ms, &next_ms)) {
+                delete body;
+                request->_tempObject = nullptr;
+                auto *response = request->beginResponse(429, "application/json", "{\"error\":\"rate_limited\"}");
+                response->addHeader("X-RateLimit-Window", String(window_ms));
+                response->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+                attach_cors_headers(response);
+                request->send(response);
+                return;
             }
 
             StaticJsonDocument<256> doc;
@@ -361,8 +551,9 @@ void init_webserver() {
                 return;
             }
 
-            WifiLinkOptions opts;
-            wifi_monitor_get_link_options(opts);
+            WifiLinkOptions prev;
+            wifi_monitor_get_link_options(prev);
+            WifiLinkOptions opts = prev;
             if (doc.containsKey("force_bg_only")) {
                 opts.force_bg_only = doc["force_bg_only"].as<bool>();
             }
@@ -373,6 +564,11 @@ void init_webserver() {
             // Apply immediately and persist
             wifi_monitor_update_link_options(opts);
             wifi_monitor_save_link_options_to_nvs(opts);
+
+            // If options changed, trigger a reassociation to apply fully
+            if (opts.force_bg_only != prev.force_bg_only || opts.force_ht20 != prev.force_ht20) {
+                wifi_monitor_reassociate_now("link options changed");
+            }
 
             StaticJsonDocument<128> respDoc;
             respDoc["success"] = true;
@@ -646,6 +842,35 @@ void init_webserver() {
                         <option value="">Loading palettes...</option>
                     </select>
                     <div id="palette-name">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div>
+            <span class="section-title">WiFi Link Options</span>
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label class="control-label">
+                        <span>Force 802.11b/g (disable 11n)</span>
+                        <span class="control-value" id="bg-only-val">—</span>
+                    </label>
+                    <div class="toggle-group">
+                        <input type="checkbox" id="bg-only" onchange="updateWifiLinkOptions()" />
+                        <span class="toggle-label">BG-Only</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">
+                        <span>Force HT20 bandwidth (20 MHz)</span>
+                        <span class="control-value" id="ht20-val">—</span>
+                    </label>
+                    <div class="toggle-group">
+                        <input type="checkbox" id="ht20" onchange="updateWifiLinkOptions()" />
+                        <span class="toggle-label">HT20</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -925,12 +1150,56 @@ void init_webserver() {
             });
         }
 
+        // WiFi link option API helpers
+        async function loadWifiLinkOptions() {
+            try {
+                const res = await fetch('/api/wifi/link-options');
+                if (!res.ok) return;
+                const data = await res.json();
+                const bg = !!data.force_bg_only;
+                const ht = !!data.force_ht20;
+                document.getElementById('bg-only').checked = bg;
+                document.getElementById('ht20').checked = ht;
+                document.getElementById('bg-only-val').textContent = bg ? 'ON' : 'OFF';
+                document.getElementById('ht20-val').textContent = ht ? 'ON' : 'OFF';
+                console.log('[K1] WiFi link options loaded:', data);
+            } catch (e) {
+                console.error('[K1] Failed to load WiFi link options', e);
+            }
+        }
+
+        async function updateWifiLinkOptions() {
+            const bg = document.getElementById('bg-only').checked;
+            const ht = document.getElementById('ht20').checked;
+            document.getElementById('bg-only-val').textContent = bg ? 'ON' : 'OFF';
+            document.getElementById('ht20-val').textContent = ht ? 'ON' : 'OFF';
+            try {
+                await fetch('/api/wifi/link-options', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ force_bg_only: bg, force_ht20: ht })
+                });
+                console.log('[K1] WiFi link options updated:', {bg, ht});
+            } catch (e) {
+                console.error('[K1] Failed to update WiFi link options', e);
+            }
+        }
+
+        function updateColorModeIndicator(rangeValue) {
+            const modeElem = document.getElementById('color-mode');
+            if (!modeElem) return;
+            const mode = rangeValue <= 0.5 ? 'HSV Mode' : 'Palette Mode';
+            modeElem.textContent = mode;
+            modeElem.dataset.mode = rangeValue <= 0.5 ? 'hsv' : 'palette';
+        }
+
         // Load all UI state from device on page load (wait for all to complete)
         (async () => {
             await loadPatterns();
             await loadParams();
             await loadAudioConfig();
             await initPalettes();
+            await loadWifiLinkOptions();
         })();
     </script>
 </body>
@@ -941,16 +1210,369 @@ void init_webserver() {
         request->send(response);
     });
 
+    // GET /api/device-info - Device information snapshot
+    server.on(ROUTE_DEVICE_INFO, HTTP_GET, [](AsyncWebServerRequest *request) {
+        uint32_t window_ms = 0, next_ms = 0;
+        if (route_is_rate_limited(ROUTE_DEVICE_INFO, ROUTE_GET, &window_ms, &next_ms)) {
+            auto *resp429 = request->beginResponse(429, "application/json", "{\"error\":\"rate_limited\"}");
+            resp429->addHeader("X-RateLimit-Window", String(window_ms));
+            resp429->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+            attach_cors_headers(resp429);
+            request->send(resp429);
+            return;
+        }
+        StaticJsonDocument<256> doc;
+        doc["device"] = "K1.reinvented";
+        #ifdef ESP_ARDUINO_VERSION
+        doc["firmware"] = String(ESP.getSdkVersion());
+        #else
+        doc["firmware"] = "Unknown";
+        #endif
+        doc["uptime"] = (uint32_t)(millis() / 1000);
+        doc["ip"] = WiFi.localIP().toString();
+        doc["mac"] = WiFi.macAddress();
+        String output;
+        serializeJson(doc, output);
+        auto *resp = request->beginResponse(200, "application/json", output);
+        attach_cors_headers(resp);
+        request->send(resp);
+    });
+
+    // GET /api/device/performance - Performance metrics (FPS, timings, heap)
+    server.on(ROUTE_DEVICE_PERFORMANCE, HTTP_GET, [](AsyncWebServerRequest *request) {
+        uint32_t window_ms = 0, next_ms = 0;
+        if (route_is_rate_limited(ROUTE_DEVICE_PERFORMANCE, ROUTE_GET, &window_ms, &next_ms)) {
+            auto *resp429 = request->beginResponse(429, "application/json", "{\"error\":\"rate_limited\"}");
+            resp429->addHeader("X-RateLimit-Window", String(window_ms));
+            resp429->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+            attach_cors_headers(resp429);
+            request->send(resp429);
+            return;
+        }
+
+        float frames = FRAMES_COUNTED > 0 ? (float)FRAMES_COUNTED : 1.0f;
+        float avg_render_us = (float)ACCUM_RENDER_US / frames;
+        float avg_quantize_us = (float)ACCUM_QUANTIZE_US / frames;
+        float avg_rmt_wait_us = (float)ACCUM_RMT_WAIT_US / frames;
+        float avg_rmt_tx_us = (float)ACCUM_RMT_TRANSMIT_US / frames;
+        float frame_time_us = avg_render_us + avg_quantize_us + avg_rmt_wait_us + avg_rmt_tx_us;
+
+        uint32_t heap_free = ESP.getFreeHeap();
+        uint32_t heap_total = ESP.getHeapSize();
+        float memory_percent = ((float)(heap_total - heap_free) / (float)heap_total) * 100.0f;
+
+        StaticJsonDocument<256> doc;
+        doc["fps"] = FPS_CPU;
+        doc["frame_time_us"] = frame_time_us;
+        doc["cpu_percent"] = 0; // TODO: Implement CPU usage calculation
+        doc["memory_percent"] = memory_percent;
+        doc["memory_free_kb"] = heap_free / 1024;
+
+        String output;
+        serializeJson(doc, output);
+        auto *resp = request->beginResponse(200, "application/json", output);
+        attach_cors_headers(resp);
+        request->send(resp);
+    });
+
+    // GET /api/test-connection - Simple connection check
+    server.on(ROUTE_TEST_CONNECTION, HTTP_GET, [](AsyncWebServerRequest *request) {
+        uint32_t window_ms = 0, next_ms = 0;
+        if (route_is_rate_limited(ROUTE_TEST_CONNECTION, ROUTE_GET, &window_ms, &next_ms)) {
+            auto *resp429 = request->beginResponse(429, "application/json", "{\"error\":\"rate_limited\"}");
+            resp429->addHeader("X-RateLimit-Window", String(window_ms));
+            resp429->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+            attach_cors_headers(resp429);
+            request->send(resp429);
+            return;
+        }
+        StaticJsonDocument<64> doc;
+        doc["ok"] = true;
+        doc["uptime_ms"] = millis();
+        String output;
+        serializeJson(doc, output);
+        auto *resp = request->beginResponse(200, "application/json", output);
+        attach_cors_headers(resp);
+        request->send(resp);
+    });
+
+    // GET /api/config/backup - Export current configuration as JSON
+    server.on(ROUTE_CONFIG_BACKUP, HTTP_GET, [](AsyncWebServerRequest *request) {
+        uint32_t window_ms = 0, next_ms = 0;
+        if (route_is_rate_limited(ROUTE_CONFIG_BACKUP, ROUTE_GET, &window_ms, &next_ms)) {
+            auto *resp = create_error_response(request, 429, "rate_limited");
+            resp->addHeader("X-RateLimit-Window", String(window_ms));
+            resp->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+            request->send(resp);
+            return;
+        }
+
+        // Create comprehensive configuration backup
+        StaticJsonDocument<1024> doc;
+        doc["version"] = "1.0";
+        doc["device"] = "K1.reinvented";
+        doc["timestamp"] = millis();
+        doc["uptime_seconds"] = millis() / 1000;
+
+        // Current parameters
+        const PatternParameters& params = get_params();
+        JsonObject parameters = doc.createNestedObject("parameters");
+        parameters["brightness"] = params.brightness;
+        parameters["softness"] = params.softness;
+        parameters["color"] = params.color;
+        parameters["color_range"] = params.color_range;
+        parameters["saturation"] = params.saturation;
+        parameters["warmth"] = params.warmth;
+        parameters["background"] = params.background;
+        parameters["speed"] = params.speed;
+        parameters["palette_id"] = params.palette_id;
+        parameters["custom_param_1"] = params.custom_param_1;
+        parameters["custom_param_2"] = params.custom_param_2;
+        parameters["custom_param_3"] = params.custom_param_3;
+
+        // Current pattern selection
+        doc["current_pattern"] = g_current_pattern_index;
+
+        // Device information
+        JsonObject device_info = doc.createNestedObject("device_info");
+        device_info["ip"] = WiFi.localIP().toString();
+        device_info["mac"] = WiFi.macAddress();
+        #ifdef ESP_ARDUINO_VERSION
+        device_info["firmware"] = String(ESP.getSdkVersion());
+        #else
+        device_info["firmware"] = "Unknown";
+        #endif
+
+        String output;
+        serializeJson(doc, output);
+        
+        auto *resp = request->beginResponse(200, "application/json", output);
+        resp->addHeader("Content-Disposition", "attachment; filename=\"k1-config-backup.json\"");
+        attach_cors_headers(resp);
+        request->send(resp);
+    });
+
+    // POST /api/config/restore - Import configuration from JSON
+    server.on(ROUTE_CONFIG_RESTORE, HTTP_POST, [](AsyncWebServerRequest *request) {
+        uint32_t window_ms = 0, next_ms = 0;
+        if (route_is_rate_limited(ROUTE_CONFIG_RESTORE, ROUTE_POST, &window_ms, &next_ms)) {
+            auto *resp = create_error_response(request, 429, "rate_limited");
+            resp->addHeader("X-RateLimit-Window", String(window_ms));
+            resp->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
+            request->send(resp);
+            return;
+        }
+
+        // This will be handled by the body handler below
+        auto *resp = create_error_response(request, 400, "missing_body", "Configuration data required in request body");
+        request->send(resp);
+    }, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+        // Handle POST body for configuration restore
+        if (index == 0) {
+            // First chunk - validate content type
+            if (!request->hasHeader("Content-Type") || 
+                request->getHeader("Content-Type")->value().indexOf("application/json") == -1) {
+                auto *resp = create_error_response(request, 400, "invalid_content_type", "Content-Type must be application/json");
+                request->send(resp);
+                return;
+            }
+        }
+
+        if (index + len == total) {
+            // Last chunk - process complete JSON
+            StaticJsonDocument<1024> doc;
+            DeserializationError error = deserializeJson(doc, data, len);
+            
+            if (error) {
+                auto *resp = create_error_response(request, 400, "invalid_json", "Failed to parse configuration JSON");
+                request->send(resp);
+                return;
+            }
+
+            // Validate backup format
+            if (!doc.containsKey("version") || !doc.containsKey("parameters")) {
+                auto *resp = create_error_response(request, 400, "invalid_backup_format", "Missing required fields: version, parameters");
+                request->send(resp);
+                return;
+            }
+
+            // Extract and validate parameters
+            JsonObject params_obj = doc["parameters"];
+            PatternParameters new_params;
+            
+            // Load parameters with defaults for missing values
+            new_params.brightness = params_obj["brightness"] | 1.0f;
+            new_params.softness = params_obj["softness"] | 0.25f;
+            new_params.color = params_obj["color"] | 0.33f;
+            new_params.color_range = params_obj["color_range"] | 0.0f;
+            new_params.saturation = params_obj["saturation"] | 0.75f;
+            new_params.warmth = params_obj["warmth"] | 0.0f;
+            new_params.background = params_obj["background"] | 0.25f;
+            new_params.speed = params_obj["speed"] | 0.5f;
+            new_params.palette_id = params_obj["palette_id"] | 0;
+            new_params.custom_param_1 = params_obj["custom_param_1"] | 0.5f;
+            new_params.custom_param_2 = params_obj["custom_param_2"] | 0.5f;
+            new_params.custom_param_3 = params_obj["custom_param_3"] | 0.5f;
+
+            // Validate and apply parameters
+            bool params_valid = update_params_safe(new_params);
+            
+            // Restore pattern selection if provided and valid
+             bool pattern_restored = false;
+             if (doc.containsKey("current_pattern")) {
+                 int pattern_index = doc["current_pattern"];
+                 if (pattern_index >= 0 && pattern_index < g_num_patterns) {
+                     g_current_pattern_index = pattern_index;
+                     pattern_restored = true;
+                 }
+             }
+
+            // Build response
+            StaticJsonDocument<256> response_doc;
+            response_doc["success"] = true;
+            response_doc["parameters_restored"] = params_valid;
+            response_doc["pattern_restored"] = pattern_restored;
+            response_doc["timestamp"] = millis();
+            
+            if (!params_valid) {
+                response_doc["warning"] = "Some parameters were clamped to valid ranges";
+            }
+
+            String output;
+            serializeJson(response_doc, output);
+            
+            auto *resp = request->beginResponse(200, "application/json", output);
+            attach_cors_headers(resp);
+            request->send(resp);
+        }
+    });
+
+    // Initialize WebSocket server
+    ws.onEvent(onWebSocketEvent);
+    server.addHandler(&ws);
+
+    // Initialize mDNS for device discovery
+    if (MDNS.begin("k1-reinvented")) {
+        Serial.println("mDNS responder started: k1-reinvented.local");
+        
+        // Add service advertisement for HTTP server
+        MDNS.addService("http", "tcp", 80);
+        MDNS.addServiceTxt("http", "tcp", "device", "K1.reinvented");
+        MDNS.addServiceTxt("http", "tcp", "version", "2.0");
+        MDNS.addServiceTxt("http", "tcp", "api", "/api");
+        
+        // Add service advertisement for WebSocket
+        MDNS.addService("ws", "tcp", 80);
+        MDNS.addServiceTxt("ws", "tcp", "path", "/ws");
+        MDNS.addServiceTxt("ws", "tcp", "protocol", "K1RealtimeData");
+    } else {
+        Serial.println("Error starting mDNS responder");
+    }
+
     // Start server
     server.begin();
     Serial.println("Web server started on port 80");
+    Serial.println("WebSocket server available at /ws");
 }
 
 // Handle web server (AsyncWebServer is non-blocking, so this is a no-op)
 void handle_webserver() {
     // AsyncWebServer handles requests in the background
     // No action needed in loop()
+    
+    // Clean up disconnected WebSocket clients periodically
+    static uint32_t last_cleanup = 0;
+    if (millis() - last_cleanup > 30000) { // Every 30 seconds
+        ws.cleanupClients();
+        last_cleanup = millis();
+    }
 }
+
+// WebSocket event handler for real-time updates
+static void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+    switch (type) {
+        case WS_EVT_CONNECT:
+            Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+            // Send initial state to new client
+            {
+                StaticJsonDocument<512> doc;
+                doc["type"] = "welcome";
+                doc["client_id"] = client->id();
+                doc["timestamp"] = millis();
+                
+                String message;
+                serializeJson(doc, message);
+                client->text(message);
+            }
+            break;
+            
+        case WS_EVT_DISCONNECT:
+            Serial.printf("WebSocket client #%u disconnected\n", client->id());
+            break;
+            
+        case WS_EVT_DATA:
+            {
+                AwsFrameInfo *info = (AwsFrameInfo*)arg;
+                if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
+                    // Handle incoming WebSocket message (for future bidirectional communication)
+                    data[len] = 0; // Null terminate
+                    Serial.printf("WebSocket message from client #%u: %s\n", client->id(), (char*)data);
+                    
+                    // Echo back for now (can be extended for commands)
+                    StaticJsonDocument<256> response;
+                    response["type"] = "echo";
+                    response["message"] = (char*)data;
+                    response["timestamp"] = millis();
+                    
+                    String responseStr;
+                    serializeJson(response, responseStr);
+                    client->text(responseStr);
+                }
+            }
+            break;
+            
+        case WS_EVT_PONG:
+        case WS_EVT_ERROR:
+            break;
+    }
+}
+
+// Broadcast real-time data to all connected WebSocket clients
+void broadcast_realtime_data() {
+    if (ws.count() == 0) return; // No clients connected
+    
+    StaticJsonDocument<1024> doc;
+    doc["type"] = "realtime";
+    doc["timestamp"] = millis();
+    
+    // Performance data
+    JsonObject performance = doc.createNestedObject("performance");
+    performance["fps"] = FPS_CPU;
+    
+    // Calculate frame time from accumulated timings
+    float frames = FRAMES_COUNTED > 0 ? (float)FRAMES_COUNTED : 1.0f;
+    uint32_t total_frame_time_us = (ACCUM_RENDER_US + ACCUM_QUANTIZE_US + 
+                                   ACCUM_RMT_WAIT_US + ACCUM_RMT_TRANSMIT_US) / frames;
+    performance["frame_time_us"] = total_frame_time_us;
+    performance["cpu_percent"] = cpu_monitor.getAverageCPUUsage();
+    
+    // Memory statistics
+    performance["memory_percent"] = (float)(ESP.getHeapSize() - ESP.getFreeHeap()) / ESP.getHeapSize() * 100.0f;
+    performance["memory_free_kb"] = ESP.getFreeHeap() / 1024;
+    
+    // Current parameters (subset for real-time updates)
+    const PatternParameters& params = get_params();
+    JsonObject parameters = doc.createNestedObject("parameters");
+    parameters["brightness"] = params.brightness;
+    parameters["speed"] = params.speed;
+    parameters["saturation"] = params.saturation;
+    parameters["palette_id"] = params.palette_id;
+    
+    String message;
+    serializeJson(doc, message);
+    ws.textAll(message);
+}
+
 // Allow cross-origin requests for local dev tools / browsers
 static void attach_cors_headers(AsyncWebServerResponse *response) {
     if (!response) return;
@@ -958,4 +1580,42 @@ static void attach_cors_headers(AsyncWebServerResponse *response) {
     response->addHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     response->addHeader("Access-Control-Allow-Headers", "Content-Type");
     response->addHeader("Access-Control-Allow-Credentials", "false");
+}
+
+// Create standardized error response with consistent format
+static AsyncWebServerResponse* create_error_response(AsyncWebServerRequest *request, int status_code, const char* error_code, const char* message) {
+    StaticJsonDocument<256> doc;
+    doc["error"] = error_code;
+    if (message) {
+        doc["message"] = message;
+    }
+    doc["timestamp"] = millis();
+    doc["status"] = status_code;
+    
+    String output;
+    serializeJson(doc, output);
+    
+    auto *response = request->beginResponse(status_code, "application/json", output);
+    attach_cors_headers(response);
+    return response;
+}
+
+// Apply partial parameter updates from JSON
+static void apply_params_json(const JsonObjectConst& root) {
+    PatternParameters updated = get_params();
+
+    if (root.containsKey("brightness")) updated.brightness = root["brightness"].as<float>();
+    if (root.containsKey("softness")) updated.softness = root["softness"].as<float>();
+    if (root.containsKey("color")) updated.color = root["color"].as<float>();
+    if (root.containsKey("color_range")) updated.color_range = root["color_range"].as<float>();
+    if (root.containsKey("saturation")) updated.saturation = root["saturation"].as<float>();
+    if (root.containsKey("warmth")) updated.warmth = root["warmth"].as<float>();
+    if (root.containsKey("background")) updated.background = root["background"].as<float>();
+    if (root.containsKey("speed")) updated.speed = root["speed"].as<float>();
+    if (root.containsKey("palette_id")) updated.palette_id = root["palette_id"].as<uint8_t>();
+    if (root.containsKey("custom_param_1")) updated.custom_param_1 = root["custom_param_1"].as<float>();
+    if (root.containsKey("custom_param_2")) updated.custom_param_2 = root["custom_param_2"].as<float>();
+    if (root.containsKey("custom_param_3")) updated.custom_param_3 = root["custom_param_3"].as<float>();
+
+    update_params_safe(updated);
 }

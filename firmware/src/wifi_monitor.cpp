@@ -13,6 +13,7 @@ constexpr uint32_t WIFI_ASSOC_TIMEOUT_MS = 20000;
 constexpr uint32_t WIFI_RECONNECT_INTERVAL_MS = 5000;
 constexpr uint8_t MAX_NETWORK_CONNECT_ATTEMPTS = 5;
 constexpr uint32_t WIFI_KEEPALIVE_INTERVAL_MS = 30000;  // Send keepalive every 30 seconds
+constexpr uint32_t NETWORK_PAUSE_DEFAULT_MS = 500;      // Short pause before disconnect
 
 char stored_ssid[64] = {0};
 char stored_pass[64] = {0};
@@ -25,6 +26,8 @@ uint32_t last_keepalive_ms = 0;  // Track last keepalive time
 uint8_t reconnect_attempts = 0;
 wl_status_t last_status = WL_NO_SHIELD;
 bool connection_live = false;
+uint32_t network_paused_until_ms = 0;   // When > now, suppress outbound activity
+uint32_t pending_disconnect_at_ms = 0;  // If non-zero, perform disconnect at this time
 
 // Translate WiFi disconnect reason codes to human-readable strings
 static const char* get_disconnect_reason_string(uint8_t reason) {
@@ -149,7 +152,8 @@ static void handle_watchdog(uint32_t now_ms) {
 static void send_wifi_keepalive(uint32_t now_ms) {
     // Only send keepalive if we're connected and enough time has passed
     if (connection_live && WiFi.isConnected() && 
-        (now_ms - last_keepalive_ms >= WIFI_KEEPALIVE_INTERVAL_MS)) {
+        (now_ms - last_keepalive_ms >= WIFI_KEEPALIVE_INTERVAL_MS) &&
+        (now_ms >= network_paused_until_ms)) {
         
         // Send a simple ping to the gateway to keep the connection alive
         IPAddress gateway = WiFi.gatewayIP();
@@ -287,12 +291,23 @@ void wifi_monitor_init(const char* ssid, const char* pass) {
     last_keepalive_ms = 0;  // Initialize keepalive timer
     connection_live = false;
     last_status = WL_NO_SHIELD;
+    network_paused_until_ms = 0;
+    pending_disconnect_at_ms = 0;
 
     start_wifi_connect("Initial connect");
 }
 
 void wifi_monitor_loop() {
     uint32_t now_ms = millis();
+    // Perform any scheduled disconnect after a short, non-blocking pause
+    if (pending_disconnect_at_ms != 0 && now_ms >= pending_disconnect_at_ms) {
+        pending_disconnect_at_ms = 0;
+        connection_logf("WARN", "Performing scheduled WiFi disconnect for reassociation");
+        // Force a disconnect but keep STA enabled and credentials intact
+        WiFi.disconnect(false, false);
+        reconnect_attempts = 0;
+        start_wifi_connect("Reassociate after link option change");
+    }
     
     // Handle scheduled reconnects
     attempt_scheduled_reconnect(now_ms);
@@ -381,6 +396,17 @@ void wifi_monitor_loop() {
 
 bool wifi_monitor_is_connected() {
     return WiFi.status() == WL_CONNECTED;
+}
+
+void wifi_monitor_reassociate_now(const char* reason) {
+    connection_logf("WARN", "Reassociating WiFi (%s)", reason ? reason : "unspecified");
+    // Cancel any scheduled reconnect to avoid duplicate attempts
+    next_retry_ms = 0;
+    // Schedule a short network pause before disconnect to avoid packet loss
+    uint32_t now_ms = millis();
+    network_paused_until_ms = now_ms + NETWORK_PAUSE_DEFAULT_MS;
+    pending_disconnect_at_ms = now_ms + NETWORK_PAUSE_DEFAULT_MS;
+    connection_state_transition(ConnectionState::Recovering, "Scheduled reassociation");
 }
 
 void wifi_monitor_on_connect(wifi_connect_callback_t callback) {
