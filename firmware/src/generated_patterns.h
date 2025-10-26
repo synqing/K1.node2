@@ -126,19 +126,19 @@ const uint8_t palette_vintage_01[] PROGMEM = {
 };
 
 // Palette 11: Departure
+// K1 Intentional Pattern: Departure (Transformation)
+// Story: Awakening from darkness → illumination → growth
+// Dark earth → Golden light → Pure white climax → Emerald green
 const uint8_t palette_departure[] PROGMEM = {
-	0, 8, 3, 0,
-	42, 23, 7, 0,
-	63, 75, 38, 6,
-	84, 169, 99, 38,
-	106, 213, 169, 119,
-	116, 255, 255, 255,
-	138, 135, 255, 138,
-	148, 22, 255, 24,
-	170, 0, 255, 0,
-	191, 0, 136, 0,
-	212, 0, 55, 0,
-	255, 0, 55, 0
+	0, 8, 3, 0,           // Position 0: Dark earth (starting point)
+	32, 45, 25, 0,        // Position 32: Earth awakening
+	64, 128, 100, 0,      // Position 64: Golden possibility emerging
+	96, 255, 200, 0,      // Position 96: Full golden light
+	128, 255, 255, 255,   // Position 128: Pure white CLIMAX (moment of transformation)
+	160, 200, 255, 150,   // Position 160: White fading into growth
+	192, 100, 255, 100,   // Position 192: Green emerging strongly
+	224, 50, 200, 75,     // Position 224: Deeper green taking hold
+	255, 0, 255, 55       // Position 255: Grounded in emerald (destination)
 };
 
 // Palette 12: Landscape 64
@@ -252,21 +252,34 @@ const uint8_t palette_emerald_dragon[] PROGMEM = {
 	255, 2, 10, 1
 };
 
-// Palette 23: Lava
+// K1 Intentional Pattern: Lava (Intensity)
+// Story: Primal heat building → uncontrolled fire → white hot passion
+// Absolute black → Deep red restraint → Blazing orange breakthrough → White hot
 const uint8_t palette_lava[] PROGMEM = {
-	0, 0, 0, 0,
-	46, 18, 0, 0,
-	96, 113, 0, 0,
-	108, 142, 3, 1,
-	119, 175, 17, 1,
-	146, 213, 44, 2,
-	174, 255, 82, 4,
-	188, 255, 115, 4,
-	202, 255, 156, 4,
-	218, 255, 203, 4,
-	234, 255, 255, 4,
-	244, 255, 255, 71,
-	255, 255, 255, 255
+	0, 0, 0, 0,           // Position 0: Absolute black (PRIMAL start)
+	32, 40, 0, 0,         // Position 32: Black barely warming
+	64, 96, 0, 0,         // Position 64: Deep red tension building
+	96, 128, 16, 0,       // Position 96: Red deepening (controlled fury)
+	128, 180, 64, 0,      // Position 128: Red transitioning to orange
+	160, 255, 96, 0,      // Position 160: Blazing orange breakthrough (EXPLOSION)
+	192, 255, 128, 0,     // Position 192: Orange sustained intensity
+	224, 255, 200, 64,    // Position 224: Orange → white transition
+	255, 255, 255, 255    // Position 255: White hot CLIMAX (unresolved, refuses apology)
+};
+
+// K1 Intentional Pattern: Twilight (Peace)
+// Story: Day's warmth fading → sky transforming → peaceful darkness
+// Warm amber → Deep purple → Midnight blue (smooth, contemplative)
+const uint8_t palette_twilight[] PROGMEM = {
+	0, 255, 180, 80,      // Position 0: Warm amber (sun's last warmth)
+	32, 240, 160, 80,     // Position 32: Amber settling
+	64, 200, 120, 100,    // Position 64: Warm shifting cooler
+	96, 160, 80, 120,     // Position 96: Transitioning to purple
+	128, 128, 0, 128,     // Position 128: Deep purple MIDPOINT (sky transformation)
+	160, 80, 0, 120,      // Position 160: Purple deepening toward blue
+	192, 40, 20, 90,      // Position 192: Blue emerging
+	224, 20, 20, 70,      // Position 224: Deeper blue tone
+	255, 0, 20, 60        // Position 255: Midnight blue (peaceful darkness)
 };
 
 // Palette 24: Fire
@@ -418,7 +431,7 @@ const char* const palette_names[] = {
 	"Blue Cyan Yellow"
 };
 
-const uint8_t NUM_PALETTES = 33;
+const uint8_t NUM_PALETTES = 34;  // Added palette_twilight (K1 Intentional)
 
 // Palette lookup table (pointers to each palette + entry count)
 struct PaletteInfo {
@@ -438,7 +451,7 @@ const PaletteInfo palette_table[] PROGMEM = {
 	{palette_ocean_breeze_068, 6},
 	{palette_pinksplash_07, 7},
 	{palette_vintage_01, 8},
-	{palette_departure, 12},
+	{palette_departure, 9},      // K1 Intentional: Transformation (earth→light→white→green)
 	{palette_landscape_64, 9},
 	{palette_landscape_33, 6},
 	{palette_rainbowsherbet, 7},
@@ -450,7 +463,8 @@ const PaletteInfo palette_table[] PROGMEM = {
 	{palette_ib15, 6},
 	{palette_fuschia_7, 5},
 	{palette_emerald_dragon, 4},
-	{palette_lava, 13},
+	{palette_lava, 9},           // K1 Intentional: Intensity (black→red→orange→white)
+	{palette_twilight, 9},       // K1 Intentional: Peace (amber→purple→blue)
 	{palette_fire, 7},
 	{palette_colorful, 11},
 	{palette_magenta_evening, 7},
@@ -626,8 +640,8 @@ void draw_twilight(float time, const PatternParameters& params) {
 		wave_phase = fmodf(wave_phase, 1.0f);
 		if (wave_phase < 0.0f) wave_phase += 1.0f;
 
-		// Use gmt_drywet palette (nice blue-cyan-yellow progression)
-		CRGBF color = color_from_palette(17, wave_phase, 1.0f);
+		// Use K1 Intentional palette_twilight (amber→purple→blue peaceful progression)
+		CRGBF color = color_from_palette(24, wave_phase, 1.0f);
 
 		// Apply warmth (maintain warm tone)
 		float warmth_factor = 1.0f + (params.warmth * 0.2f);
