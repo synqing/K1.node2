@@ -275,137 +275,170 @@ void draw_twilight(float time, const PatternParameters& params) {
 /**
  * Pattern: Spectrum Display
  * Maps frequency spectrum to LED positions with magnitude-driven color
+ *
+ * Architecture (Emotiscope spectrum.h reference):
+ * - progress = LED position (0.0 at left, 1.0 at right)
+ * - brightness = frequency magnitude
+ * - Uses color_from_palette() for vibrant interpolation
+ * - Center-origin: render half, mirror to other half
  */
 void draw_spectrum(float time, const PatternParameters& params) {
 	PATTERN_AUDIO_START();
 
 	// Fallback to ambient if no audio
 	if (!AUDIO_IS_AVAILABLE()) {
-		CRGBF ambient_color = color_from_palette(3, 0.5f, params.background * 0.3f);
+		CRGBF ambient_color = color_from_palette(params.palette_id, 0.5f, params.background * 0.3f);
 		for (int i = 0; i < NUM_LEDS; i++) {
 			leds[i] = ambient_color;
 		}
 		return;
 	}
 
+	// Fade if audio is stale (silence detection)
 	float freshness_factor = AUDIO_IS_STALE() ? 0.5f : 1.0f;
+
+	// Render spectrum (center-origin, so render half and mirror)
 	int half_leds = NUM_LEDS / 2;
 
-	// Center-origin render (from center outward)
 	for (int i = 0; i < half_leds; i++) {
-		int spectrum_idx = (i * 63) / half_leds;  // Map to 0-63 spectrum bins
-		if (spectrum_idx < 64) {
-			float magnitude = AUDIO_SPECTRUM_SMOOTH[spectrum_idx];
+		// Map LED position to frequency bin (0-63)
+		float progress = (float)i / half_leds;
+		float magnitude = AUDIO_SPECTRUM_SMOOTH[(int)(progress * 63.0f)] * freshness_factor;
+		magnitude = fmaxf(0.0f, fminf(1.0f, magnitude));
 
-			// Map magnitude to palette progress
-			float palette_progress = magnitude * 0.8f + 0.1f;
+		// Get color from palette using progress and magnitude
+		CRGBF color = color_from_palette(params.palette_id, progress, magnitude);
 
-			CRGBF color = color_from_palette(3, palette_progress, params.brightness * freshness_factor);
+		// Apply brightness
+		color.r *= params.brightness;
+		color.g *= params.brightness;
+		color.b *= params.brightness;
 
-			// Center-origin mirroring
-			leds[half_leds + i] = color;
-			leds[half_leds - 1 - i] = color;
-		}
+		// Mirror from center (centre-origin architecture)
+		int left_index = (NUM_LEDS / 2) - 1 - i;
+		int right_index = (NUM_LEDS / 2) + i;
+
+		leds[left_index] = color;
+		leds[right_index] = color;
 	}
 }
 
 /**
  * Pattern: Octave Band Response
- * Maps frequency spectrum to 8 octave bands
+ * Maps 12 musical octave bands to LED segments.
+ *
+ * Architecture (Emotiscope octave.h reference):
+ * - progress = LED position (maps to 12 chromagram bins)
+ * - brightness = note magnitude from chromagram
+ * - Uses color_from_palette() for smooth color transitions
+ * - Center-origin: render half, mirror to other half
  */
 void draw_octave(float time, const PatternParameters& params) {
 	PATTERN_AUDIO_START();
 
+	// Fallback to time-based animation if no audio
 	if (!AUDIO_IS_AVAILABLE()) {
-		CRGBF ambient_color = color_from_palette(3, 0.3f, params.background * 0.2f);
+		float phase = fmodf(time * params.speed * 0.5f, 1.0f);
 		for (int i = 0; i < NUM_LEDS; i++) {
-			leds[i] = ambient_color;
+			float position = fmodf(phase + (float)i / NUM_LEDS, 1.0f);
+			leds[i] = color_from_palette(params.palette_id, position, params.background);
 		}
 		return;
 	}
 
+	// Beat emphasis (boost brightness on detected beats)
+	float beat_boost = 1.0f + (AUDIO_TEMPO_CONFIDENCE * 0.5f);
 	float freshness_factor = AUDIO_IS_STALE() ? 0.5f : 1.0f;
 
-	// Divide strip into 8 octave bands
-	int leds_per_band = NUM_LEDS / 8;
+	// Render chromagram (12 musical notes)
+	int half_leds = NUM_LEDS / 2;
 
-	for (int band = 0; band < 8; band++) {
-		// Map spectrum bins to octave bands (8 bins per band)
-		int start_bin = band * 8;
-		int end_bin = fminf(start_bin + 8, 63);
+	for (int i = 0; i < half_leds; i++) {
+		// Map LED to chromagram bin (0-11)
+		float progress = (float)i / half_leds;
+		int note = (int)(progress * 11.0f);
+		if (note > 11) note = 11;
 
-		// Calculate average magnitude across bins
-		float magnitude = 0.0f;
-		for (int bin = start_bin; bin <= end_bin; bin++) {
-			magnitude += AUDIO_SPECTRUM_SMOOTH[bin];
-		}
-		magnitude /= (float)(end_bin - start_bin + 1);
+		// Get magnitude from chromagram
+		float magnitude = AUDIO_CHROMAGRAM[note] * freshness_factor * beat_boost;
+		magnitude = fmaxf(0.0f, fminf(1.0f, magnitude));
 
-		// Map to palette
-		float palette_progress = magnitude;
-		CRGBF color = color_from_palette(3, palette_progress, params.brightness * freshness_factor);
+		// Get color from palette
+		CRGBF color = color_from_palette(params.palette_id, progress, magnitude);
 
-		// Apply color to all LEDs in this band
-		for (int i = 0; i < leds_per_band; i++) {
-			int led_idx = band * leds_per_band + i;
-			if (led_idx < NUM_LEDS) {
-				leds[led_idx] = color;
-			}
-		}
+		// Apply brightness
+		color.r *= params.brightness;
+		color.g *= params.brightness;
+		color.b *= params.brightness;
+
+		// Mirror from center
+		int left_index = (NUM_LEDS / 2) - 1 - i;
+		int right_index = (NUM_LEDS / 2) + i;
+
+		leds[left_index] = color;
+		leds[right_index] = color;
 	}
 }
 
 /**
  * Pattern: Bloom / VU-Meter
  * Energy-responsive glow with spreading persistence
- * Uses static buffer for frame-to-frame persistence
+ *
+ * Uses static buffer for frame-to-frame persistence (like Emotiscope's novelty_image_prev)
+ * Spreads energy from center outward with Gaussian-like blur
  */
 void draw_bloom(float time, const PatternParameters& params) {
 	PATTERN_AUDIO_START();
 
-	// Persistence buffer for bloom effect
+	// Static buffer for bloom persistence (survives between frames)
 	static float bloom_buffer[NUM_LEDS] = {0};
 
-	// If no audio, gentle decay
+	// Fallback to gentle fade if no audio
 	if (!AUDIO_IS_AVAILABLE()) {
 		for (int i = 0; i < NUM_LEDS; i++) {
-			bloom_buffer[i] *= 0.90f;
-			float magnitude = fmaxf(0.0f, fminf(1.0f, bloom_buffer[i]));
-			leds[i] = color_from_palette(4, magnitude, params.brightness * 0.3f);
+			bloom_buffer[i] *= 0.95f;  // Gentle decay
+			leds[i] = color_from_palette(params.palette_id, (float)i / NUM_LEDS, bloom_buffer[i] * params.brightness);
 		}
 		return;
 	}
 
-	float freshness_factor = AUDIO_IS_STALE() ? 0.5f : 1.0f;
+	// Get VU level for energy response
+	float energy = AUDIO_VU;
+	float freshness_factor = AUDIO_IS_STALE() ? 0.9f : 1.0f;
 
-	// Update bloom buffer from spectrum peaks with VU meter influence
-	float vu = AUDIO_VU;  // Get overall energy level (0.0-1.0)
-	int half_leds = NUM_LEDS / 2;
+	// Spread energy from center
+	float spread_speed = 0.125f + 0.875f * params.speed;
 
-	for (int i = 0; i < half_leds; i++) {
-		int spectrum_idx = (i * 63) / half_leds;
-		if (spectrum_idx < 64) {
-			float magnitude = AUDIO_SPECTRUM_SMOOTH[spectrum_idx];
-
-			// Add to bloom buffer with decay, influenced by VU
-			bloom_buffer[half_leds + i] = fmaxf(bloom_buffer[half_leds + i] * 0.95f, magnitude * vu);
-			bloom_buffer[half_leds - 1 - i] = fmaxf(bloom_buffer[half_leds - 1 - i] * 0.95f, magnitude * vu);
-		}
-	}
-
-	// Spreading effect: blur buffer
+	// Shift bloom buffer outward (create spreading effect)
 	float temp_buffer[NUM_LEDS];
-	memcpy(temp_buffer, bloom_buffer, sizeof(temp_buffer));
-
-	for (int i = 1; i < NUM_LEDS - 1; i++) {
-		bloom_buffer[i] = temp_buffer[i] * 0.7f +
-		                  (temp_buffer[i - 1] + temp_buffer[i + 1]) * 0.15f;
+	for (int i = 0; i < NUM_LEDS; i++) {
+		temp_buffer[i] = bloom_buffer[i] * 0.99f * freshness_factor;  // Decay
 	}
 
-	// Render with fire palette
+	// Add new energy at center
+	int center = NUM_LEDS / 2;
+	temp_buffer[center] = fmaxf(temp_buffer[center], energy);
+
+	// Simple spreading algorithm (blur outward from center)
+	for (int i = 1; i < NUM_LEDS - 1; i++) {
+		bloom_buffer[i] = temp_buffer[i] * 0.5f +
+						 (temp_buffer[i - 1] + temp_buffer[i + 1]) * 0.25f;
+	}
+	bloom_buffer[0] = temp_buffer[0];
+	bloom_buffer[NUM_LEDS - 1] = temp_buffer[NUM_LEDS - 1];
+
+	// Render bloom with color
 	for (int i = 0; i < NUM_LEDS; i++) {
+		float position = (float)i / NUM_LEDS;
 		float magnitude = fmaxf(0.0f, fminf(1.0f, bloom_buffer[i]));
-		leds[i] = color_from_palette(4, magnitude, params.brightness * freshness_factor);
+
+		// Color follows position in palette
+		CRGBF color = color_from_palette(params.palette_id, position, magnitude);
+
+		// Apply brightness
+		leds[i].r = color.r * params.brightness;
+		leds[i].g = color.g * params.brightness;
+		leds[i].b = color.b * params.brightness;
 	}
 }
 
