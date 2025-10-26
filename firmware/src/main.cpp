@@ -6,6 +6,7 @@
 #include "led_driver.h"
 #include "profiler.h"
 #include "audio/goertzel.h"  // Audio system globals, struct definitions, initialization, DFT computation
+#include "audio/tempo.h"     // Beat detection and tempo tracking pipeline
 #include "audio/microphone.h"  // REAL SPH0645 I2S MICROPHONE INPUT
 #include "parameters.h"
 #include "pattern_registry.h"
@@ -29,6 +30,7 @@ void audio_task(void* param) {
     // - Microphone sample acquisition (I2S, blocking)
     // - Goertzel frequency analysis (CPU-intensive)
     // - Chromagram computation (light)
+    // - Beat detection and tempo tracking
     // - Buffer synchronization (mutexes)
 
     while (true) {
@@ -36,6 +38,27 @@ void audio_task(void* param) {
         acquire_sample_chunk();        // Blocks on I2S if needed (acceptable here)
         calculate_magnitudes();        // ~15-25ms Goertzel computation
         get_chromagram();              // ~1ms pitch aggregation
+
+        // BEAT DETECTION PIPELINE (NEW - FIX FOR TEMPO_CONFIDENCE)
+        // Calculate spectral novelty as peak energy in current frame
+        float peak_energy = 0.0f;
+        for (int i = 0; i < NUM_FREQS; i++) {
+            peak_energy = fmaxf(peak_energy, audio_back.spectrogram[i]);
+        }
+
+        // Update novelty curve with spectral peak
+        update_novelty_curve(peak_energy);
+
+        // Smooth tempo magnitudes and detect beats
+        smooth_tempi_curve();           // ~2-5ms tempo magnitude calculation
+        detect_beats();                 // ~1ms beat confidence calculation
+
+        // SYNC TEMPO CONFIDENCE TO AUDIO SNAPSHOT (NEW - FIX)
+        // Copy calculated tempo_confidence to audio_back so patterns can access it
+        extern float tempo_confidence;  // From tempo.cpp
+        audio_back.tempo_confidence = tempo_confidence;
+
+        // Buffer synchronization
         finish_audio_frame();          // ~0-5ms buffer swap
 
         // Debug output (optional)
@@ -43,8 +66,8 @@ void audio_task(void* param) {
 
         // Sleep to maintain ~100 Hz audio processing rate
         // Actual rate: 64 samples / 12800 Hz = 5ms per chunk
-        // But Goertzel takes 15-25ms, so effective rate is 20-25 Hz
-        // Still good enough for audio reactivity
+        // Goertzel takes 15-25ms, tempo detection adds 2-8ms
+        // Effective rate: 20-25 Hz (still good for audio reactivity)
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
@@ -108,6 +131,10 @@ void setup() {
     Serial.println("Initializing Goertzel DFT...");
     init_window_lookup();
     init_goertzel_constants_musical();
+
+    // Initialize tempo detection (beat detection pipeline)
+    Serial.println("Initializing tempo detection...");
+    init_tempo_goertzel_constants();
 
     // Initialize parameter system
     Serial.println("Initializing parameters...");
