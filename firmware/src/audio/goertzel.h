@@ -560,19 +560,30 @@ void calculate_magnitudes() {
 			spectrogram_smooth[i] /= float(NUM_SPECTROGRAM_AVERAGE_SAMPLES);
 		}
 
+		// Calculate VU level from overall spectrum energy (average across all bins)
+		float vu_sum = 0.0f;
+		for (uint16_t i = 0; i < NUM_FREQS; i++) {
+			vu_sum += spectrogram_smooth[i];
+		}
+		float vu_level_calculated = vu_sum / NUM_FREQS;
+		audio_level = vu_level_calculated;  // Update legacy global variable
+
 		// PHASE 1: Copy spectrum data to audio_back buffer for thread-safe access
 		if (audio_sync_initialized) {
 			// Copy spectrogram data
 			memcpy(audio_back.spectrogram, spectrogram, sizeof(float) * NUM_FREQS);
 			memcpy(audio_back.spectrogram_smooth, spectrogram_smooth, sizeof(float) * NUM_FREQS);
 
+			// CRITICAL FIX: Sync VU level to snapshot for audio-reactive patterns (e.g., bloom mode)
+			audio_back.vu_level = vu_level_calculated;
+			audio_back.vu_level_raw = vu_level_calculated * max_val_smooth;
+
 			// Update metadata
 			audio_back.update_counter++;
 			audio_back.timestamp_us = esp_timer_get_time();
 			audio_back.is_valid = true;
 
-			// Note: chromagram, vu_level, novelty_curve, tempo_confidence will be
-			// updated by their respective processing functions (get_chromagram, etc.)
+			// Note: chromagram will be updated by get_chromagram()
 		}
 
 		magnitudes_locked = false;

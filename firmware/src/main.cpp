@@ -5,7 +5,7 @@
 #include "types.h"
 #include "led_driver.h"
 #include "profiler.h"
-#include "audio_stubs.h"  // Audio-reactive globals (demo stubs) - MUST come before generated_patterns.h
+#include "audio/config.h"  // Audio system configuration, globals, tempo struct - MUST come before generated_patterns.h
 #include "audio/goertzel.h"  // PHASE 1: Audio data synchronization
 #include "audio/microphone.h"  // REAL SPH0645 I2S MICROPHONE INPUT
 #include "parameters.h"
