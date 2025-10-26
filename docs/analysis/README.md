@@ -198,7 +198,78 @@ See **led_driver_architecture_analysis.md** section "Verification Strategy" for:
 - **Review Process**: See CLAUDE.md for approval workflow
 
 ### Changelog
+- `2025-10-27` Added parameter flow analysis for palette_id bug investigation (2 files)
 - `2025-10-26` Initial publication of all analysis documents (4 files, comprehensive coverage)
+
+---
+
+## Parameter Flow Analysis (New Investigation)
+
+### Context
+Forensic trace of `palette_id` parameter from Web UI → API → Validation → Storage → Pattern Execution → LED rendering. Investigation triggered by user report: "Changing palette has no effect."
+
+### Documents in This Analysis
+
+#### 5. **parameter_flow_trace_palette_id.md** (FORENSIC TRACE)
+- **Purpose**: Complete step-by-step trace of parameter lifecycle with exact file:line references
+- **Audience**: Engineers debugging parameter flow issues, system architects
+- **Content**:
+  - 8-step flow from UI JavaScript to LED output
+  - File locations and line numbers for each step
+  - Thread-safety analysis (double-buffer system)
+  - Bug identification and root cause analysis
+  - Verification questions answered
+  - Testing checklist and fix recommendations
+- **Key Findings**:
+  - ✓ Parameter flow architecture is correct (thread-safe, atomic swaps work)
+  - ❌ **CRITICAL BUG**: `parameters.cpp:7` defines `NUM_PALETTES = 8` (should be 33)
+  - ❌ **SECONDARY BUG**: Three patterns (Departure, Lava, Twilight) hardcode palette indices
+  - Impact: Only 8 of 33 palettes accessible, 3 of 11 patterns ignore palette selection
+
+**Key Metrics**:
+- Palettes defined: 33 (`palettes.h:389`)
+- Palettes validated: 8 (`parameters.cpp:7`) ← **MISMATCH**
+- Patterns using `params.palette_id`: 8 of 11 ✓
+- Patterns hardcoding palette: 3 of 11 ❌ (Departure, Lava, Twilight)
+
+#### 6. **parameter_flow_diagram.md** (VISUAL TRACE)
+- **Purpose**: ASCII diagrams showing parameter lifecycle, memory flow, and bug locations
+- **Audience**: Visual learners, team presentations, quick bug reference
+- **Content**:
+  - Complete flow diagram (8 steps from UI to LEDs)
+  - Bug impact matrix (palette_id vs pattern behavior)
+  - Thread-safety visualization (Core 0 ↔ Core 1 synchronization)
+  - Memory layout (double-buffer structure)
+  - Validation logic comparison (correct vs buggy)
+  - Fix priority table
+
+**Use this to**:
+- Visualize parameter flow at a glance
+- Understand where bugs occur in the pipeline
+- See thread-safety guarantees (release-acquire ordering)
+- Present bug findings to team
+
+---
+
+### How to Use This Analysis
+
+#### For Bug Investigation
+1. Read **parameter_flow_trace_palette_id.md** (10 min) for complete forensic trace
+2. Check **parameter_flow_diagram.md** (3 min) for visual confirmation of bug locations
+3. Verify line numbers in source files (`parameters.cpp:7`, `generated_patterns.h:161,193,231`)
+
+#### For Fixing the Bugs
+1. **Bug 1** (NUM_PALETTES mismatch):
+   - Location: `firmware/src/parameters.cpp:7`
+   - Fix: Change `#define NUM_PALETTES 8` to `#define NUM_PALETTES 33`
+   - Complexity: Trivial (1 line change)
+   - Testing: Select palette 15 → verify Spectrum pattern changes colors
+
+2. **Bug 2** (Hardcoded palette indices):
+   - Locations: `firmware/src/generated_patterns.h:161,193,231`
+   - Fix: Replace hardcoded `0,1,2` with `params.palette_id`
+   - Complexity: Simple (3 line changes)
+   - Testing: Select Departure pattern → change palette → verify colors change
 
 ---
 
@@ -208,4 +279,5 @@ If you find:
 - **Unclear recommendations**: Check led_driver_architecture_analysis.md for detailed rationale
 - **Discrepancies**: Verify line numbers against /firmware/src/led_driver.h
 - **Missing details**: Consult ADR-0001 for decision context or ask maintainer
+- **Parameter flow questions**: See parameter_flow_trace_palette_id.md for forensic trace
 

@@ -84,7 +84,16 @@ void acquire_sample_chunk() {
 		// Read audio samples into int32_t buffer, but **only when emotiscope is active**
 		if( EMOTISCOPE_ACTIVE == true ){
 			size_t bytes_read = 0;
-			i2s_channel_read(rx_handle, new_samples_raw, CHUNK_SIZE*sizeof(uint32_t), &bytes_read, portMAX_DELAY);
+			// CRITICAL FIX: Add I2S timeout (20ms) instead of infinite wait
+			esp_err_t i2s_result = i2s_channel_read(rx_handle, new_samples_raw, CHUNK_SIZE*sizeof(uint32_t), &bytes_read, pdMS_TO_TICKS(20));
+			if (i2s_result != ESP_OK) {
+				// I2S timeout/error - fill with silence and log diagnostic
+				memset(new_samples_raw, 0, sizeof(uint32_t) * CHUNK_SIZE);
+				static uint32_t i2s_error_count = 0;
+				if (++i2s_error_count % 10 == 1) {  // Log every 10th error
+					Serial.printf("[I2S] WARNING: Timeout/error (code %d, count %u)\n", i2s_result, i2s_error_count);
+				}
+			}
 		}
 		else{
 			memset(new_samples_raw, 0, sizeof(uint32_t) * CHUNK_SIZE);

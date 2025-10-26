@@ -9,151 +9,10 @@
 
 #include "pattern_registry.h"
 #include "pattern_audio_interface.h"
+#include "palettes.h"
 #include <math.h>
 
 extern CRGBF leds[NUM_LEDS];
-
-// ============================================================================
-// PALETTE SYSTEM - K1 Intentional + Emotiscope Reference
-// ============================================================================
-
-// K1 Intentional Pattern: Departure (Transformation)
-// Story: Awakening from darkness → illumination → growth
-// Dark earth → Golden light → Pure white climax → Emerald green
-const uint8_t palette_departure[] PROGMEM = {
-	0, 8, 3, 0,           // Position 0: Dark earth (starting point)
-	32, 45, 25, 0,        // Position 32: Earth awakening
-	64, 128, 100, 0,      // Position 64: Golden possibility emerging
-	96, 255, 200, 0,      // Position 96: Full golden light
-	128, 255, 255, 255,   // Position 128: Pure white CLIMAX (moment of transformation)
-	160, 200, 255, 150,   // Position 160: White fading into growth
-	192, 100, 255, 100,   // Position 192: Green emerging strongly
-	224, 50, 200, 75,     // Position 224: Deeper green taking hold
-	255, 0, 255, 55       // Position 255: Grounded in emerald (destination)
-};
-
-// K1 Intentional Pattern: Lava (Intensity)
-// Story: Primal heat building → uncontrolled fire → white hot passion
-// Absolute black → Deep red restraint → Blazing orange breakthrough → White hot
-const uint8_t palette_lava[] PROGMEM = {
-	0, 0, 0, 0,           // Position 0: Absolute black (PRIMAL start)
-	32, 40, 0, 0,         // Position 32: Black barely warming
-	64, 96, 0, 0,         // Position 64: Deep red tension building
-	96, 128, 16, 0,       // Position 96: Red deepening (controlled fury)
-	128, 180, 64, 0,      // Position 128: Red transitioning to orange
-	160, 255, 96, 0,      // Position 160: Blazing orange breakthrough (EXPLOSION)
-	192, 255, 128, 0,     // Position 192: Orange sustained intensity
-	224, 255, 200, 64,    // Position 224: Orange → white transition
-	255, 255, 255, 255    // Position 255: White hot CLIMAX (unresolved, refuses apology)
-};
-
-// K1 Intentional Pattern: Twilight (Peace)
-// Story: Day's warmth fading → sky transforming → peaceful darkness
-// Warm amber → Deep purple → Midnight blue (smooth, contemplative)
-const uint8_t palette_twilight[] PROGMEM = {
-	0, 255, 180, 80,      // Position 0: Warm amber (sun's last warmth)
-	32, 240, 160, 80,     // Position 32: Amber settling
-	64, 200, 120, 100,    // Position 64: Warm shifting cooler
-	96, 160, 80, 120,     // Position 96: Transitioning to purple
-	128, 128, 0, 128,     // Position 128: Deep purple MIDPOINT (sky transformation)
-	160, 80, 0, 120,      // Position 160: Purple deepening toward blue
-	192, 40, 20, 90,      // Position 192: Blue emerging
-	224, 20, 20, 70,      // Position 224: Deeper blue tone
-	255, 0, 20, 60        // Position 255: Midnight blue (peaceful darkness)
-};
-
-// Palette 3: Sunset Real (Emotiscope reference)
-const uint8_t palette_sunset_real[] PROGMEM = {
-	0, 120, 0, 0,
-	22, 179, 22, 0,
-	51, 255, 104, 0,
-	85, 167, 22, 18,
-	135, 100, 0, 103,
-	198, 16, 0, 130,
-	255, 0, 0, 160
-};
-
-// Palette 4: Fire (Emotiscope reference)
-const uint8_t palette_fire[] PROGMEM = {
-	0, 1, 1, 0,
-	76, 32, 5, 0,
-	146, 192, 24, 0,
-	197, 220, 105, 5,
-	240, 252, 255, 31,
-	245, 255, 255, 255,
-	255, 255, 255, 255
-};
-
-const uint8_t NUM_PALETTES = 5;
-
-// Palette lookup table
-struct PaletteInfo {
-	const uint8_t* data;
-	uint8_t num_entries;
-};
-
-const PaletteInfo palette_table[] PROGMEM = {
-	{palette_departure, 9},      // Index 0: K1 Intentional: Transformation
-	{palette_lava, 9},           // Index 1: K1 Intentional: Intensity
-	{palette_twilight, 9},       // Index 2: K1 Intentional: Peace
-	{palette_sunset_real, 7},    // Index 3: Emotiscope Sunset (for spectrum)
-	{palette_fire, 7}            // Index 4: Emotiscope Fire (for bloom)
-};
-
-// ============================================================================
-// COLOR FROM PALETTE - Core rendering function
-// Maps progress (0.0-1.0) and brightness to interpolated palette color
-// ============================================================================
-
-CRGBF color_from_palette(uint8_t palette_index, float progress, float brightness) {
-	// Clamp inputs
-	palette_index = palette_index % NUM_PALETTES;
-	progress = fmodf(progress, 1.0f);
-	if (progress < 0.0f) progress += 1.0f;
-
-	// Convert progress to 0-255 range
-	uint8_t pos = (uint8_t)(progress * 255.0f);
-
-	// Get palette info
-	PaletteInfo info;
-	memcpy_P(&info, &palette_table[palette_index], sizeof(PaletteInfo));
-
-	// Find bracketing keyframes
-	uint8_t entry1_idx = 0, entry2_idx = 0;
-	uint8_t pos1 = 0, pos2 = 255;
-
-	// Read all entries and find the right interpolation range
-	for (uint8_t i = 0; i < info.num_entries - 1; i++) {
-		uint8_t p1 = pgm_read_byte(&info.data[i * 4 + 0]);
-		uint8_t p2 = pgm_read_byte(&info.data[(i + 1) * 4 + 0]);
-
-		if (pos >= p1 && pos <= p2) {
-			entry1_idx = i;
-			entry2_idx = i + 1;
-			pos1 = p1;
-			pos2 = p2;
-			break;
-		}
-	}
-
-	// Read keyframe RGB data
-	uint8_t r1 = pgm_read_byte(&info.data[entry1_idx * 4 + 1]);
-	uint8_t g1 = pgm_read_byte(&info.data[entry1_idx * 4 + 2]);
-	uint8_t b1 = pgm_read_byte(&info.data[entry1_idx * 4 + 3]);
-
-	uint8_t r2 = pgm_read_byte(&info.data[entry2_idx * 4 + 1]);
-	uint8_t g2 = pgm_read_byte(&info.data[entry2_idx * 4 + 2]);
-	uint8_t b2 = pgm_read_byte(&info.data[entry2_idx * 4 + 3]);
-
-	// Linear interpolation between keyframes
-	float t = (pos2 == pos1) ? 0.0f : (float)(pos - pos1) / (float)(pos2 - pos1);
-
-	float r = (r1 + (r2 - r1) * t) / 255.0f;
-	float g = (g1 + (g2 - g1) * t) / 255.0f;
-	float b = (b1 + (b2 - b1) * t) / 255.0f;
-
-	return CRGBF(r * brightness, g * brightness, b * brightness);
-}
 
 // ============================================================================
 // HELPER FUNCTIONS - Infrastructure for ported light shows
@@ -197,7 +56,7 @@ CRGBF hsv(float h, float s, float v) {
 		case 3: result = CRGBF(p, q, v); break;
 		case 4: result = CRGBF(t, p, v); break;
 		case 5: result = CRGBF(v, p, q); break;
-		default: result = CRGBF(0, 0, 0); break;
+		default: result = CRGBF(0.0f, 0.0f, 0.0f); break;
 	}
 
 	return result;
@@ -572,6 +431,23 @@ void draw_bloom(float time, const PatternParameters& params) {
  * - Speed parameter controls wave propagation
  */
 
+// PALETTE SUPPORT (NEW - October 2025)
+// This pattern now supports BOTH systems:
+// 1. Palette Mode: color_range > 0.5 uses discrete color gradients (33 curated palettes)
+// 2. HSV Mode: color_range <= 0.5 uses parametric HSV color generation
+// Web UI: Users select palette from dropdown, maps to params.color (0.0-1.0 → palette 0-32)
+
+// EASING FUNCTIONS (NEW - October 2025)
+// Use with animation progress values to smooth transitions:
+// float eased = ease_cubic_in_out(progress);  // Smooth acceleration/deceleration
+// float bouncy = ease_bounce_out(progress);   // Bouncy effect
+// float elastic = ease_elastic_out(progress); // Springy effect
+//
+// Example in pattern:
+// float progress = fmodf(time * params.speed, 1.0f);  // 0.0 to 1.0
+// float eased = ease_cubic_in_out(progress);
+// float position = eased * NUM_LEDS;  // Use eased position instead of linear
+
 #define MAX_PULSE_WAVES 6
 
 typedef struct {
@@ -647,7 +523,7 @@ void draw_pulse(float time, const PatternParameters& params) {
 
 	// Clear LED buffer
 	for (int i = 0; i < NUM_LEDS; i++) {
-		leds[i] = CRGBF(0, 0, 0);
+		leds[i] = CRGBF(0.0f, 0.0f, 0.0f);
 	}
 
 	// Update and render all active waves
@@ -683,8 +559,18 @@ void draw_pulse(float time, const PatternParameters& params) {
 			float intensity = pulse_waves[w].brightness * gaussian * decay;
 			intensity = fmaxf(0.0f, fminf(1.0f, intensity));
 
-			// Get color from palette using hue
-			CRGBF color = color_from_palette(params.palette_id, pulse_waves[w].hue, intensity);
+			// DUAL-MODE COLOR SYSTEM
+			uint8_t palette_id = (uint8_t)(params.color * 32.0f);
+			bool use_palette = params.color_range > 0.5f;
+
+			CRGBF color;
+			if (use_palette) {
+				// Palette Mode: Use discrete color gradients
+				color = color_from_palette(palette_id, pulse_waves[w].hue, intensity);
+			} else {
+				// HSV Mode: Use parametric color generation
+				color = hsv(pulse_waves[w].hue, params.saturation, intensity);
+			}
 
 			// Additive blending for overlapping waves
 			leds[i].r = fmaxf(0.0f, fminf(1.0f, leds[i].r + color.r * intensity));
@@ -714,6 +600,23 @@ void draw_pulse(float time, const PatternParameters& params) {
  * - Color gradient across tempo frequency range
  * - Responds to tempo confidence
  */
+
+// PALETTE SUPPORT (NEW - October 2025)
+// This pattern now supports BOTH systems:
+// 1. Palette Mode: color_range > 0.5 uses discrete color gradients (33 curated palettes)
+// 2. HSV Mode: color_range <= 0.5 uses parametric HSV color generation
+// Web UI: Users select palette from dropdown, maps to params.color (0.0-1.0 → palette 0-32)
+
+// EASING FUNCTIONS (NEW - October 2025)
+// Use with animation progress values to smooth transitions:
+// float eased = ease_cubic_in_out(progress);  // Smooth acceleration/deceleration
+// float bouncy = ease_bounce_out(progress);   // Bouncy effect
+// float elastic = ease_elastic_out(progress); // Springy effect
+//
+// Example in pattern:
+// float progress = fmodf(time * params.speed, 1.0f);  // 0.0 to 1.0
+// float eased = ease_cubic_in_out(progress);
+// float position = eased * NUM_LEDS;  // Use eased position instead of linear
 void draw_tempiscope(float time, const PatternParameters& params) {
 	PATTERN_AUDIO_START();
 
@@ -738,40 +641,71 @@ void draw_tempiscope(float time, const PatternParameters& params) {
 
 	// Clear LED buffer
 	for (int i = 0; i < NUM_LEDS; i++) {
-		leds[i] = CRGBF(0, 0, 0);
+		leds[i] = CRGBF(0.0f, 0.0f, 0.0f);
 	}
 
-	// Render tempo bins with phase modulation
-	float tempo_confidence = AUDIO_TEMPO_CONFIDENCE;
+	// Render tempo bins with per-bin phase and magnitude (EMOTISCOPE PROPER ARCHITECTURE)
 	float freshness_factor = AUDIO_IS_STALE() ? 0.5f : 1.0f;
 
-	// Only render if confident beat detected
-	if (tempo_confidence > 0.2f) {
-		for (uint16_t i = 0; i < NUM_TEMPI && i < NUM_LEDS; i++) {
-			// Phase modulation with sine (approximate - no tempo phase data yet)
-			float phase_sine = sinf(time * 6.28318f * (50.0f + i * 50.0f) / 1000.0f);
-			float phase_factor = 1.0f - ((phase_sine + 1.0f) * 0.5f);
+	// Render each tempo bin individually
+	for (uint16_t i = 0; i < NUM_TEMPI && i < NUM_LEDS; i++) {
+		// Get per-tempo-bin data from audio snapshot
+		float magnitude = AUDIO_TEMPO_MAGNITUDE(i);
+		float phase = AUDIO_TEMPO_PHASE(i);
 
-			// Tempo magnitude (approximate - use confidence for all bins)
-			float magnitude = tempo_confidence * freshness_factor * phase_factor;
-			magnitude = fmaxf(0.005f, magnitude); // Minimum brightness threshold
-			magnitude = fmaxf(0.0f, fminf(1.0f, magnitude));
+		// Convert phase (radians) to sine factor (0.0-1.0) using Emotiscope mapping
+		// phase ranges from -PI to PI, we map to 0.0-1.0 with peak at 0
+		float sine_factor = 1.0f - ((phase + M_PI) / (2.0f * M_PI));
+		sine_factor = fmaxf(0.0f, fminf(1.0f, sine_factor)); // Clamp to [0, 1]
 
-			// Color gradient across tempo range
-			float hue_progress = LED_PROGRESS(i);
-			CRGBF color = color_from_palette(params.palette_id, hue_progress, magnitude);
+		// Apply freshness factor and sine modulation
+		float brightness = magnitude * freshness_factor * sine_factor;
+		brightness = fmaxf(0.2f, brightness); // Raise minimum threshold for visibility
+		brightness = fmaxf(0.0f, fminf(1.0f, brightness));
 
-			// Apply brightness and saturation
-			leds[i].r = color.r * params.brightness * params.saturation;
-			leds[i].g = color.g * params.brightness * params.saturation;
-			leds[i].b = color.b * params.brightness * params.saturation;
+		// Color gradient across tempo range
+		float hue_progress = LED_PROGRESS(i);
+
+		// DUAL-MODE COLOR SYSTEM
+		uint8_t palette_id = (uint8_t)(params.color * 32.0f);
+		bool use_palette = params.color_range > 0.5f;
+
+		CRGBF color;
+		if (use_palette) {
+			// Palette Mode: Use discrete color gradients
+			color = color_from_palette(palette_id, hue_progress, brightness);
+		} else {
+			// HSV Mode: Use parametric color generation
+			color = hsv(hue_progress, params.saturation, brightness);
 		}
+
+		// Apply brightness and saturation
+		leds[i].r = color.r * params.brightness * params.saturation;
+		leds[i].g = color.g * params.brightness * params.saturation;
+		leds[i].b = color.b * params.brightness * params.saturation;
 	}
 }
 
 // ============================================================================
 // BEAT TUNNEL PATTERN - Tempo-driven tunnel with sprite persistence
 // ============================================================================
+
+// PALETTE SUPPORT (NEW - October 2025)
+// This pattern now supports BOTH systems:
+// 1. Palette Mode: color_range > 0.5 uses discrete color gradients (33 curated palettes)
+// 2. HSV Mode: color_range <= 0.5 uses parametric HSV color generation
+// Web UI: Users select palette from dropdown, maps to params.color (0.0-1.0 → palette 0-32)
+
+// EASING FUNCTIONS (NEW - October 2025)
+// Use with animation progress values to smooth transitions:
+// float eased = ease_cubic_in_out(progress);  // Smooth acceleration/deceleration
+// float bouncy = ease_bounce_out(progress);   // Bouncy effect
+// float elastic = ease_elastic_out(progress); // Springy effect
+//
+// Example in pattern:
+// float progress = fmodf(time * params.speed, 1.0f);  // 0.0 to 1.0
+// float eased = ease_cubic_in_out(progress);
+// float position = eased * NUM_LEDS;  // Use eased position instead of linear
 
 // Static buffers for tunnel image and motion blur persistence
 static CRGBF beat_tunnel_image[NUM_LEDS];
@@ -792,7 +726,7 @@ void draw_beat_tunnel(float time, const PatternParameters& params) {
 
 	// Clear frame buffer
 	for (int i = 0; i < NUM_LEDS; i++) {
-		beat_tunnel_image[i] = CRGBF(0, 0, 0);
+		beat_tunnel_image[i] = CRGBF(0.0f, 0.0f, 0.0f);
 	}
 
 	// Animate sprite position using sine wave modulation
@@ -809,34 +743,74 @@ void draw_beat_tunnel(float time, const PatternParameters& params) {
 
 	if (!AUDIO_IS_AVAILABLE()) {
 		// Fallback: simple animated pattern
+		// DUAL-MODE COLOR SYSTEM
+		uint8_t palette_id = (uint8_t)(params.color * 32.0f);
+		bool use_palette = params.color_range > 0.5f;
+
 		for (int i = 0; i < NUM_LEDS; i++) {
 			float led_pos = LED_PROGRESS(i);
 			float distance = fabsf(led_pos - position);
 			float brightness = expf(-(distance * distance) / (2.0f * 0.08f * 0.08f));
 			brightness = fmaxf(0.0f, fminf(1.0f, brightness));
-			CRGBF color = color_from_palette(params.palette_id, led_pos, brightness * 0.5f);
+
+			CRGBF color;
+			if (use_palette) {
+				// Palette Mode: Use discrete color gradients
+				color = color_from_palette(palette_id, led_pos, brightness * 0.5f);
+			} else {
+				// HSV Mode: Use parametric color generation
+				color = hsv(led_pos, params.saturation, brightness * 0.5f);
+			}
+
 			beat_tunnel_image[i].r += color.r * brightness;
 			beat_tunnel_image[i].g += color.g * brightness;
 			beat_tunnel_image[i].b += color.b * brightness;
 		}
 	} else {
-		// Audio-reactive: accumulate tempo bin colors into tunnel
-		float beat_threshold = 0.2f;
-		float tempo_confidence = AUDIO_TEMPO_CONFIDENCE;
+		// Audio-reactive: render tempo bins with per-bin phase/magnitude (EMOTISCOPE PROPER ARCHITECTURE)
+		// DUAL-MODE COLOR SYSTEM
+		uint8_t palette_id = (uint8_t)(params.color * 32.0f);
+		bool use_palette = params.color_range > 0.5f;
 
-		// Render tempo as colored bands when beat confidence is high
-		if (tempo_confidence > beat_threshold) {
-			for (uint16_t i = 0; i < (NUM_LEDS >> 1); i++) {
-				float led_pos = LED_PROGRESS(i);
+		// Render each tempo bin individually with phase synchronization
+		for (uint16_t i = 0; i < NUM_TEMPI && i < NUM_LEDS; i++) {
+			// Get per-tempo-bin data from audio snapshot
+			float magnitude = AUDIO_TEMPO_MAGNITUDE(i);
+			float phase = AUDIO_TEMPO_PHASE(i);
 
-				// Use position within tunnel to determine color
+			// Convert phase (radians) to normalized 0.0-1.0 value
+			// phase ranges from -PI to PI, normalize to 0.0-1.0
+			float phase_normalized = (phase + M_PI) / (2.0f * M_PI);
+			phase_normalized = fmaxf(0.0f, fminf(1.0f, phase_normalized)); // Clamp to [0, 1]
+
+			// Phase window: only render when phase is near beat (0.65 ± 0.02 range)
+			// This creates the "beat tunnel" effect - only lights up when beat occurs
+			const float phase_window_center = 0.65f;
+			const float phase_window_width = 0.02f;
+			float phase_distance = fabsf(phase_normalized - phase_window_center);
+
+			if (phase_distance < phase_window_width) {
+				// Within beat window - render this tempo bin
+				float led_pos = TEMPO_PROGRESS(i); // Map tempo bin to LED position
+
+				// Color varies with tempo bin position
 				float hue = fmodf(led_pos + time * 0.3f * params.speed, 1.0f);
 
-				// Brightness modulated by beat
-				float brightness = tempo_confidence * (0.3f + 0.7f * sinf(time * 6.28318f + i * 0.1f));
+				// Brightness modulated by magnitude and phase window proximity
+				// Closer to center of window = brighter
+				float window_brightness = 1.0f - (phase_distance / phase_window_width);
+				float brightness = magnitude * window_brightness;
 				brightness = fmaxf(0.0f, fminf(1.0f, brightness));
 
-				CRGBF color = color_from_palette(params.palette_id, hue, brightness);
+				CRGBF color;
+				if (use_palette) {
+					// Palette Mode: Use discrete color gradients
+					color = color_from_palette(palette_id, hue, brightness);
+				} else {
+					// HSV Mode: Use parametric color generation
+					color = hsv(hue, params.saturation, brightness);
+				}
+
 				beat_tunnel_image[i].r += color.r * brightness;
 				beat_tunnel_image[i].g += color.g * brightness;
 				beat_tunnel_image[i].b += color.b * brightness;
@@ -1048,7 +1022,7 @@ void void_render_ripple_diffusion(float time, const PatternParameters& params) {
 
 	// Clear frame
 	for (int i = 0; i < NUM_LEDS; i++) {
-		leds[i] = CRGBF(0, 0, 0);
+		leds[i] = CRGBF(0.0f, 0.0f, 0.0f);
 	}
 
 	// Spawn new ripples when energy is present
@@ -1145,7 +1119,7 @@ void void_render_flowing_stream(float time, const PatternParameters& params) {
 			leds[i].g = color.g * params.brightness * params.saturation;
 			leds[i].b = color.b * params.brightness * params.saturation;
 		} else {
-			leds[i] = CRGBF(0, 0, 0);
+			leds[i] = CRGBF(0.0f, 0.0f, 0.0f);
 		}
 	}
 }

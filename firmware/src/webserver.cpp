@@ -488,6 +488,45 @@ void init_webserver() {
             background: rgba(255, 255, 255, 0.05);
             margin: 40px 0;
         }
+        #palette-select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: #fff;
+            font-size: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        #palette-select:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        #palette-select:focus {
+            outline: 2px solid rgba(255, 215, 0, 0.5);
+            outline-offset: 2px;
+            border-color: rgba(255, 215, 0, 0.5);
+        }
+        #palette-select option {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 8px;
+        }
+        #palette-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #ffd700;
+            font-family: 'Monaco', monospace;
+            text-align: center;
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 4px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
 
         @media (max-width: 768px) {
             .pattern-grid {
@@ -600,36 +639,99 @@ void init_webserver() {
                     <input type="range" class="slider" id="microphone-gain" min="0.5" max="2" step="0.05" value="1.0" oninput="updateMicrophoneGain()">
                     <div style="font-size: 10px; color: #999; margin-top: 4px; text-align: center;">-6dB &nbsp; 0dB &nbsp; +6dB</div>
                 </div>
+
+                <div class="control-group">
+                    <label class="control-label">
+                        <span>Palette</span>
+                    </label>
+                    <select id="palette-select" onchange="updatePalette()">
+                        <option value="0">Sunset Real</option>
+                        <option value="1">Rivendell</option>
+                        <option value="2">Ocean Breeze 036</option>
+                        <option value="3">RGI 15</option>
+                        <option value="4">Retro 2</option>
+                        <option value="5">Analogous 1</option>
+                        <option value="6">Pink Splash 08</option>
+                        <option value="7">Coral Reef</option>
+                        <option value="8">Ocean Breeze 068</option>
+                        <option value="9">Pink Splash 07</option>
+                        <option value="10">Vintage 01</option>
+                        <option value="11">Departure</option>
+                        <option value="12">Landscape 64</option>
+                        <option value="13">Landscape 33</option>
+                        <option value="14">Rainbow Sherbet</option>
+                        <option value="15">GR65 Hult</option>
+                        <option value="16">GR64 Hult</option>
+                        <option value="17">GMT Dry Wet</option>
+                        <option value="18">IB Jul01</option>
+                        <option value="19">Vintage 57</option>
+                        <option value="20">IB15</option>
+                        <option value="21">Fuschia 7</option>
+                        <option value="22">Emerald Dragon</option>
+                        <option value="23">Lava</option>
+                        <option value="24">Fire</option>
+                        <option value="25">Colorful</option>
+                        <option value="26">Magenta Evening</option>
+                        <option value="27">Pink Purple</option>
+                        <option value="28">Autumn 19</option>
+                        <option value="29">Blue Magenta White</option>
+                        <option value="30">Black Magenta Red</option>
+                        <option value="31">Red Magenta Yellow</option>
+                        <option value="32">Blue Cyan Yellow</option>
+                    </select>
+                    <div id="palette-name">Sunset Real</div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
         async function loadPatterns() {
-            const res = await fetch('/api/patterns');
-            const data = await res.json();
-            const container = document.getElementById('patterns');
+            try {
+                const res = await fetch('/api/patterns');
+                if (!res.ok) {
+                    console.error('[K1] Failed to fetch patterns:', res.status);
+                    return;
+                }
+                const data = await res.json();
+                const container = document.getElementById('patterns');
 
-            container.innerHTML = data.patterns.map(p => {
-                const active = p.index === data.current_pattern ? 'active' : '';
-                return '<div class="pattern-card ' + active + '" onclick="selectPattern(' + p.index + ')">' +
-                    '<div class="pattern-name">' + p.name + '</div>' +
-                    '<div class="pattern-desc">' + (p.description || '') + '</div>' +
-                    '</div>';
-            }).join('');
+                container.innerHTML = data.patterns.map(p => {
+                    const active = p.index === data.current_pattern ? 'active' : '';
+                    return '<div class="pattern-card ' + active + '" onclick="selectPattern(' + p.index + ')">' +
+                        '<div class="pattern-name">' + p.name + '</div>' +
+                        '<div class="pattern-desc">' + (p.description || '') + '</div>' +
+                        '</div>';
+                }).join('');
+                console.log('[K1] Patterns loaded, current:', data.current_pattern);
+            } catch (err) {
+                console.error('[K1] Error loading patterns:', err);
+            }
         }
 
         async function loadParams() {
-            const res = await fetch('/api/params');
-            const params = await res.json();
-
-            Object.keys(params).forEach(key => {
-                const elem = document.getElementById(key);
-                if (elem && elem.type === 'range') {
-                    elem.value = params[key];
-                    updateDisplay(key, true);
+            try {
+                const res = await fetch('/api/params');
+                if (!res.ok) {
+                    console.error('[K1] Failed to fetch params:', res.status);
+                    return;
                 }
-            });
+                const params = await res.json();
+
+                // Update all slider elements with device parameters
+                Object.keys(params).forEach(key => {
+                    const elem = document.getElementById(key);
+                    if (elem && elem.type === 'range') {
+                        // Set slider to actual device value
+                        elem.value = params[key];
+                        // Update display without triggering update back to device
+                        updateDisplay(key, true);
+                    }
+                });
+                console.log('[K1] Parameters loaded from device:', params);
+            } catch (err) {
+                console.error('[K1] Error loading parameters:', err);
+            }
         }
 
         async function selectPattern(index) {
@@ -671,15 +773,24 @@ void init_webserver() {
         }
 
         async function loadAudioConfig() {
-            const res = await fetch('/api/audio-config');
-            const config = await res.json();
+            try {
+                const res = await fetch('/api/audio-config');
+                if (!res.ok) {
+                    console.error('[K1] Failed to fetch audio config:', res.status);
+                    return;
+                }
+                const config = await res.json();
 
-            const gainElem = document.getElementById('microphone-gain');
-            const gainVal = document.getElementById('microphone-gain-val');
+                const gainElem = document.getElementById('microphone-gain');
+                const gainVal = document.getElementById('microphone-gain-val');
 
-            if (gainElem && config.microphone_gain) {
-                gainElem.value = config.microphone_gain;
-                gainVal.textContent = config.microphone_gain.toFixed(2) + 'x';
+                if (gainElem && config.microphone_gain) {
+                    gainElem.value = config.microphone_gain;
+                    gainVal.textContent = config.microphone_gain.toFixed(2) + 'x';
+                }
+                console.log('[K1] Audio config loaded:', config);
+            } catch (err) {
+                console.error('[K1] Error loading audio config:', err);
             }
         }
 
@@ -697,9 +808,85 @@ void init_webserver() {
             });
         }
 
-        loadPatterns();
-        loadParams();
-        loadAudioConfig();
+        const paletteNames = [
+            "Sunset Real",
+            "Rivendell",
+            "Ocean Breeze 036",
+            "RGI 15",
+            "Retro 2",
+            "Analogous 1",
+            "Pink Splash 08",
+            "Coral Reef",
+            "Ocean Breeze 068",
+            "Pink Splash 07",
+            "Vintage 01",
+            "Departure",
+            "Landscape 64",
+            "Landscape 33",
+            "Rainbow Sherbet",
+            "GR65 Hult",
+            "GR64 Hult",
+            "GMT Dry Wet",
+            "IB Jul01",
+            "Vintage 57",
+            "IB15",
+            "Fuschia 7",
+            "Emerald Dragon",
+            "Lava",
+            "Fire",
+            "Colorful",
+            "Magenta Evening",
+            "Pink Purple",
+            "Autumn 19",
+            "Blue Magenta White",
+            "Black Magenta Red",
+            "Red Magenta Yellow",
+            "Blue Cyan Yellow"
+        ];
+
+        async function initPalettes() {
+            try {
+                const res = await fetch('/api/params');
+                if (!res.ok) {
+                    console.error('[K1] Failed to fetch palette params:', res.status);
+                    return;
+                }
+                const params = await res.json();
+
+                const paletteSelect = document.getElementById('palette-select');
+                const paletteName = document.getElementById('palette-name');
+
+                if (params.palette_id !== undefined) {
+                    paletteSelect.value = params.palette_id;
+                    paletteName.textContent = paletteNames[params.palette_id] || 'Unknown';
+                }
+                console.log('[K1] Palette initialized:', params.palette_id);
+            } catch (err) {
+                console.error('[K1] Error initializing palettes:', err);
+            }
+        }
+
+        async function updatePalette() {
+            const paletteSelect = document.getElementById('palette-select');
+            const paletteName = document.getElementById('palette-name');
+
+            const paletteId = parseInt(paletteSelect.value);
+            paletteName.textContent = paletteNames[paletteId] || 'Unknown';
+
+            await fetch('/api/params', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ palette_id: paletteId })
+            });
+        }
+
+        // Load all UI state from device on page load (wait for all to complete)
+        (async () => {
+            await loadPatterns();
+            await loadParams();
+            await loadAudioConfig();
+            await initPalettes();
+        })();
     </script>
 </body>
 </html>

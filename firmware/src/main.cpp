@@ -8,6 +8,8 @@
 #include "audio/goertzel.h"  // Audio system globals, struct definitions, initialization, DFT computation
 #include "audio/tempo.h"     // Beat detection and tempo tracking pipeline
 #include "audio/microphone.h"  // REAL SPH0645 I2S MICROPHONE INPUT
+#include "palettes.h"
+#include "easing_functions.h"
 #include "parameters.h"
 #include "pattern_registry.h"
 #include "generated_patterns.h"
@@ -53,10 +55,19 @@ void audio_task(void* param) {
         smooth_tempi_curve();           // ~2-5ms tempo magnitude calculation
         detect_beats();                 // ~1ms beat confidence calculation
 
-        // SYNC TEMPO CONFIDENCE TO AUDIO SNAPSHOT (NEW - FIX)
+        // SYNC TEMPO CONFIDENCE TO AUDIO SNAPSHOT
         // Copy calculated tempo_confidence to audio_back so patterns can access it
         extern float tempo_confidence;  // From tempo.cpp
         audio_back.tempo_confidence = tempo_confidence;
+
+        // CRITICAL FIX: SYNC TEMPO MAGNITUDE AND PHASE ARRAYS
+        // Copy per-tempo-bin magnitude and phase data from tempo calculation to audio snapshot
+        // This enables Tempiscope and Beat_Tunnel patterns to access individual tempo bin data
+        extern tempo tempi[NUM_TEMPI];  // From tempo.cpp (64 tempo hypotheses)
+        for (uint16_t i = 0; i < NUM_TEMPI; i++) {
+            audio_back.tempo_magnitude[i] = tempi[i].magnitude;  // 0.0-1.0 per bin
+            audio_back.tempo_phase[i] = tempi[i].phase;          // -π to +π per bin
+        }
 
         // Buffer synchronization
         finish_audio_frame();          // ~0-5ms buffer swap
@@ -64,11 +75,12 @@ void audio_task(void* param) {
         // Debug output (optional)
         // print_audio_debug();  // Comment out to reduce serial traffic
 
-        // Sleep to maintain ~100 Hz audio processing rate
-        // Actual rate: 64 samples / 12800 Hz = 5ms per chunk
-        // Goertzel takes 15-25ms, tempo detection adds 2-8ms
-        // Effective rate: 20-25 Hz (still good for audio reactivity)
-        vTaskDelay(pdMS_TO_TICKS(10));
+        // CRITICAL FIX: Reduce artificial throttle
+        // Changed from 10ms to 1ms to increase audio processing rate
+        // Before: 20-25 Hz audio (35-55ms latency)
+        // After: 40-50 Hz audio (25-45ms latency)
+        // 1ms yield prevents CPU starvation while allowing faster audio updates
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
 
