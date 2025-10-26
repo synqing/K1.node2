@@ -5,16 +5,17 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card } from './ui/card';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface SidebarProps {
   isConnected: boolean;
-  onConnect: (connected: boolean) => void;
+  connectionStatus: 'connected' | 'connecting' | 'disconnected';
+  onConnect: () => Promise<void>;
   connectionIP: string;
   onIPChange: (ip: string) => void;
 }
 
-export function Sidebar({ isConnected, onConnect, connectionIP, onIPChange }: SidebarProps) {
+export function Sidebar({ isConnected, connectionStatus, onConnect, connectionIP, onIPChange }: SidebarProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [serialPort, setSerialPort] = useState('/dev/tty.usbserial-0001');
   const [ipValid, setIpValid] = useState(true);
