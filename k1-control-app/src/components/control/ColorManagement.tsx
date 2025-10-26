@@ -104,7 +104,7 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
             max={360}
             step={1}
             value={[hue]}
-            onValueChange={([value]) => setHue(value)}
+            onValueChange={([value]: number[]) => setHue(value)}
             disabled={disabled}
             className="w-full"
           />
@@ -123,7 +123,7 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
             max={100}
             step={1}
             value={[saturation]}
-            onValueChange={([value]) => setSaturation(value)}
+            onValueChange={([value]: number[]) => setSaturation(value)}
             disabled={disabled}
             className="w-full"
           />
@@ -142,7 +142,7 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
             max={100}
             step={1}
             value={[value]}
-            onValueChange={([value]) => setValue(value)}
+            onValueChange={([value]: number[]) => setValue(value)}
             disabled={disabled}
             className="w-full"
           />
