@@ -2,6 +2,7 @@
 import { useK1State, useK1Actions } from '../providers/K1Provider';
 import { testBackoffSequence, testJitterDistribution } from '../utils/backoff-test';
 import { testTransportRouting, runTransportTests } from '../utils/transport-test';
+import { testTelemetrySystem, runTelemetryTests } from '../utils/telemetry-test';
 
 /**
  * Simple test component to verify K1Provider is working
@@ -19,6 +20,8 @@ export function K1StatusTest() {
     };
     (window as any).testTransport = testTransportRouting;
     (window as any).runTransportTests = runTransportTests;
+    (window as any).testTelemetry = testTelemetrySystem;
+    (window as any).runTelemetryTests = runTelemetryTests;
     (window as any).k1Actions = actions;
   }
 
@@ -42,7 +45,7 @@ export function K1StatusTest() {
         <div>Errors: <span className="text-[var(--k1-text)]">{state.errorHistory.length}</span></div>
         <div>Connections: <span className="text-[var(--k1-text)]">{state.telemetry.successfulConnections}/{state.telemetry.connectionAttempts}</span></div>
         <div className="text-[9px] text-[var(--k1-text-dim)] mt-1">
-          Console: <code>testTransport()</code> | <code>runTransportTests()</code>
+          Console: <code>testTelemetry()</code> | <code>runTelemetryTests()</code>
         </div>
       </div>
     </div>

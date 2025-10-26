@@ -228,13 +228,8 @@ export interface K1ProviderState {
     enableTelemetry: boolean;
   };
   
-  // Telemetry
-  telemetry: {
-    connectionAttempts: number;
-    successfulConnections: number;
-    totalErrors: number;
-    averageLatency: number;
-  };
+  // Enhanced telemetry with detailed metrics
+  telemetry: K1TelemetryState;
 }
 
 /**
@@ -279,6 +274,27 @@ export interface K1ProviderActions {
   // Configuration backup/restore
   backupConfig: () => Promise<K1ConfigBackup>;
   restoreConfig: (config: K1ConfigBackup) => Promise<K1ConfigRestoreResponse>;
+  
+  // Storage management
+  getStorageInfo: () => {
+    totalKeys: number;
+    k1Keys: number;
+    totalSize: number;
+    k1Size: number;
+    metadata: any;
+    health: 'good' | 'warning' | 'error';
+    issues: string[];
+  };
+  cleanupStorage: (maxAge?: number) => { removed: string[]; errors: string[] };
+  exportStorageData: () => { success: boolean; data?: any; error?: string };
+  importStorageData: (data: any) => { success: boolean; imported: string[]; errors: string[] };
+  
+  // Enhanced telemetry and error surfaces
+  getTelemetryState: () => K1TelemetryState;
+  resetTelemetry: () => void;
+  registerTelemetryHook: (hook: K1TelemetryHook) => () => void; // Returns unregister function
+  setErrorSurfaceConfig: (config: Partial<K1ErrorSurfaceConfig>) => void;
+  getErrorSurfaceConfig: () => K1ErrorSurfaceConfig;
 }
 
 /**
@@ -309,7 +325,7 @@ export interface K1EventMap {
 }
 
 /**
- * Persistence keys for localStorage
+ * Persistence keys for localStorage with versioning
  */
 export const K1_STORAGE_KEYS = {
   ENDPOINT: 'k1:v1:endpoint',
@@ -317,6 +333,8 @@ export const K1_STORAGE_KEYS = {
   PALETTE: 'k1:v1:palette',
   PATTERN: 'k1:v1:pattern',
   FEATURE_FLAGS: 'k1:v1:featureFlags',
+  TRANSPORT_PREFS: 'k1:v1:transportPrefs',
+  METADATA: 'k1:v1:metadata',
 } as const;
 
 /**
@@ -350,8 +368,166 @@ export const K1_DEFAULTS = {
     persistState: true,
     enableTelemetry: true,
   },
+  
+  TELEMETRY: {
+    connectionAttempts: 0,
+    successfulConnections: 0,
+    failedConnections: 0,
+    reconnectionAttempts: 0,
+    errorCounts: {
+      connect_error: 0,
+      reconnect_giveup: 0,
+      ws_send_error: 0,
+      rest_error: 0,
+      validation_error: 0,
+      backup_error: 0,
+      restore_error: 0,
+    },
+    averageLatency: 0,
+    latencyHistory: [],
+    totalRequests: 0,
+    successfulRequests: 0,
+    wsConnectionAttempts: 0,
+    wsSuccessfulConnections: 0,
+    wsErrors: 0,
+    restRequests: 0,
+    restErrors: 0,
+    sessionStartTime: Date.now(),
+    totalUptime: 0,
+    featureUsage: {
+      patternChanges: 0,
+      parameterUpdates: 0,
+      paletteChanges: 0,
+      backups: 0,
+      restores: 0,
+    },
+  } as K1TelemetryState,
+  
+  ERROR_SURFACE: {
+    showToasts: true,
+    logToConsole: true,
+    reportToTelemetry: true,
+    maxErrorHistory: 10,
+    errorDisplayDuration: 5000,
+  } as K1ErrorSurfaceConfig,
 } as const;
 
+
+/**
+ * Enhanced telemetry state with detailed metrics
+ */
+export interface K1TelemetryState {
+  // Connection metrics
+  connectionAttempts: number;
+  successfulConnections: number;
+  failedConnections: number;
+  reconnectionAttempts: number;
+  
+  // Error metrics by category
+  errorCounts: {
+    connect_error: number;
+    reconnect_giveup: number;
+    ws_send_error: number;
+    rest_error: number;
+    validation_error: number;
+    backup_error: number;
+    restore_error: number;
+  };
+  
+  // Performance metrics
+  averageLatency: number;
+  latencyHistory: number[]; // Last 10 latencies
+  totalRequests: number;
+  successfulRequests: number;
+  
+  // Transport metrics
+  wsConnectionAttempts: number;
+  wsSuccessfulConnections: number;
+  wsErrors: number;
+  restRequests: number;
+  restErrors: number;
+  
+  // Session metrics
+  sessionStartTime: number;
+  totalUptime: number;
+  lastErrorTime?: number;
+  
+  // Feature usage
+  featureUsage: {
+    patternChanges: number;
+    parameterUpdates: number;
+    paletteChanges: number;
+    backups: number;
+    restores: number;
+  };
+}
+
+/**
+ * Telemetry event for external reporting
+ */
+export interface K1TelemetryEvent {
+  type: 'connection' | 'error' | 'request' | 'feature_usage' | 'performance';
+  category: string;
+  action: string;
+  label?: string;
+  value?: number;
+  metadata?: Record<string, any>;
+  timestamp: number;
+}
+
+/**
+ * Telemetry hook interface for external integrations
+ */
+export interface K1TelemetryHook {
+  onEvent: (event: K1TelemetryEvent) => void;
+  onError: (error: K1Error, context?: Record<string, any>) => void;
+  onMetric: (metric: string, value: number, tags?: Record<string, string>) => void;
+}
+
+/**
+ * Error surface configuration
+ */
+export interface K1ErrorSurfaceConfig {
+  showToasts: boolean;
+  logToConsole: boolean;
+  reportToTelemetry: boolean;
+  maxErrorHistory: number;
+  errorDisplayDuration: number;
+}
+
+/**
+ * Persistence metadata for versioning and validation
+ */
+export interface K1PersistenceMetadata {
+  version: string;
+  timestamp: number;
+  deviceInfo?: {
+    device: string;
+    firmware: string;
+    ip: string;
+  };
+  userAgent: string;
+  schemaVersion: number;
+}
+
+/**
+ * Versioned storage wrapper for type safety and migration support
+ */
+export interface K1StorageWrapper<T> {
+  version: string;
+  timestamp: number;
+  data: T;
+  metadata: K1PersistenceMetadata;
+}
+
+/**
+ * Transport preferences for persistence
+ */
+export interface K1TransportPreferences {
+  wsEnabled: boolean;
+  preferredTransport: K1Transport;
+  autoReconnect: boolean;
+}
 
 /**
  * Configuration backup/restore interfaces

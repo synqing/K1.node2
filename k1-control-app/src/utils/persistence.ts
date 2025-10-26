@@ -30,6 +30,7 @@ export function getPatternStorageKeys(patternId: string) {
   return {
     params: getPatternParamsKey(patternId),
     palette: getPatternPaletteKey(patternId),
+    preset: getPatternPresetKey(patternId),
   };
 }
 
@@ -247,6 +248,7 @@ export function clearPatternData(patternId: string): void {
   const keys = getPatternStorageKeys(patternId);
   safeRemoveItem(keys.params);
   safeRemoveItem(keys.palette);
+  safeRemoveItem(keys.preset);
 }
 
 /**
@@ -396,4 +398,28 @@ export function cleanupStorage(): void {
   } catch (error) {
     console.warn('Storage cleanup failed:', error);
   }
+}
+
+export function getPatternPresetKey(patternId: string): string {
+  return `k1:v1:preset:${patternId}`;
+}
+
+export function savePatternPreset(patternId: string, presetLabel: string): boolean {
+  const key = getPatternPresetKey(patternId);
+  const label = (presetLabel || '').toString().trim();
+  if (!label) {
+    // Empty label clears preset
+    return safeRemoveItem(key), true;
+  }
+  // Basic validation: restrict length
+  const sanitized = label.slice(0, 64);
+  return safeSetItem(key, sanitized);
+}
+
+export function loadPatternPreset(patternId: string): string | null {
+  const key = getPatternPresetKey(patternId);
+  const data = safeGetItem(key);
+  if (!data) return null;
+  const label = data.toString().trim();
+  return label.length ? label : null;
 }

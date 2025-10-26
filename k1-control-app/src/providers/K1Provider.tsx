@@ -9,10 +9,14 @@ import {
   K1Parameters,
   K1DeviceInfo,
   K1Transport,
+  K1TelemetryState,
+  K1TelemetryHook,
+  K1ErrorSurfaceConfig,
   // K1EventMap, // TODO: Will be used for WebSocket events in subtask 2.5
   K1_DEFAULTS,
   K1_STORAGE_KEYS,
 } from '../types/k1-types';
+import { K1Telemetry, telemetryManager } from '../utils/telemetry-manager';
 import {
   savePatternParameters,
   loadPatternParameters,
@@ -48,7 +52,8 @@ type K1Action =
   | { type: 'SET_TRANSPORT_FLAGS'; payload: Partial<K1ProviderState['transport']> }
   | { type: 'SET_RECONNECT_STATE'; payload: Partial<K1ProviderState['reconnect']> }
   | { type: 'SET_FEATURE_FLAG'; payload: { flag: keyof K1ProviderState['featureFlags']; value: boolean } }
-  | { type: 'INCREMENT_TELEMETRY'; payload: { metric: keyof K1ProviderState['telemetry']; value?: number } }
+  | { type: 'INCREMENT_TELEMETRY'; payload: { metric: string; value?: number } }
+  | { type: 'UPDATE_TELEMETRY'; payload: K1TelemetryState }
   | { type: 'RESET_STATE' };
 
 /**
@@ -75,12 +80,7 @@ const initialState: K1ProviderState = {
   lastError: null,
   errorHistory: [],
   featureFlags: K1_DEFAULTS.FEATURE_FLAGS,
-  telemetry: {
-    connectionAttempts: 0,
-    successfulConnections: 0,
-    totalErrors: 0,
-    averageLatency: 0,
-  },
+  telemetry: K1_DEFAULTS.TELEMETRY,
 };
 
 /**
@@ -132,10 +132,7 @@ function k1Reducer(state: K1ProviderState, action: K1Action): K1ProviderState {
         ...state,
         lastError: action.payload,
         errorHistory: [action.payload, ...state.errorHistory].slice(0, 10), // Keep last 10 errors
-        telemetry: {
-          ...state.telemetry,
-          totalErrors: state.telemetry.totalErrors + 1,
-        },
+        telemetry: K1Telemetry.updateForError(state.telemetry, action.payload),
       };
 
     case 'CLEAR_ERROR':
@@ -179,12 +176,33 @@ function k1Reducer(state: K1ProviderState, action: K1Action): K1ProviderState {
 
     case 'INCREMENT_TELEMETRY':
       const { metric, value = 1 } = action.payload;
+      // Handle nested telemetry structure
+      if (metric.includes('.')) {
+        const [category, subMetric] = metric.split('.');
+        return {
+          ...state,
+          telemetry: {
+            ...state.telemetry,
+            [category]: {
+              ...state.telemetry[category as keyof typeof state.telemetry],
+              [subMetric]: (state.telemetry[category as keyof typeof state.telemetry] as any)[subMetric] + value,
+            },
+          },
+        };
+      } else {
+        return {
+          ...state,
+          telemetry: {
+            ...state.telemetry,
+            [metric]: (state.telemetry as any)[metric] + value,
+          },
+        };
+      }
+    
+    case 'UPDATE_TELEMETRY':
       return {
         ...state,
-        telemetry: {
-          ...state.telemetry,
-          [metric]: state.telemetry[metric] + value,
-        },
+        telemetry: action.payload,
       };
 
     case 'RESET_STATE':
@@ -357,7 +375,19 @@ export function K1Provider({
         
         // Update connection state
         dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connecting' });
-        dispatch({ type: 'INCREMENT_TELEMETRY', payload: { metric: 'connectionAttempts' } });
+        
+        // Update telemetry for connection attempt
+        const updatedTelemetry = K1Telemetry.updateForConnection(state.telemetry, 'attempt');
+        dispatch({ type: 'UPDATE_TELEMETRY', payload: updatedTelemetry });
+        
+        // Record telemetry event
+        K1Telemetry.recordEvent({
+          type: 'connection',
+          category: 'connect',
+          action: 'attempt',
+          label: targetEndpoint,
+          timestamp: Date.now(),
+        });
         
         // Create new client if needed
         if (!clientRef.current) {
@@ -385,7 +415,20 @@ export function K1Provider({
         // Connection successful - reset all reconnection state
         dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connected' });
         dispatch({ type: 'SET_DEVICE_INFO', payload: deviceInfo });
-        dispatch({ type: 'INCREMENT_TELEMETRY', payload: { metric: 'successfulConnections' } });
+        
+        // Update telemetry for successful connection
+        const updatedTelemetrySuccess = K1Telemetry.updateForConnection(state.telemetry, 'success');
+        dispatch({ type: 'UPDATE_TELEMETRY', payload: updatedTelemetrySuccess });
+        
+        // Record telemetry event
+        K1Telemetry.recordEvent({
+          type: 'connection',
+          category: 'connect',
+          action: 'success',
+          label: targetEndpoint,
+          metadata: { deviceInfo },
+          timestamp: Date.now(),
+        });
         dispatch({ type: 'SET_RECONNECT_STATE', payload: { 
           attemptCount: 0, 
           isActive: false,
@@ -410,6 +453,8 @@ export function K1Provider({
           error instanceof Error ? error : undefined
         );
         
+        // Handle error with telemetry and surfaces
+        K1Telemetry.handleError(k1Error, { endpoint: targetEndpoint });
         dispatch({ type: 'SET_ERROR', payload: k1Error });
         dispatch({ type: 'SET_CONNECTION_STATE', payload: 'error' });
         
@@ -478,6 +523,7 @@ export function K1Provider({
           error instanceof Error ? error.message : String(error),
           error instanceof Error ? error : undefined
         );
+        K1Telemetry.handleError(k1Error, { patternId });
         dispatch({ type: 'SET_ERROR', payload: k1Error });
         throw k1Error;
       }
@@ -492,7 +538,10 @@ export function K1Provider({
       }
 
       try {
+        const startTime = Date.now();
         const response = await clientRef.current.updateParameters(params);
+        const latency = Date.now() - startTime;
+        
         dispatch({ type: 'UPDATE_PARAMETERS', payload: params });
         
         // Persist parameters if feature enabled (per-pattern)
@@ -500,6 +549,18 @@ export function K1Provider({
           const updatedParams = { ...state.parameters, ...params };
           savePatternParameters(state.selectedPatternId, updatedParams);
         }
+
+        // Record successful parameter update
+        const updatedTelemetry = K1Telemetry.updateForSuccess(state.telemetry, 'parameter_update', latency);
+        dispatch({ type: 'UPDATE_TELEMETRY', payload: updatedTelemetry });
+        
+        K1Telemetry.recordEvent({
+          type: 'feature_usage',
+          category: 'parameters',
+          action: 'update',
+          metadata: { params, latency },
+          timestamp: Date.now(),
+        });
         
         return response;
       } catch (error) {
@@ -509,6 +570,7 @@ export function K1Provider({
           error instanceof Error ? error.message : String(error),
           error instanceof Error ? error : undefined
         );
+        K1Telemetry.handleError(k1Error, { params });
         dispatch({ type: 'SET_ERROR', payload: k1Error });
         throw k1Error;
       }
@@ -711,6 +773,77 @@ export function K1Provider({
         throw k1Error;
       }
     }, [state.connection, createError]),
+
+    /**
+     * Get storage information and health status
+     */
+    getStorageInfo: useCallback(() => {
+      return K1PersistenceManager.getStorageInfo();
+    }, []),
+
+    /**
+     * Clean up old storage entries
+     */
+    cleanupStorage: useCallback((maxAge?: number) => {
+      return K1PersistenceManager.cleanup(maxAge);
+    }, []),
+
+    /**
+     * Export all K1 data for backup
+     */
+    exportStorageData: useCallback(() => {
+      return K1PersistenceManager.exportData();
+    }, []),
+
+    /**
+     * Import K1 data from backup
+     */
+    importStorageData: useCallback((data: any) => {
+      const result = K1PersistenceManager.importData(data);
+      
+      if (result.success) {
+        // Trigger rehydration after import
+        window.location.reload();
+      }
+      
+      return result;
+    }, []),
+
+    /**
+     * Get current telemetry state
+     */
+    getTelemetryState: useCallback(() => {
+      return state.telemetry;
+    }, [state.telemetry]),
+
+    /**
+     * Reset telemetry data
+     */
+    resetTelemetry: useCallback(() => {
+      const resetTelemetry = K1Telemetry.reset();
+      dispatch({ type: 'UPDATE_TELEMETRY', payload: resetTelemetry });
+    }, []),
+
+    /**
+     * Register telemetry hook for external integrations
+     */
+    registerTelemetryHook: useCallback((hook: K1TelemetryHook) => {
+      return telemetryManager.registerHook(hook);
+    }, []),
+
+    /**
+     * Set error surface configuration
+     */
+    setErrorSurfaceConfig: useCallback((config: Partial<K1ErrorSurfaceConfig>) => {
+      telemetryManager.setErrorSurfaceConfig(config);
+    }, []),
+
+    /**
+     * Get error surface configuration
+     */
+    getErrorSurfaceConfig: useCallback(() => {
+      return telemetryManager.getErrorSurfaceConfig();
+    }, []),
   };
 
   // ============================================================================
