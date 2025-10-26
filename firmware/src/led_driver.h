@@ -1,9 +1,11 @@
 #pragma once
 
+#include <Arduino.h>
 #include <driver/rmt_tx.h>
 #include <driver/rmt_encoder.h>
 #include <esp_check.h>
 #include <esp_log.h>
+#include "types.h"
 
 #define LED_DATA_PIN ( 5 )
 
@@ -21,13 +23,12 @@
 extern CRGBF leds[NUM_LEDS];
 
 // Global brightness control (0.0 = off, 1.0 = full brightness)
-static float global_brightness = 0.3f;  // Start at 30% to avoid retina damage
+// Implementation in led_driver.cpp
+extern float global_brightness;
 
-// 8-bit color output
-static uint8_t raw_led_data[NUM_LEDS*3];
-
-rmt_channel_handle_t tx_chan = NULL;
-rmt_encoder_handle_t led_encoder = NULL;
+// RMT peripheral handles
+extern rmt_channel_handle_t tx_chan;
+extern rmt_encoder_handle_t led_encoder;
 
 typedef struct {
     rmt_encoder_t base;
@@ -37,18 +38,18 @@ typedef struct {
     rmt_symbol_word_t reset_code;
 } rmt_led_strip_encoder_t;
 
-rmt_led_strip_encoder_t strip_encoder;
-
-rmt_transmit_config_t tx_config = {
-	.loop_count = 0,  // no transfer loop
-	.flags = { .eot_level = 0, .queue_nonblocking = 0 }
-};
-
 typedef struct {
     uint32_t resolution; /*!< Encoder resolution, in Hz */
 } led_strip_encoder_config_t;
 
-static const char *TAG = "led_encoder";
+// Global RMT encoder instance and transmission config
+// Implementation in led_driver.cpp
+extern rmt_led_strip_encoder_t strip_encoder;
+extern rmt_transmit_config_t tx_config;
+
+// 8-bit color output buffer (accessible from inline transmit_leds)
+// Implementation in led_driver.cpp
+extern uint8_t raw_led_data[NUM_LEDS * 3];
 
 IRAM_ATTR static size_t rmt_encode_led_strip(rmt_encoder_t *encoder, rmt_channel_handle_t channel, const void *primary_data, size_t data_size, rmt_encode_state_t *ret_state){
     rmt_led_strip_encoder_t *led_encoder = __containerof(encoder, rmt_led_strip_encoder_t, base);
@@ -85,74 +86,18 @@ out:
     return encoded_symbols;
 }
 
-static esp_err_t rmt_del_led_strip_encoder(rmt_encoder_t *encoder){
-    rmt_led_strip_encoder_t *led_encoder = __containerof(encoder, rmt_led_strip_encoder_t, base);
-    rmt_del_encoder(led_encoder->bytes_encoder);
-    rmt_del_encoder(led_encoder->copy_encoder);
-    free(led_encoder);
-    return ESP_OK;
-}
+// ============================================================================
+// PUBLIC API FUNCTIONS
+// ============================================================================
 
-static esp_err_t rmt_led_strip_encoder_reset(rmt_encoder_t *encoder){
-    rmt_led_strip_encoder_t *led_encoder = __containerof(encoder, rmt_led_strip_encoder_t, base);
-    rmt_encoder_reset(led_encoder->bytes_encoder);
-    rmt_encoder_reset(led_encoder->copy_encoder);
-    led_encoder->state = RMT_ENCODING_RESET;
-    return ESP_OK;
-}
+// Initialize RMT peripheral for LED transmission
+// Implementation in led_driver.cpp
+void init_rmt_driver();
 
-esp_err_t rmt_new_led_strip_encoder(const led_strip_encoder_config_t *config, rmt_encoder_handle_t *ret_encoder){
-    esp_err_t ret = ESP_OK;
-
-	strip_encoder.base.encode = rmt_encode_led_strip;
-    strip_encoder.base.del    = rmt_del_led_strip_encoder;
-    strip_encoder.base.reset  = rmt_led_strip_encoder_reset;
-
-    // different led strip might have its own timing requirements, following parameter is for WS2812
-    rmt_bytes_encoder_config_t bytes_encoder_config = {
-        .bit0 = { 4, 1, 6, 0 },
-        .bit1 = { 7, 1, 6, 0 },
-		.flags = { .msb_first = 1 }
-    };
-
-	rmt_new_bytes_encoder(&bytes_encoder_config, &strip_encoder.bytes_encoder);
-    rmt_copy_encoder_config_t copy_encoder_config = {};
-    rmt_new_copy_encoder(&copy_encoder_config, &strip_encoder.copy_encoder);
-
-    strip_encoder.reset_code = (rmt_symbol_word_t) { 250, 0, 250, 0 };
-
-    *ret_encoder = &strip_encoder.base;
-    return ESP_OK;
-}
-
-void init_rmt_driver() {
-	printf("init_rmt_driver\n");
-	rmt_tx_channel_config_t tx_chan_config = {
-		.gpio_num = (gpio_num_t)LED_DATA_PIN,	// GPIO number
-		.clk_src = RMT_CLK_SRC_DEFAULT,	 // select source clock
-		.resolution_hz = 10000000,		 // 10 MHz tick resolution, i.e., 1 tick = 0.1 µs
-		.mem_block_symbols = 64,		 // memory block size, 64 * 4 = 256 Bytes
-		.trans_queue_depth = 4,			 // set the number of transactions that can be pending in the background
-		.intr_priority = 99,
-		.flags = { .with_dma = 0 },
-	};
-
-	printf("rmt_new_tx_channel\n");
-	ESP_ERROR_CHECK(rmt_new_tx_channel(&tx_chan_config, &tx_chan));
-
-	ESP_LOGI(TAG, "Install led strip encoder");
-    led_strip_encoder_config_t encoder_config = {
-        .resolution = 10000000,
-    };
-	printf("rmt_new_led_strip_encoder\n");
-    ESP_ERROR_CHECK(rmt_new_led_strip_encoder(&encoder_config, &led_encoder));
-
-	printf("rmt_enable\n");
-	ESP_ERROR_CHECK(rmt_enable(tx_chan));
-}
-
-void quantize_color(bool temporal_dithering) {
-	if(temporal_dithering == true){
+// Quantize floating-point colors to 8-bit with optional dithering
+// INLINE FUNCTION: definition must be in header for compiler inlining
+inline void quantize_color(bool temporal_dithering) {
+	if (temporal_dithering == true) {
 		const float dither_table[4] = {0.25, 0.50, 0.75, 1.00};
 		static uint8_t dither_step = 0;
 		dither_step++;
@@ -162,26 +107,26 @@ void quantize_color(bool temporal_dithering) {
 		float   fract_r; float   fract_g; float   fract_b;
 
 		for (uint16_t i = 0; i < NUM_LEDS; i++) {
-			// RED #####################################################
+			// RED channel
 			decimal_r = leds[i].r * global_brightness * 254;
 			whole_r = decimal_r;
 			fract_r = decimal_r - whole_r;
 			raw_led_data[3*i+1] = whole_r + (fract_r >= dither_table[(dither_step) % 4]);
-			
-			// GREEN #####################################################
+
+			// GREEN channel
 			decimal_g = leds[i].g * global_brightness * 254;
 			whole_g = decimal_g;
 			fract_g = decimal_g - whole_g;
 			raw_led_data[3*i+0] = whole_g + (fract_g >= dither_table[(dither_step) % 4]);
 
-			// BLUE #####################################################
+			// BLUE channel
 			decimal_b = leds[i].b * global_brightness * 254;
 			whole_b = decimal_b;
 			fract_b = decimal_b - whole_b;
 			raw_led_data[3*i+2] = whole_b + (fract_b >= dither_table[(dither_step) % 4]);
 		}
 	}
-	else{
+	else {
 		for (uint16_t i = 0; i < NUM_LEDS; i++) {
 			raw_led_data[3*i+1] = (uint8_t)(leds[i].r * global_brightness * 255);
 			raw_led_data[3*i+0] = (uint8_t)(leds[i].g * global_brightness * 255);
@@ -190,7 +135,9 @@ void quantize_color(bool temporal_dithering) {
 	}
 }
 
-IRAM_ATTR void transmit_leds() {
+// IRAM_ATTR function must be in header for memory placement
+// Made static to ensure internal linkage (each TU gets its own copy)
+IRAM_ATTR static inline void transmit_leds() {
 	// Wait here if previous frame transmission has not yet completed
 	// Use 10ms timeout for RMT completion
 	// If TX takes longer than 10ms, something is wrong (normal is <1ms)

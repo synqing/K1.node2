@@ -1,3 +1,5 @@
+#pragma once
+
 // Phase A: Minimal types only
 // Future phases (B, C, D) will add: command, freq, fx_dot, lightshow_mode,
 // slider, toggle, menu_toggle, profiler_function, tempo, websocket_client,
