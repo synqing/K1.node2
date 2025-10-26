@@ -2,11 +2,15 @@
 
 ## The Problem
 
-Walk into any LED project community. Look at what exists. You'll see reactive visualizers that pulse to music. Pre-programmed patterns that cycle endlessly. Generic gradients. Algorithmic variations of the same soulless core.
+Walk into any LED project community. Look at what exists. You'll find two categories of failure:
 
-They feel like screensavers from 2003.
+**Category 1: Static Systems**
+Pre-programmed patterns that cycle endlessly. Generic gradients. Algorithmically generated variations. Hard-coded in firmware. Fast but rigid. Every new idea requires C++ recompilation.
 
-They're technically competent. But they're spiritually broken. Every project looks interchangeable because they all accept the same fundamental compromise: **flexibility OR performance. Creative freedom OR speed.**
+**Category 2: Flexible Systems**
+Runtime interpreters. JSON configurations. Network control. Visually designed. But the computational overhead destroys performance. You get responsiveness *or* smoothness, not both.
+
+The root problem is the same in both: **flexibility OR performance. Creative freedom OR speed.**
 
 Pick one. That's what everything tells you.
 
@@ -165,10 +169,64 @@ Every line of code is a choice. This project contains roughly 1,200 lines across
 This is what uncompromising software looks like.
 
 **ESP32-S3 dual core execution.**
-Audio processing on one core. Graphics rendering at ~120 FPS on the other. No bottlenecks. No trade-offs. Both running at full capacity, in parallel, without interference.
+(Domain 1) Graphics rendering at ~120 FPS on Core 0, optional future use on Core 1. (Domain 2, future) Audio processing on Core 1, graphics rendering on Core 0. No bottlenecks. No trade-offs. Both running at full capacity, in parallel, without interference.
 
 **OTA updates with automatic rollback.**
 You can update firmware over WiFi, and if the new code crashes within 30 seconds, it rolls back automatically. This means you can iterate fearlessly.
+
+---
+
+## Two Distinct Domains Under One Architecture
+
+K1.reinvented solves the flexibility/performance dilemma using the same architectural foundation, but applies it to two distinct problem domains:
+
+### Domain 1: Intentional Static Patterns (Phase A — Now)
+
+**What they are:** Carefully composed, time-based light expressions. No external data input. Pure artistic statements.
+
+**Examples:** Departure, Lava, Twilight
+
+**How they work:**
+- Node graph compiled to C++ at build time
+- Time accumulation (`g_time`) drives the expression
+- No audio input required
+- ~120 FPS execution
+- Core 0: LED rendering only
+- Core 1: optional for future use
+
+**Philosophy:** Each pattern exists because someone *decided* it should. A statement about what deserves to be expressed through light.
+
+**Proof:** Phase A demonstrates that code generation + compilation solves the fundamental problem: you can have artistic freedom (design in node graphs) AND execution perfection (120 FPS native C++) simultaneously. No compromise.
+
+### Domain 2: Audio-Reactive Visualizations (Phase D — Future)
+
+**What they are:** Patterns driven by real-time music analysis. Light responding to sound with full artistic control.
+
+**Key difference from Domain 1:** They accept audio data as input and must synchronize rendering with audio processing.
+
+**How they will work:**
+- Same node graph → C++ compilation pipeline
+- Additional node types for frequency analysis, beat detection, spectrum mapping
+- Audio input via I2S microphone (SPH0645)
+- Core 0: LED rendering (uses audio snapshot)
+- Core 1: continuous audio capture and analysis
+
+**Philosophy:** The same principle applies: move complex decision-making to compile time. Don't ask the device to interpret music in real-time. Ask the computer to design how patterns *should* respond to music, then compile that logic into C++.
+
+**Future proof:** Phase D won't introduce a new paradigm—it extends the existing one. The compilation architecture supports audio-reactive patterns with the same ruthless minimalism and execution perfection.
+
+### The Shared Foundation
+
+Both domains use the same:
+- **Compilation pipeline** (graphs → C++)
+- **Pattern registry** (switch at runtime without recompiling)
+- **Thread-safe parameter updates** (adjust speed, brightness, etc. live)
+- **Web API** (optional runtime control)
+- **Minimalism principle** (every line serves the mission)
+
+The architectural difference is what data flows into the render loop:
+- Domain 1: `draw_current_pattern(time, params)`
+- Domain 2: `draw_current_pattern(time, params, audio_snapshot)`
 
 ---
 
@@ -281,17 +339,41 @@ Note: Web endpoints are scaffolding; consult `webserver.cpp` in this repo for cu
 
 ## What Comes Next
 
-**Phase A (Now):** Prove the vision works. Prove it's fast. Prove it's beautiful.
+**Phase A (Now): Static Intentional Patterns — Proof of Concept**
 
-**Phase B:** Expand node types. More creative possibilities.
+Three patterns (Departure, Lava, Twilight) that prove the core thesis:
+- You *can* have complete artistic freedom (node graph design)
+- AND complete execution perfection (120 FPS native C++)
+- In 1,200 lines of ruthlessly minimal code
+- Without compromise
 
-**Phase C:** Visual editor. No more JSON hand-editing. Draw your patterns.
+Phase A is the proof. Everything that follows assumes this proof is solid.
 
-**Phase D:** Audio reactivity. Light responding to sound with full artistic control, not just algorithmic visualizers.
+**Phase B: Expand static node types**
 
-But everything collapses if we lose the core commitment: **refusing compromise between artistic vision and execution perfection.**
+More nodes for color manipulation, transformation, progression logic. Unlocks more creative possibilities within the static domain.
+
+**Phase C: Visual editor**
+
+No more JSON hand-editing. Draw your patterns visually. But still compiles to native C++.
+
+**Phase D: Audio-Reactive Visualizations — Domain Extension**
+
+Apply the same compilation principle to music-reactive patterns. Light responding to sound with full artistic control, compiled at build time (not interpreted at runtime).
+
+Introduces:
+- Additional node types (frequency analysis, beat detection, spectrum mapping)
+- Audio input from microphone
+- Core 1 audio processing + Core 0 rendering
+- Same philosophical guarantee: flexibility + perfection, no compromise
+
+---
+
+Everything collapses if we lose the core commitment: **refusing compromise between artistic vision and execution perfection.**
 
 Every feature we add should serve that mission. Every optimization should remove obstacles between intention and reality. Everything else is noise.
+
+This applies equally to both domains. Domain 1 proves it's possible. Domain 2 extends it.
 
 ---
 
