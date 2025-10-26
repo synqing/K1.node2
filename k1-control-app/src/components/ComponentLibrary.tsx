@@ -8,7 +8,7 @@ import { Progress } from './ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { Separator } from './ui/separator';
+// import { Separator } from './ui/separator';
 import { toast } from 'sonner';
 import { Activity, AlertCircle, CheckCircle, Info, Zap } from 'lucide-react';
 

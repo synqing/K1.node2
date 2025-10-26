@@ -1,5 +1,5 @@
 import { Waves, BarChart3, Layers, Clock, Zap, TrendingUp, Flower2, Radio, Sparkles } from 'lucide-react';
-import { Card } from '../ui/card';
+// import { Card } from '../ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Badge } from '../ui/badge';
 import type { EffectType } from '../views/ControlPanelView';
