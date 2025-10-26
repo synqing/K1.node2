@@ -319,6 +319,50 @@ Deployment Decision
 
 ---
 
+## Agent Resources & Quick References
+
+**All agents must consult the appropriate quick reference before starting work.**
+
+Located in: `docs/resources/agent_quick_refs/`
+
+| Agent Type | Reference | When to Use |
+|-----------|-----------|------------|
+| SUPREME Analyst | [SUPREME_analyst_cheatsheet.md](docs/resources/agent_quick_refs/SUPREME_analyst_cheatsheet.md) | Before starting forensic analysis (Tier 1) |
+| ULTRA Choreographer | [ULTRA_choreographer_cheatsheet.md](docs/resources/agent_quick_refs/ULTRA_choreographer_cheatsheet.md) | Before designing features/patterns (Tier 2+) |
+| Embedded Engineer | [embedded_firmware_engineer_cheatsheet.md](docs/resources/agent_quick_refs/embedded_firmware_engineer_cheatsheet.md) | Before writing code (Tier 2) |
+| Code Reviewer | [code_reviewer_quality_validator_cheatsheet.md](docs/resources/agent_quick_refs/code_reviewer_quality_validator_cheatsheet.md) | Before running quality audits (Tier 3) |
+| Orchestrator | [multiplier_orchestrator_cheatsheet.md](docs/resources/agent_quick_refs/multiplier_orchestrator_cheatsheet.md) | Before phase transitions (meta-layer) |
+
+**Quick start:** See [docs/resources/README.md](docs/resources/README.md) for navigation.
+
+---
+
+## Standards & Methodologies
+
+Located in: `docs/resources/`
+
+| Standard | Purpose | Use When |
+|----------|---------|----------|
+| [performance_baseline_schema.md](docs/resources/performance_baseline_schema.md) | Standardized metrics (FPS, latency, CPU, memory) | Measuring before/after performance |
+| [testing_standards.md](docs/resources/testing_standards.md) | What constitutes proof a fix works | Writing tests for fixes |
+
+**Both documents include:** JSON schemas, templates, tools, Python scripts, integration points.
+
+---
+
+## Architecture Decision Records (ADRs)
+
+Located in: `docs/adr/`
+
+**When to create:** If you discover an architectural conflict, unfixable design flaw, or significant trade-off.
+
+**Template:** [ADR-template.md](docs/adr/ADR-template.md)
+**Index & rules:** [docs/adr/README.md](docs/adr/README.md)
+
+**Escalation path:** If found during analysis or implementation, create ADR draft immediately and escalate to @spectrasynq.
+
+---
+
 ## Quality Gates
 
 - **Clarity**: Avoid ambiguous titles; every document should explain its scope in the opening paragraph.
