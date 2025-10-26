@@ -235,7 +235,7 @@ void init_webserver() {
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
             color: #fff;
             min-height: 100vh;
-            padding: 40px 20px;
+            padding: 20px;
         }
         .container {
             max-width: 1200px;
@@ -260,49 +260,72 @@ void init_webserver() {
             text-transform: uppercase;
         }
         .patterns-section {
-            margin-bottom: 80px;
+            margin-bottom: 60px;
         }
         .section-title {
-            font-size: 12px;
+            font-size: 11px;
             letter-spacing: 3px;
             text-transform: uppercase;
             color: #666;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             display: block;
         }
         .pattern-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
             margin-bottom: 40px;
         }
         .pattern-card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 24px;
+            padding: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            border-radius: 4px;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
         .pattern-card:hover {
             border-color: rgba(255, 255, 255, 0.3);
             background: rgba(255, 255, 255, 0.06);
+            transform: translateY(-2px);
         }
         .pattern-card.active {
-            border-color: rgba(255, 255, 255, 0.5);
-            background: rgba(255, 255, 255, 0.08);
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.15);
+            box-shadow: 0 0 16px rgba(255, 215, 0, 0.4),
+                        inset 0 0 8px rgba(255, 215, 0, 0.1);
+        }
+        .pattern-card.active::before {
+            content: '●';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            color: #ffd700;
+            font-size: 10px;
+            text-shadow: 0 0 4px rgba(255, 215, 0, 0.8);
         }
         .pattern-name {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            letter-spacing: 1px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
         }
         .pattern-desc {
-            font-size: 12px;
-            color: #aaa;
-            line-height: 1.5;
+            font-size: 10px;
+            color: #999;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .controls-grid {
             display: grid;
@@ -318,58 +341,110 @@ void init_webserver() {
             letter-spacing: 2px;
             text-transform: uppercase;
             color: #666;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .control-value {
-            font-size: 13px;
-            font-weight: 500;
-            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            color: #ffd700;
             font-family: 'Monaco', monospace;
+            min-width: 35px;
+            text-align: right;
         }
         .slider {
             width: 100%;
-            height: 2px;
-            border-radius: 1px;
-            background: rgba(255, 255, 255, 0.1);
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right,
+                rgba(255, 255, 255, 0.05),
+                rgba(255, 255, 255, 0.15),
+                rgba(255, 255, 255, 0.05)
+            );
             outline: none;
             -webkit-appearance: none;
             appearance: none;
             cursor: pointer;
+            margin-bottom: 8px;
+            transition: background 0.2s;
         }
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 14px;
-            height: 14px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
-            background: #fff;
-            cursor: pointer;
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-            transition: box-shadow 0.2s;
+            background: linear-gradient(135deg, #fff 0%, #e8e8e8 100%);
+            cursor: grab;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.4),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.8);
+            transition: all 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
         .slider::-webkit-slider-thumb:hover {
-            box-shadow: 0 0 16px rgba(255, 255, 255, 0.6);
+            width: 20px;
+            height: 20px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.6),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.8),
+                        0 0 8px rgba(255, 215, 0, 0.3);
+        }
+        .slider::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            box-shadow: 0 0 24px rgba(255, 215, 0, 0.6),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.9);
+        }
+        .slider::-moz-range-track {
+            background: transparent;
+            border: none;
         }
         .slider::-moz-range-thumb {
-            width: 14px;
-            height: 14px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
-            background: #fff;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-            transition: box-shadow 0.2s;
+            background: linear-gradient(135deg, #fff 0%, #e8e8e8 100%);
+            cursor: grab;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.4),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.8);
+            transition: all 0.2s;
         }
         .slider::-moz-range-thumb:hover {
-            box-shadow: 0 0 16px rgba(255, 255, 255, 0.6);
+            width: 20px;
+            height: 20px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.6),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.8),
+                        0 0 8px rgba(255, 215, 0, 0.3);
+        }
+        .slider::-moz-range-thumb:active {
+            cursor: grabbing;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+        }
+        .slider:focus {
+            outline: 2px solid rgba(255, 215, 0, 0.5);
+            outline-offset: 2px;
         }
         .divider {
             height: 1px;
             background: rgba(255, 255, 255, 0.05);
-            margin: 60px 0;
+            margin: 40px 0;
+        }
+
+        @media (max-width: 768px) {
+            .pattern-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 10px;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                padding: 15px;
+            }
         }
     </style>
 </head>
