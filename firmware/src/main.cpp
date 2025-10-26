@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <ArduinoOTA.h>
+#include <SPIFFS.h>
 
 #include "types.h"
 #include "led_driver.h"
@@ -159,6 +160,29 @@ void setup() {
         else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
         else if (error == OTA_END_ERROR) Serial.println("End Failed");
     });
+
+    // Initialize SPIFFS filesystem for serving static web assets
+    // NOTE: Use begin(true) to format on fail - ensures SPIFFS is initialized
+    // The uploadfs command will populate the files afterward
+    Serial.println("Initializing SPIFFS...");
+    if (!SPIFFS.begin(true)) {
+        Serial.println("ERROR: SPIFFS initialization failed - web UI will not be available");
+    } else {
+        Serial.println("SPIFFS mounted successfully");
+        // List SPIFFS contents for debugging
+        File root = SPIFFS.open("/");
+        File file = root.openNextFile();
+        Serial.println("SPIFFS Contents:");
+        int file_count = 0;
+        while(file) {
+            Serial.printf("  %s (%d bytes)\n", file.name(), file.size());
+            file = root.openNextFile();
+            file_count++;
+        }
+        if (file_count == 0) {
+            Serial.println("  (SPIFFS is empty - run 'pio run --target uploadfs' to upload web files)");
+        }
+    }
 
     // Initialize audio stubs (demo audio-reactive globals)
     Serial.println("Initializing audio-reactive stubs...");

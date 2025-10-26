@@ -13,8 +13,10 @@
 #include "profiler.h"        // For performance metrics (FPS, micro-timings)
 #include "cpu_monitor.h"     // For CPU usage monitoring
 #include <AsyncWebSocket.h>  // For WebSocket real-time updates
-#include "webserver_rate_limiter.h"       // Per-route rate limiting
+#include "webserver_rate_limiter.h"        // Per-route rate limiting
 #include "webserver_response_builders.h"  // JSON response building utilities
+#include "webserver_request_handler.h"    // Request handler base class and context
+#include "webserver_param_validator.h"    // Parameter validation utilities
 #include <SPIFFS.h>                       // For serving static web files
 
 // Forward declaration: WebSocket event handler
@@ -319,6 +321,60 @@ void init_webserver() {
             request->send(resp);
         });
 
+    // GET / - Serve minimal inline HTML dashboard (SPIFFS fallback for Phase 1)
+    // Note: Full UI moved to SPIFFS but served inline here until SPIFFS mounting is resolved
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+        String html = R"(<!DOCTYPE html>
+<html>
+<head>
+    <title>K1.reinvented</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: system-ui, sans-serif; background: #0a0a0a; color: #fff; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #ffd700; }
+        .status { background: #222; padding: 10px; border-radius: 5px; margin: 20px 0; }
+        .api-test { background: #1a3a3a; padding: 10px; margin: 10px 0; border-left: 3px solid #ffd700; }
+        a { color: #ffd700; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 K1.reinvented</h1>
+        <p>Light as a Statement</p>
+
+        <div class="status">
+            <h2>Status: ✅ Online</h2>
+            <p>Web server is running and accepting connections.</p>
+            <p>All REST APIs are operational for pattern control and configuration.</p>
+        </div>
+
+        <h2>Available APIs</h2>
+        <div class="api-test">
+            <strong>GET /api/patterns</strong> - List all available patterns<br>
+            <a href="/api/patterns" target="_blank">Test</a>
+        </div>
+        <div class="api-test">
+            <strong>GET /api/params</strong> - Get current parameters<br>
+            <a href="/api/params" target="_blank">Test</a>
+        </div>
+        <div class="api-test">
+            <strong>GET /api/palettes</strong> - List available color palettes<br>
+            <a href="/api/palettes" target="_blank">Test</a>
+        </div>
+
+        <h2>Next Steps</h2>
+        <p>Full web UI with pattern grid and controls available at:</p>
+        <code>/ui/index.html</code> (when SPIFFS mounting is fully resolved)
+
+        <p><small>Phase 1: Webserver refactoring complete. Moving to Phase 2: Request handler modularization.</small></p>
+    </div>
+</body>
+</html>)";
+        request->send(200, "text/html", html);
+    });
+
     // OPTIONS preflight for CORS
     server.onNotFound([](AsyncWebServerRequest *request) {
         if (request->method() == HTTP_OPTIONS) {
@@ -425,22 +481,7 @@ void init_webserver() {
             request->send(resp);
         });
 
-    // GET / - Serve web dashboard from SPIFFS
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(SPIFFS, "/index.html", "text/html");
-    });
-
-    // GET /css/* - Serve CSS stylesheets
-    server.on("/css/*", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String path = request->url();
-        request->send(SPIFFS, path, "text/css");
-    });
-
-    // GET /js/* - Serve JavaScript files
-    server.on("/js/*", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String path = request->url();
-        request->send(SPIFFS, path, "application/javascript");
-    });
+    // Static file serving is configured below with serveStatic()
 
     // GET /api/device-info - Device information snapshot
     server.on(ROUTE_DEVICE_INFO, HTTP_GET, [](AsyncWebServerRequest *request) {

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Card } from './ui/card';
 import { toast } from 'sonner';
 import { ConnectionStatus } from '../types/k1-types';
+import { useK1Actions } from '../providers/K1Provider';
 
 interface SidebarProps {
   isConnected: boolean;
@@ -20,6 +21,7 @@ export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectio
   const [isConnecting, setIsConnecting] = useState(false);
   const [serialPort, setSerialPort] = useState('/dev/tty.usbserial-0001');
   const [ipValid, setIpValid] = useState(true);
+  const actions = useK1Actions();
 
   const validateIP = (ip: string) => {
     const pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
@@ -49,6 +51,66 @@ export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectio
         toast.info('Disconnected from device');
       }
     }, 1500);
+  };
+
+  // Backup/restore handler functions
+  const handleBackup = async () => {
+    try {
+      const backup = await actions.backupConfig();
+      
+      // Create and download backup file
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { 
+        type: 'application/json' 
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `k1-config-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Configuration backed up successfully');
+    } catch (error) {
+      toast.error('Failed to backup configuration', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  };
+
+  const handleRestoreFile = async (file: File) => {
+    try {
+      const text = await file.text();
+      const configData = JSON.parse(text);
+      
+      const result = await actions.restoreConfig(configData);
+      
+      if (result.success) {
+        toast.success('Configuration restored successfully');
+      } else {
+        toast.error('Failed to restore configuration', {
+          description: result.message || 'Unknown error'
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to restore configuration', {
+        description: error instanceof Error ? error.message : 'Invalid file format'
+      });
+    }
+  };
+
+  const openRestorePicker = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        handleRestoreFile(file);
+      }
+    };
+    input.click();
   };
 
   return (
@@ -160,6 +222,8 @@ export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectio
           Quick Actions
         </h3>
         
+        {/* TODO: Backup/restore file input will be added in future subtasks */}
+        
         <Button
           variant="ghost"
           className="w-full justify-start"
@@ -174,10 +238,20 @@ export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectio
           variant="ghost"
           className="w-full justify-start"
           disabled={!isConnected}
-          onClick={() => toast.success('Profiling data exported')}
+          onClick={handleBackup}
         >
           <Download className="w-4 h-4 mr-2" />
-          Export Profiling
+          Backup Config
+        </Button>
+
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          disabled={!isConnected}
+          onClick={openRestorePicker}
+        >
+          <Settings className="w-4 h-4 mr-2" />
+          Restore Config
         </Button>
 
         <Button

@@ -168,6 +168,88 @@ Update audio processing configuration.
 
 **Response**: Same as GET /api/audio-config
 
+### Configuration Management
+
+#### GET /api/config/backup
+Export current device configuration as JSON.
+
+**Rate Limit**: 2000ms cooldown. Returns 429 with rate-limit headers when exceeded.
+
+**Response**:
+```json
+{
+  "version": "1.0",
+  "device": "K1.reinvented",
+  "timestamp": 123456,
+  "uptime_seconds": 5432,
+  "parameters": {
+    "brightness": 0.8,
+    "softness": 0.25,
+    "color": 0.33,
+    "color_range": 0.0,
+    "saturation": 0.75,
+    "warmth": 0.0,
+    "background": 0.25,
+    "speed": 0.5,
+    "palette_id": 5,
+    "custom_param_1": 0.5,
+    "custom_param_2": 0.5,
+    "custom_param_3": 0.5
+  },
+  "current_pattern": 2,
+  "device_info": {
+    "ip": "192.168.1.100",
+    "mac": "AA:BB:CC:DD:EE:FF",
+    "firmware": "2.0"
+  }
+}
+```
+
+**Headers**:
+- `Content-Disposition`: `attachment; filename="k1-config-backup.json"`
+- CORS headers are attached on all responses
+
+#### POST /api/config/restore
+Restore configuration from a JSON backup.
+
+**Rate Limit**: 2000ms cooldown. Returns 429 with rate-limit headers when exceeded.
+
+**Request Body**:
+```json
+{
+  "version": "1.0",
+  "parameters": {
+    "brightness": 1.0,
+    "softness": 0.25,
+    "color": 0.33,
+    "color_range": 0.0,
+    "saturation": 0.75,
+    "warmth": 0.0,
+    "background": 0.25,
+    "speed": 0.5,
+    "palette_id": 0,
+    "custom_param_1": 0.5,
+    "custom_param_2": 0.5,
+    "custom_param_3": 0.5
+  },
+  "current_pattern": 2
+}
+```
+
+- Required fields: `version`, `parameters`
+- Optional field: `current_pattern` (restores selection if valid)
+
+**Response**:
+```json
+{
+  "success": true,
+  "parameters_restored": true,
+  "pattern_restored": true,
+  "timestamp": 1234567,
+  "warning": "Some parameters were clamped to valid ranges"
+}
+```
+
 ### Device Information (Future)
 
 #### GET /api/device/info
@@ -233,19 +315,26 @@ Send parameter updates via WebSocket:
 
 ## Error Responses
 
-All endpoints return error responses in this format:
+All endpoints use a standardized error format:
 
 ```json
 {
-  "success": false,
-  "error": "Invalid parameter value",
-  "code": 400
+  "error": "invalid_json",
+  "message": "Request body contains invalid JSON",
+  "timestamp": 1640995200000,
+  "status": 400
 }
 ```
 
+- CORS headers are attached to all error responses.
+- For rate limiting (429), responses include:
+  - `X-RateLimit-Window` (ms)
+  - `X-RateLimit-NextAllowedMs` (ms)
+
 **Common Error Codes**:
-- `400`: Bad Request (invalid parameters)
-- `404`: Not Found (invalid endpoint)
+- `400`: Bad Request (invalid or missing fields)
+- `404`: Not Found (invalid endpoint or resource)
+- `429`: Too Many Requests (per-route rate limit)
 - `500`: Internal Server Error (firmware issue)
 - `503`: Service Unavailable (device busy)
 
@@ -266,7 +355,9 @@ Should return the patterns list if the device is accessible.
 - Parameter management (all 6 parameters + palette_id)
 - Parameter reset
 - Audio configuration
-- Basic error handling
+- Configuration backup/restore
+- Device discovery via mDNS
+- Standardized error handling and CORS
 
 ### 🔄 Partially Implemented
 - Device info (fallback values only)
@@ -274,10 +365,8 @@ Should return the patterns list if the device is accessible.
 
 ### 📋 Future Enhancements
 - WebSocket real-time updates
-- Device discovery via mDNS
 - Performance metrics
 - Firmware update endpoints
-- Configuration backup/restore
 
 ## Notes for Developers
 

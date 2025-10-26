@@ -8,6 +8,7 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import type { EffectType } from '../views/ControlPanelView';
+import { useCoalescedParams } from '../../hooks/useCoalescedParams';
 
 interface EffectParametersProps {
   selectedEffect: EffectType;
@@ -83,6 +84,7 @@ const effectParams: Record<EffectType, Array<{
 export function EffectParameters({ selectedEffect, disabled }: EffectParametersProps) {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced'>('idle');
   const [paramValues, setParamValues] = useState<Record<string, number | boolean | string>>({});
+  const { queue } = useCoalescedParams(80);
 
   const params = effectParams[selectedEffect];
 
@@ -97,8 +99,29 @@ export function EffectParameters({ selectedEffect, disabled }: EffectParametersP
 
   const handleValueChange = (id: string, value: number | boolean | string) => {
     setParamValues((prev) => ({ ...prev, [id]: value }));
-    
-    // Simulate sync
+
+    // Map selected effect's sliders to firmware parameters
+    if (typeof value === 'number') {
+      const sliderParams = params.filter((p) => p.type === 'slider');
+      const sliderIndex = sliderParams.findIndex((p) => p.id === id);
+
+      if (id === 'speed' || id === 'rate') {
+        queue({ speed: value });
+      } else if (sliderIndex >= 0) {
+        // Map first three sliders to custom_param_1..3
+        const mapping: Record<number, keyof import('../../types/k1-types').K1Parameters> = {
+          0: 'custom_param_1',
+          1: 'custom_param_2',
+          2: 'custom_param_3',
+        };
+        const key = mapping[sliderIndex];
+        if (key) {
+          queue({ [key]: value } as Partial<import('../../types/k1-types').K1Parameters>);
+        }
+      }
+    }
+
+    // Simulate local sync indicator
     setSyncStatus('syncing');
     setTimeout(() => {
       setSyncStatus('synced');

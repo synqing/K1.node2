@@ -154,7 +154,9 @@ export type K1ErrorType =
   | 'rest_error'
   | 'validation_error'
   | 'timeout_error'
-  | 'network_error';
+  | 'network_error'
+  | 'backup_error'
+  | 'restore_error';
 
 /**
  * Structured error with classification and context
@@ -258,6 +260,25 @@ export interface K1ProviderActions {
   
   // Feature flags
   setFeatureFlag: (flag: keyof K1ProviderState['featureFlags'], value: boolean) => void;
+  
+  // Reconnection control
+  startReconnection: () => void;
+  stopReconnection: () => void;
+  
+  // Transport control
+  setWebSocketEnabled: (enabled: boolean) => void;
+  getTransportStatus: () => {
+    wsAvailable: boolean;
+    wsEnabled: boolean;
+    restAvailable: boolean;
+    activeTransport: K1Transport;
+    lastWSError: Error | null;
+  };
+  testTransportRouting: () => Promise<K1ApiResponse<{ params: K1Parameters }>>;
+  
+  // Configuration backup/restore
+  backupConfig: () => Promise<K1ConfigBackup>;
+  restoreConfig: (config: K1ConfigBackup) => Promise<K1ConfigRestoreResponse>;
 }
 
 /**
@@ -330,3 +351,31 @@ export const K1_DEFAULTS = {
     enableTelemetry: true,
   },
 } as const;
+
+
+/**
+ * Configuration backup/restore interfaces
+ */
+export interface K1ConfigBackup {
+  version: string;
+  timestamp: string;
+  device_info: {
+    device: string;
+    firmware: string;
+    mac: string;
+  };
+  configuration: {
+    patterns: K1Pattern[];
+    current_pattern: number;
+    parameters: K1Parameters;
+    audio_config: K1AudioConfig;
+    palette_id: number;
+  };
+}
+
+export interface K1ConfigRestoreResponse {
+  success: boolean;
+  message: string;
+  restored_items: string[];
+  warnings?: string[];
+}

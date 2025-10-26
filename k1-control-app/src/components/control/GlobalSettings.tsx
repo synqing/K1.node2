@@ -5,6 +5,7 @@ import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Sun, HelpCircle } from 'lucide-react';
+import { useCoalescedParams } from '../../hooks/useCoalescedParams';
 
 interface GlobalSettingsProps {
   disabled: boolean;
@@ -18,6 +19,7 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
   const [softness, setSoftness] = useState(40);
   const [gamma, setGamma] = useState(true);
   const [warmth, setWarmth] = useState(50);
+  const { queue } = useCoalescedParams(80);
 
   const getBrightnessColor = (value: number) => {
     if (value < 30) return 'var(--k1-warning)';
@@ -52,7 +54,10 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
             max={100}
             step={1}
             value={[brightness]}
-            onValueChange={([value]: number[]) => setBrightness(value)}
+            onValueChange={([value]: number[]) => {
+              setBrightness(value);
+              queue({ brightness: value });
+            }}
             disabled={disabled}
             className="w-full"
           />
@@ -94,7 +99,10 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
               max={100}
               step={25}
               value={[blur]}
-              onValueChange={([value]: number[]) => setBlur(value)}
+              onValueChange={([value]: number[]) => {
+                setBlur(value);
+                // Optional: map blur to softness if desired; keeping local-only for now
+              }}
               disabled={disabled}
               className="w-full"
             />
@@ -124,7 +132,10 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
             max={100}
             step={1}
             value={[softness]}
-            onValueChange={([value]: number[]) => setSoftness(value)}
+            onValueChange={([value]: number[]) => {
+              setSoftness(value);
+              queue({ softness: value });
+            }}
             disabled={disabled}
             className="w-full"
           />
@@ -196,7 +207,10 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
             max={100}
             step={1}
             value={[warmth]}
-            onValueChange={([value]: number[]) => setWarmth(value)}
+            onValueChange={([value]: number[]) => {
+              setWarmth(value);
+              queue({ warmth: value });
+            }}
             disabled={disabled}
             className="w-full"
           />

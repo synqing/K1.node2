@@ -9,7 +9,7 @@ The following major features have been successfully implemented and validated:
 #### 1. mDNS Device Discovery Implementation
 - **Issue Fixed**: Removed incorrect `MDNS.update()` call causing compilation errors
 - **Solution**: ESP32 mDNS library handles discovery automatically after initialization
-- **Result**: Device now discoverable as "k1-device.local" on network
+- **Result**: Device now discoverable as "k1-reinvented.local" on network
 - **Files Modified**: `firmware/src/webserver.cpp` (lines 1345-1360)
 - **Validation**: Firmware compiles successfully, mDNS service advertised correctly
 

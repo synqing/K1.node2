@@ -8,6 +8,7 @@ import {
   K1ErrorType,
   K1Parameters,
   K1DeviceInfo,
+  K1Transport,
   // K1EventMap, // TODO: Will be used for WebSocket events in subtask 2.5
   K1_DEFAULTS,
   K1_STORAGE_KEYS,
@@ -280,6 +281,51 @@ export function K1Provider({
   }, []);
 
   // ============================================================================
+  // WEBSOCKET CONNECTION MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Start WebSocket connection for real-time data
+   */
+  const startWebSocketConnection = useCallback(() => {
+    if (!clientRef.current || state.connection !== 'connected') {
+      return;
+    }
+
+    clientRef.current.connectWebSocket(
+      // Handle real-time data updates
+      (data) => {
+        // TODO: Handle real-time data updates (audio, performance, etc.)
+        // This will be expanded in future subtasks
+        console.log('Received real-time data:', data);
+      },
+      // Handle WebSocket status changes
+      (_status) => {
+        const transportStatus = clientRef.current?.getTransportStatus();
+        if (transportStatus) {
+          dispatch({ type: 'SET_TRANSPORT_FLAGS', payload: {
+            wsAvailable: transportStatus.wsAvailable,
+            activeTransport: transportStatus.activeTransport as 'ws' | 'rest',
+          } });
+        }
+      }
+    );
+  }, [state.connection]);
+
+  /**
+   * Stop WebSocket connection
+   */
+  const stopWebSocketConnection = useCallback(() => {
+    if (clientRef.current) {
+      clientRef.current.disconnect();
+      dispatch({ type: 'SET_TRANSPORT_FLAGS', payload: {
+        wsAvailable: false,
+        activeTransport: 'rest',
+      } });
+    }
+  }, []);
+
+  // ============================================================================
   // PROVIDER ACTIONS IMPLEMENTATION
   // ============================================================================
 
@@ -312,15 +358,33 @@ export function K1Provider({
         // Get device info
         const deviceInfo = await clientRef.current.getDeviceInfo();
         
-        // Connection successful
+        // Update transport state
+        const transportStatus = clientRef.current.getTransportStatus();
+        dispatch({ type: 'SET_TRANSPORT_FLAGS', payload: {
+          restAvailable: true,
+          wsAvailable: transportStatus.wsAvailable,
+          wsDisabled: !transportStatus.wsEnabled,
+          activeTransport: transportStatus.activeTransport as 'ws' | 'rest',
+        } });
+        
+        // Connection successful - reset all reconnection state
         dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connected' });
         dispatch({ type: 'SET_DEVICE_INFO', payload: deviceInfo });
         dispatch({ type: 'INCREMENT_TELEMETRY', payload: { metric: 'successfulConnections' } });
-        dispatch({ type: 'SET_RECONNECT_STATE', payload: { attemptCount: 0, isActive: false } });
+        dispatch({ type: 'SET_RECONNECT_STATE', payload: { 
+          attemptCount: 0, 
+          isActive: false,
+          nextDelay: K1_DEFAULTS.RECONNECT.BASE_DELAY,
+        } });
         
         // Persist endpoint if feature enabled
         if (state.featureFlags.persistState) {
           localStorage.setItem(K1_STORAGE_KEYS.ENDPOINT, targetEndpoint);
+        }
+
+        // Start WebSocket connection if enabled
+        if (state.transport.wsDisabled === false) {
+          startWebSocketConnection();
         }
         
       } catch (error) {
@@ -345,12 +409,23 @@ export function K1Provider({
 
     /**
      * Disconnect from K1 device
+     * Cancels any active reconnection attempts
      */
     disconnect: useCallback(async () => {
+      // Cancel any active reconnection
       clearReconnectTimer();
+      
+      // Disconnect WebSocket if active
+      stopWebSocketConnection();
+      
+      // Update state
       dispatch({ type: 'SET_CONNECTION_STATE', payload: 'disconnected' });
       dispatch({ type: 'SET_DEVICE_INFO', payload: null });
-      dispatch({ type: 'SET_RECONNECT_STATE', payload: { attemptCount: 0, isActive: false } });
+      dispatch({ type: 'SET_RECONNECT_STATE', payload: { 
+        attemptCount: 0, 
+        isActive: false,
+        nextDelay: K1_DEFAULTS.RECONNECT.BASE_DELAY,
+      } });
     }, [clearReconnectTimer]),
 
     /**
@@ -440,6 +515,8 @@ export function K1Provider({
       }
     }, [state.connection, state.featureFlags.persistState, createError]),
 
+
+
     /**
      * Clear current error
      */
@@ -464,6 +541,149 @@ export function K1Provider({
       const updatedFlags = { ...state.featureFlags, [flag]: value };
       localStorage.setItem(K1_STORAGE_KEYS.FEATURE_FLAGS, JSON.stringify(updatedFlags));
     }, [state.featureFlags]),
+
+    /**
+     * Manually start reconnection process
+     */
+    startReconnection: useCallback(() => {
+      if (state.connection !== 'connected') {
+        startReconnection();
+      }
+    }, [state.connection]),
+
+    /**
+     * Stop any active reconnection attempts
+     */
+    stopReconnection: useCallback(() => {
+      clearReconnectTimer();
+      dispatch({ type: 'SET_RECONNECT_STATE', payload: { 
+        isActive: false,
+        attemptCount: 0,
+        nextDelay: K1_DEFAULTS.RECONNECT.BASE_DELAY,
+      } });
+    }, [clearReconnectTimer]),
+
+    /**
+     * Enable or disable WebSocket transport
+     */
+    setWebSocketEnabled: useCallback((enabled: boolean) => {
+      if (clientRef.current) {
+        clientRef.current.setWebSocketEnabled(enabled);
+        
+        if (enabled && state.connection === 'connected') {
+          startWebSocketConnection();
+        } else if (!enabled) {
+          stopWebSocketConnection();
+        }
+        
+        dispatch({ type: 'SET_TRANSPORT_FLAGS', payload: {
+          wsDisabled: !enabled,
+          activeTransport: enabled && state.transport.wsAvailable ? 'ws' : 'rest',
+        } });
+      }
+    }, [state.connection, state.transport.wsAvailable, startWebSocketConnection, stopWebSocketConnection]),
+
+    /**
+     * Get current transport status
+     */
+    getTransportStatus: useCallback(() => {
+      const status = clientRef.current?.getTransportStatus() || {
+        wsAvailable: false,
+        wsEnabled: true,
+        restAvailable: false,
+        activeTransport: 'rest',
+        lastWSError: null,
+      };
+      return {
+        ...status,
+        activeTransport: status.activeTransport as K1Transport,
+      };
+    }, []),
+
+    /**
+     * Test transport routing by sending a parameter update
+     */
+    testTransportRouting: useCallback(async () => {
+      if (!clientRef.current || state.connection !== 'connected') {
+        throw createError('validation_error', 'Not connected to device');
+      }
+
+      try {
+        // Send a small parameter update to test routing
+        const testParams = { brightness: state.parameters.brightness };
+        const response = await clientRef.current.updateParameters(testParams);
+        
+        // Update transport status after the test
+        const transportStatus = clientRef.current.getTransportStatus();
+        dispatch({ type: 'SET_TRANSPORT_FLAGS', payload: {
+          wsAvailable: transportStatus.wsAvailable,
+          activeTransport: transportStatus.activeTransport as 'ws' | 'rest',
+        } });
+        
+        return response;
+      } catch (error) {
+        const k1Error = createError(
+          'rest_error',
+          'Transport routing test failed',
+          error instanceof Error ? error.message : String(error),
+          error instanceof Error ? error : undefined
+        );
+        dispatch({ type: 'SET_ERROR', payload: k1Error });
+        throw k1Error;
+      }
+    }, [state.connection, state.parameters.brightness, createError]),
+
+    /**
+     * Backup device configuration
+     */
+    backupConfig: useCallback(async () => {
+      if (state.connection !== 'connected' || !clientRef.current) {
+        throw createError(
+          'backup_error',
+          'Cannot backup configuration',
+          'Device is not connected'
+        );
+      }
+
+      try {
+        return await clientRef.current.backupConfig();
+      } catch (error) {
+        const k1Error = createError(
+          'backup_error',
+          'Failed to backup configuration',
+          error instanceof Error ? error.message : String(error),
+          error instanceof Error ? error : undefined
+        );
+        dispatch({ type: 'SET_ERROR', payload: k1Error });
+        throw k1Error;
+      }
+    }, [state.connection, createError]),
+
+    /**
+     * Restore device configuration
+     */
+    restoreConfig: useCallback(async (configData: any) => {
+      if (state.connection !== 'connected' || !clientRef.current) {
+        throw createError(
+          'restore_error',
+          'Cannot restore configuration',
+          'Device is not connected'
+        );
+      }
+
+      try {
+        return await clientRef.current.restoreConfig(configData);
+      } catch (error) {
+        const k1Error = createError(
+          'restore_error',
+          'Failed to restore configuration',
+          error instanceof Error ? error.message : String(error),
+          error instanceof Error ? error : undefined
+        );
+        dispatch({ type: 'SET_ERROR', payload: k1Error });
+        throw k1Error;
+      }
+    }, [state.connection, createError]),
   };
 
   // ============================================================================
@@ -471,53 +691,108 @@ export function K1Provider({
   // ============================================================================
 
   /**
-   * Start exponential backoff reconnection
+   * Start exponential backoff reconnection with enhanced jitter and cancellation
+   * Implements TaskMaster Subtask 2.4 requirements
    */
   const startReconnection = useCallback(() => {
+    // Guard against multiple active reconnection attempts
     if (state.reconnect.isActive || state.connection === 'connected') {
       return;
     }
 
-    const attemptCount = state.reconnect.attemptCount + 1;
-    const delay = calculateBackoffDelay(attemptCount);
+    // Clear any existing timer to ensure single active timer
+    clearReconnectTimer();
 
+    const attemptCount = state.reconnect.attemptCount + 1;
+    
+    // Check if we've exceeded max attempts before starting
+    if (attemptCount > K1_DEFAULTS.RECONNECT.MAX_ATTEMPTS) {
+      const giveUpError = createError(
+        'reconnect_giveup',
+        `Reconnection abandoned after ${K1_DEFAULTS.RECONNECT.MAX_ATTEMPTS} attempts`,
+        `Total attempts exceeded maximum threshold`
+      );
+      dispatch({ type: 'SET_ERROR', payload: giveUpError });
+      dispatch({ type: 'SET_RECONNECT_STATE', payload: { 
+        isActive: false, 
+        attemptCount: 0,
+        nextDelay: K1_DEFAULTS.RECONNECT.BASE_DELAY,
+      } });
+      return;
+    }
+
+    // Calculate delay with jitter for this attempt
+    const delay = calculateBackoffDelay(attemptCount);
+    const startTime = Date.now();
+
+    // Update reconnection state for observability
     dispatch({ 
       type: 'SET_RECONNECT_STATE', 
       payload: { 
         attemptCount, 
         nextDelay: delay, 
         isActive: true,
-        lastAttempt: new Date(),
+        lastAttempt: new Date(startTime),
       } 
     });
 
-    // Create abort controller for this reconnection attempt
+    // Create fresh abort controller for this reconnection cycle
     abortControllerRef.current = new AbortController();
+    const abortSignal = abortControllerRef.current.signal;
 
+    // Schedule reconnection attempt
     reconnectTimerRef.current = setTimeout(async () => {
-      if (abortControllerRef.current?.signal.aborted) {
+      // Check if reconnection was cancelled
+      if (abortSignal.aborted) {
+        return;
+      }
+
+      // Double-check connection state before attempting
+      if (state.connection === 'connected') {
+        dispatch({ type: 'SET_RECONNECT_STATE', payload: { 
+          isActive: false, 
+          attemptCount: 0,
+          nextDelay: K1_DEFAULTS.RECONNECT.BASE_DELAY,
+        } });
         return;
       }
 
       try {
+        // Attempt reconnection
         await actions.connect();
+        
+        // Success! Reset reconnection state
+        dispatch({ type: 'SET_RECONNECT_STATE', payload: { 
+          attemptCount: 0, 
+          isActive: false,
+          nextDelay: K1_DEFAULTS.RECONNECT.BASE_DELAY,
+        } });
+        
       } catch (error) {
-        // If we haven't exceeded max attempts, try again
-        if (attemptCount < K1_DEFAULTS.RECONNECT.MAX_ATTEMPTS) {
+        // Connection failed, check if we should continue trying
+        if (!abortSignal.aborted && attemptCount < K1_DEFAULTS.RECONNECT.MAX_ATTEMPTS) {
+          // Schedule next attempt
           startReconnection();
-        } else {
-          // Give up reconnecting
+        } else if (!abortSignal.aborted) {
+          // Give up after max attempts
+          const totalTime = Date.now() - startTime;
           const giveUpError = createError(
             'reconnect_giveup',
             `Failed to reconnect after ${attemptCount} attempts`,
-            `Total time: ${Date.now() - (state.reconnect.lastAttempt?.getTime() || Date.now())}ms`
+            `Total time: ${totalTime}ms, Last error: ${error instanceof Error ? error.message : String(error)}`,
+            error instanceof Error ? error : undefined,
+            attemptCount
           );
           dispatch({ type: 'SET_ERROR', payload: giveUpError });
-          dispatch({ type: 'SET_RECONNECT_STATE', payload: { isActive: false } });
+          dispatch({ type: 'SET_RECONNECT_STATE', payload: { 
+            isActive: false,
+            attemptCount: 0,
+            nextDelay: K1_DEFAULTS.RECONNECT.BASE_DELAY,
+          } });
         }
       }
     }, delay);
-  }, [state.reconnect, state.connection, calculateBackoffDelay, actions, createError]);
+  }, [state.reconnect, state.connection, calculateBackoffDelay, actions, createError, clearReconnectTimer]);
 
   // ============================================================================
   // LIFECYCLE EFFECTS
