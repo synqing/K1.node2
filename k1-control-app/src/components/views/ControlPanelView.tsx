@@ -7,6 +7,7 @@ import { StatusBar } from '../control/StatusBar';
 
 interface ControlPanelViewProps {
   isConnected: boolean;
+  k1Client: any; // TODO: Type this properly
 }
 
 export type EffectType = 
@@ -20,7 +21,7 @@ export type EffectType =
   | 'pulse' 
   | 'sparkle';
 
-export function ControlPanelView({ isConnected }: ControlPanelViewProps) {
+export function ControlPanelView({ isConnected, k1Client }: ControlPanelViewProps) {
   const [selectedEffect, setSelectedEffect] = useState<EffectType>('analog');
 
   return (

@@ -5,9 +5,10 @@ import { ProfilingFilters } from '../profiling/ProfilingFilters';
 
 interface ProfilingViewProps {
   isConnected: boolean;
+  k1Client: any; // TODO: Type this properly
 }
 
-export function ProfilingView({ isConnected }: ProfilingViewProps) {
+export function ProfilingView({ isConnected, k1Client }: ProfilingViewProps) {
   const [selectedEffect, setSelectedEffect] = useState<string>('all');
   const [timeRange, setTimeRange] = useState<'100' | '500' | '1000'>('100');
   const [showComparison, setShowComparison] = useState(false);

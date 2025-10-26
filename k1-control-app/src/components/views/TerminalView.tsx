@@ -4,10 +4,11 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
 import { ChevronDown, ChevronUp, Copy, Trash2, Search } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface TerminalViewProps {
   isConnected: boolean;
+  k1Client: any; // TODO: Type this properly
 }
 
 interface LogEntry {
