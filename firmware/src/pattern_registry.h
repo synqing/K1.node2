@@ -45,9 +45,12 @@ inline bool select_pattern_by_id(const char* id) {
     for (uint8_t i = 0; i < g_num_patterns; i++) {
         if (strcmp(g_pattern_registry[i].id, id) == 0) {
             g_current_pattern_index = i;
+            Serial.printf("[PATTERN SELECT] Changed to: %s (index %d)\n",
+                g_pattern_registry[i].name, i);
             return true;
         }
     }
+    Serial.printf("[PATTERN SELECT] ERROR: Pattern '%s' not found\n", id);
     return false;
 }
 

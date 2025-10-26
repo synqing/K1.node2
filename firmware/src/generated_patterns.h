@@ -611,6 +611,15 @@ float get_dominant_chroma_hue() {
 void draw_pulse(float time, const PatternParameters& params) {
 	PATTERN_AUDIO_START();
 
+	// Diagnostic logging (once per second)
+	static uint32_t last_diagnostic = 0;
+	uint32_t now = millis();
+	if (now - last_diagnostic > 1000) {
+		last_diagnostic = now;
+		Serial.printf("[PULSE] audio_available=%d, tempo_confidence=%.2f, brightness=%.2f, speed=%.2f\n",
+			(int)audio_available, AUDIO_TEMPO_CONFIDENCE, params.brightness, params.speed);
+	}
+
 	// Fallback to ambient if no audio
 	if (!AUDIO_IS_AVAILABLE()) {
 		for (int i = 0; i < NUM_LEDS; i++) {
@@ -708,6 +717,15 @@ void draw_pulse(float time, const PatternParameters& params) {
 void draw_tempiscope(float time, const PatternParameters& params) {
 	PATTERN_AUDIO_START();
 
+	// Diagnostic logging (once per second)
+	static uint32_t last_diagnostic = 0;
+	uint32_t now = millis();
+	if (now - last_diagnostic > 1000) {
+		last_diagnostic = now;
+		Serial.printf("[TEMPISCOPE] audio_available=%d, tempo_confidence=%.2f, brightness=%.2f, speed=%.2f\n",
+			(int)audio_available, AUDIO_TEMPO_CONFIDENCE, params.brightness, params.speed);
+	}
+
 	// Fallback to animated gradient if no audio
 	if (!AUDIO_IS_AVAILABLE()) {
 		float phase = fmodf(time * params.speed * 0.3f, 1.0f);
@@ -762,6 +780,15 @@ static float beat_tunnel_angle = 0.0f;
 
 void draw_beat_tunnel(float time, const PatternParameters& params) {
 	PATTERN_AUDIO_START();
+
+	// Diagnostic logging (once per second)
+	static uint32_t last_diagnostic = 0;
+	uint32_t now = millis();
+	if (now - last_diagnostic > 1000) {
+		last_diagnostic = now;
+		Serial.printf("[BEAT_TUNNEL] audio_available=%d, tempo_confidence=%.2f, brightness=%.2f, speed=%.2f\n",
+			(int)audio_available, AUDIO_TEMPO_CONFIDENCE, params.brightness, params.speed);
+	}
 
 	// Clear frame buffer
 	for (int i = 0; i < NUM_LEDS; i++) {
