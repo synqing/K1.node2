@@ -1,0 +1,72 @@
+{
+  "name": "Multi-Band Cascade",
+  "description": "64-bin spectrum split into 8 octave bands. Each band controls LED section with waterfall effect from center.",
+  "artistic_intent": "Center-origin cascade: bass at center, treble radiates outward. Real-time 64-bin spectrum analysis.",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [32, 50, 0, 50],
+    [64, 100, 0, 100],
+    [96, 150, 50, 200],
+    [128, 200, 100, 255],
+    [160, 255, 150, 255],
+    [192, 255, 200, 255],
+    [224, 255, 255, 255],
+    [255, 255, 255, 255]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "CENTER-ORIGIN: 0 at center, 1 at edges"
+    },
+    {
+      "id": "spectrum_map",
+      "type": "spectrum_interpolate",
+      "parameters": { "start_bin": 0, "end_bin": 63 },
+      "description": "Map LED positions across full 64-bin spectrum"
+    },
+    {
+      "id": "bass_energy",
+      "type": "spectrum_range",
+      "parameters": { "band": "low" },
+      "description": "Bass bins 0-20 average with params.spectrum_low control"
+    },
+    {
+      "id": "mid_energy",
+      "type": "spectrum_range",
+      "parameters": { "band": "mid" },
+      "description": "Mid bins 20-42 average with params.spectrum_mid control"
+    },
+    {
+      "id": "treble_energy",
+      "type": "spectrum_range",
+      "parameters": { "band": "high" },
+      "description": "Treble bins 42-63 average with params.spectrum_high control"
+    },
+    {
+      "id": "position_boost",
+      "type": "multiply",
+      "inputs": ["position", "spectrum_map"],
+      "description": "Outer LEDs get more treble, center gets bass"
+    },
+    {
+      "id": "cascade_position",
+      "type": "add",
+      "inputs": ["position_boost", "bass_energy"],
+      "description": "Bass drives center brightness, spectrum drives radial gradient"
+    },
+    {
+      "id": "output",
+      "type": "palette_interpolate",
+      "inputs": ["cascade_position"],
+      "description": "Purple bass center to cyan treble edges"
+    }
+  ],
+  "wires": [
+    { "from": "position", "to": "position_boost" },
+    { "from": "spectrum_map", "to": "position_boost" },
+    { "from": "position_boost", "to": "cascade_position" },
+    { "from": "bass_energy", "to": "cascade_position" },
+    { "from": "cascade_position", "to": "output" }
+  ]
+}

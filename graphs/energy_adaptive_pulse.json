@@ -1,0 +1,93 @@
+{
+  "name": "Energy Adaptive Pulse",
+  "description": "Pattern intensity dynamically scales with audio energy. Bright during intense sections, dims during quiet passages.",
+  "artistic_intent": "CENTER-ORIGIN energy pulse: real-time VU level controls global brightness. Smooth energy curve for gentle transitions.",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [42, 50, 0, 50],
+    [85, 100, 50, 100],
+    [128, 200, 100, 200],
+    [170, 255, 200, 255],
+    [213, 255, 255, 255],
+    [255, 255, 255, 255]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "CENTER-ORIGIN: pulse origin"
+    },
+    {
+      "id": "time_base",
+      "type": "time",
+      "description": "Time flow for pulse animation"
+    },
+    {
+      "id": "pulse_wave",
+      "type": "sin",
+      "inputs": ["time_base"],
+      "description": "Sinusoidal pulse wave"
+    },
+    {
+      "id": "audio_energy",
+      "type": "audio_level",
+      "description": "Overall RMS audio level (VU meter)"
+    },
+    {
+      "id": "energy_squared",
+      "type": "multiply",
+      "inputs": ["audio_energy", "audio_energy"],
+      "description": "Square energy for more dynamic range"
+    },
+    {
+      "id": "pulse_modulated",
+      "type": "multiply",
+      "inputs": ["pulse_wave", "energy_squared"],
+      "description": "Pulse amplitude controlled by audio energy"
+    },
+    {
+      "id": "position_pulse",
+      "type": "add",
+      "inputs": ["position", "pulse_modulated"],
+      "description": "Combine radial position with energy pulse"
+    },
+    {
+      "id": "bass_accent",
+      "type": "spectrum_range",
+      "parameters": { "band": "low" },
+      "description": "Bass energy for center accent"
+    },
+    {
+      "id": "bass_scaled",
+      "type": "scale",
+      "inputs": ["bass_accent"],
+      "parameters": { "factor": 0.3 },
+      "description": "Subtle bass accent at 30% strength"
+    },
+    {
+      "id": "final_position",
+      "type": "add",
+      "inputs": ["position_pulse", "bass_scaled"],
+      "description": "Add bass accent to pulsing pattern"
+    },
+    {
+      "id": "output",
+      "type": "palette_interpolate",
+      "inputs": ["final_position"],
+      "description": "Dark purple quiet to bright white loud"
+    }
+  ],
+  "wires": [
+    { "from": "time_base", "to": "pulse_wave" },
+    { "from": "audio_energy", "to": "energy_squared" },
+    { "from": "energy_squared", "to": "energy_squared" },
+    { "from": "pulse_wave", "to": "pulse_modulated" },
+    { "from": "energy_squared", "to": "pulse_modulated" },
+    { "from": "position", "to": "position_pulse" },
+    { "from": "pulse_modulated", "to": "position_pulse" },
+    { "from": "bass_accent", "to": "bass_scaled" },
+    { "from": "position_pulse", "to": "final_position" },
+    { "from": "bass_scaled", "to": "final_position" },
+    { "from": "final_position", "to": "output" }
+  ]
+}

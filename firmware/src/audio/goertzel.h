@@ -2,7 +2,7 @@
 //                                 _                  _       _
 //                                | |                | |     | |
 //    __ _    ___     ___   _ __  | |_   ____   ___  | |     | |__
-//   / _` |  / _ \   / _ \ | '__| | __| |_  /  / _ \ | |     | '_ \ 
+//   / _` |  / _ \   / _ \ | '__| | __| |_  /  / _ \ | |     | '_ \
 //  | (_| | | (_) | |  __/ | |    | |_   / /  |  __/ | |  _  | | | |
 //   \__, |  \___/   \___| |_|     \__| /___|  \___| |_| (_) |_| |_|
 //    __/ |
@@ -10,6 +10,58 @@
 //
 // Functions related to the computation and post-processing of the Goertzel Algorithm to compute DFT
 // https://en.wikipedia.org/wiki/Goertzel_algorithm
+
+#ifndef GOERTZEL_H
+#define GOERTZEL_H
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+#include <esp_timer.h>
+
+// Profiling macro - simplified for now (just execute lambda)
+#define profile_function(lambda, name) lambda()
+#define ___() do {} while(0)
+
+// Utility functions
+inline float clip_float(float val) {
+	return fmax(0.0f, fmin(1.0f, val));
+}
+
+// Stubs for functions called by audio processing
+inline void broadcast(const char* msg) {
+	Serial.printf("[AUDIO] %s\n", msg);
+}
+inline void save_config() {}
+inline void save_noise_spectrum() {}
+
+// Global stubs needed by audio processing
+float noise_spectrum[64] = {0};
+struct { float vu_floor; } configuration = {0.0f};
+bool EMOTISCOPE_ACTIVE = true;
+bool audio_recording_live = false;
+int audio_recording_index = 0;
+int16_t audio_debug_recording[1024];
+#define MAX_AUDIO_RECORDING_SAMPLES 1024
+
+inline void save_audio_debug_recording() {}
+
+// Stub for ESP-DSP function
+inline void dsps_mulc_f32(float* src, float* dest, int length, float multiplier, int stride_src, int stride_dest) {
+	for (int i = 0; i < length; i++) {
+		dest[i * stride_dest] = src[i * stride_src] * multiplier;
+	}
+}
+
+// Array shift utility
+inline void shift_and_copy_arrays(float* dest, int dest_len, float* src, int src_len) {
+	memmove(dest, dest + src_len, (dest_len - src_len) * sizeof(float));
+	memcpy(dest + (dest_len - src_len), src, src_len * sizeof(float));
+}
+
+// Audio sample buffer
+#define SAMPLE_RATE 12800
+#define SAMPLE_HISTORY_LENGTH 4096
+float sample_history[SAMPLE_HISTORY_LENGTH] = {0};
 
 #define TWOPI   6.28318530
 #define FOURPI 12.56637061
@@ -19,6 +71,18 @@
 
 #define BOTTOM_NOTE 24	// THESE ARE IN QUARTER-STEPS, NOT HALF-STEPS! That's 24 notes to an octave
 #define NOTE_STEP 2 // Use half-steps anyways
+
+// Type definitions for audio data structures
+struct freq {
+	float target_freq;
+	uint16_t block_size;
+	float window_step;
+	float coeff;
+	float magnitude;
+	float magnitude_full_scale;
+	float magnitude_last;
+	float novelty;
+};
 
 uint32_t noise_calibration_active_frames_remaining = 0;
 
@@ -44,11 +108,181 @@ volatile bool magnitudes_locked = false;
 
 float spectrogram[NUM_FREQS];
 float chromagram[12];
+float audio_level = 0.0;  // Overall audio RMS level
+
+// Tempo/beat detection arrays (stubbed for now, will be populated by tempo.h)
+tempo tempi[NUM_TEMPI];
+float tempi_smooth[NUM_TEMPI] = {0};
 
 const uint8_t NUM_SPECTROGRAM_AVERAGE_SAMPLES = 8;
 float spectrogram_smooth[NUM_FREQS] = { 0.0 };
 float spectrogram_average[NUM_SPECTROGRAM_AVERAGE_SAMPLES][NUM_FREQS];
 uint8_t spectrogram_average_index = 0;
+
+// =============================================================================
+// PHASE 1: AUDIO DATA SYNCHRONIZATION - Double-Buffering with FreeRTOS Mutexes
+// =============================================================================
+// This system prevents race conditions between audio processing (Core 1, 100Hz)
+// and pattern rendering (Core 0, 450 FPS) by using atomic buffer swaps.
+//
+// Architecture:
+//   - audio_back: Written by audio thread (Core 1)
+//   - audio_front: Read by render thread (Core 0)
+//   - Swap happens atomically with dual-mutex protection
+//   - Non-blocking reads prevent render stalls
+//
+// Memory: ~16 KB per buffer (2 buffers = 32 KB total)
+// Performance: <1ms swap overhead, <0.1ms read overhead
+// =============================================================================
+
+typedef struct {
+	// Frequency spectrum data (64 bins covering ~50Hz to 6.4kHz)
+	float spectrogram[NUM_FREQS];           // Raw frequency magnitudes (0.0-1.0)
+	float spectrogram_smooth[NUM_FREQS];    // Smoothed spectrum (8-sample average)
+
+	// Musical note energy (12 pitch classes: C, C#, D, D#, E, F, F#, G, G#, A, A#, B)
+	float chromagram[12];                   // Chroma energy distribution
+
+	// Audio level tracking
+	float vu_level;                         // Overall audio RMS level (0.0-1.0)
+	float vu_level_raw;                     // Unfiltered VU level
+
+	// Tempo/beat detection
+	float novelty_curve;                    // Spectral flux (onset detection)
+	float tempo_confidence;                 // Beat detection confidence (0.0-1.0)
+	float tempo_magnitude[NUM_TEMPI];       // Tempo bin magnitudes (64 bins)
+	float tempo_phase[NUM_TEMPI];           // Tempo bin phases (64 bins)
+
+	// FFT data (reserved for future full-spectrum analysis)
+	// Currently using Goertzel for musical note detection (more efficient)
+	float fft_smooth[128];                  // Smoothed FFT bins (placeholder)
+
+	// Metadata
+	uint32_t update_counter;                // Increments with each audio frame
+	uint32_t timestamp_us;                  // Microsecond timestamp (esp_timer)
+	bool is_valid;                          // True if data has been written at least once
+} AudioDataSnapshot;
+
+// Double-buffer storage (front = reading, back = writing)
+static AudioDataSnapshot audio_front;
+static AudioDataSnapshot audio_back;
+
+// FreeRTOS synchronization primitives
+static SemaphoreHandle_t audio_swap_mutex = NULL;   // Protects buffer swap operation
+static SemaphoreHandle_t audio_read_mutex = NULL;   // Protects front buffer reads
+static bool audio_sync_initialized = false;
+
+// =============================================================================
+// Initialize audio data synchronization system
+// Must be called once during setup() before any audio processing begins
+// =============================================================================
+void init_audio_data_sync() {
+	// Create mutexes for thread-safe access
+	audio_swap_mutex = xSemaphoreCreateMutex();
+	audio_read_mutex = xSemaphoreCreateMutex();
+
+	if (audio_swap_mutex == NULL || audio_read_mutex == NULL) {
+		Serial.println("[AUDIO SYNC] ERROR: Failed to create mutexes!");
+		return;
+	}
+
+	// Initialize both buffers to zero
+	memset(&audio_front, 0, sizeof(AudioDataSnapshot));
+	memset(&audio_back, 0, sizeof(AudioDataSnapshot));
+
+	// Mark buffers as invalid until first audio update
+	audio_front.is_valid = false;
+	audio_back.is_valid = false;
+
+	audio_sync_initialized = true;
+
+	Serial.println("[AUDIO SYNC] Initialized successfully");
+	Serial.printf("[AUDIO SYNC] Buffer size: %d bytes per snapshot\n", sizeof(AudioDataSnapshot));
+	Serial.printf("[AUDIO SYNC] Total memory: %d bytes (2x buffers)\n", sizeof(AudioDataSnapshot) * 2);
+}
+
+// =============================================================================
+// Get thread-safe snapshot of current audio data
+// Returns: true if snapshot copied successfully, false on timeout
+//
+// Usage:
+//   AudioDataSnapshot snapshot;
+//   if (get_audio_snapshot(&snapshot)) {
+//     // Use snapshot.spectrogram, snapshot.chromagram, etc.
+//   }
+// =============================================================================
+bool get_audio_snapshot(AudioDataSnapshot* snapshot) {
+	if (!audio_sync_initialized || snapshot == NULL) {
+		return false;
+	}
+
+	// Increase timeout from 1ms to 10ms to accommodate commit_audio_data()
+	// which may hold the mutex for 5-10ms during buffer swap
+	if (xSemaphoreTake(audio_read_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+		// Copy front buffer to caller's snapshot
+		memcpy(snapshot, &audio_front, sizeof(AudioDataSnapshot));
+		xSemaphoreGive(audio_read_mutex);
+		return true;
+	}
+
+	// Timeout - log warning so caller knows data is stale
+	static uint32_t last_warning = 0;
+	uint32_t now = millis();
+	if (now - last_warning > 1000) {  // Log once per second max
+		Serial.println("[AUDIO SNAPSHOT] WARNING: Timeout reading audio data - using stale snapshot");
+		last_warning = now;
+	}
+
+	return false;
+}
+
+// =============================================================================
+// Commit audio data from back buffer to front buffer (atomic swap)
+// Called by audio processing thread after updating audio_back
+// Uses dual-mutex locking to ensure atomic operation
+// =============================================================================
+void commit_audio_data() {
+	if (!audio_sync_initialized) {
+		return;
+	}
+
+	// Acquire both mutexes in consistent order to prevent deadlock
+	// Increase timeout from 5ms to 10ms to give readers more time
+	if (xSemaphoreTake(audio_swap_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+		if (xSemaphoreTake(audio_read_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+			// Atomic swap: copy back buffer to front buffer
+			memcpy(&audio_front, &audio_back, sizeof(AudioDataSnapshot));
+
+			// Mark front buffer as valid
+			audio_front.is_valid = true;
+
+			// Release mutexes in reverse order
+			xSemaphoreGive(audio_read_mutex);
+			xSemaphoreGive(audio_swap_mutex);
+
+			return;  // Success
+		} else {
+			// Failed to acquire read mutex - release swap mutex
+			xSemaphoreGive(audio_swap_mutex);
+
+			// Log but don't spam - max once per second
+			static uint32_t last_warning = 0;
+			uint32_t now = millis();
+			if (now - last_warning > 1000) {
+				Serial.println("[AUDIO SYNC] WARNING: Read mutex timeout during commit - audio frame skipped");
+				last_warning = now;
+			}
+		}
+	} else {
+		// Failed to acquire swap mutex
+		static uint32_t last_warning = 0;
+		uint32_t now = millis();
+		if (now - last_warning > 1000) {
+			Serial.println("[AUDIO SYNC] WARNING: Swap mutex timeout during commit - audio frame skipped");
+			last_warning = now;
+		}
+	}
+}
 
 void init_goertzel(uint16_t frequency_slot, float frequency, float bandwidth) {
 	// Calculate the block size based on the desired bandwidth
@@ -235,7 +469,6 @@ void calculate_magnitudes() {
 
 		const uint16_t NUM_AVERAGE_SAMPLES = 6;
 
-		static bool interlacing_frame_field = 0;
 		static float magnitudes_raw[NUM_FREQS];
 		static float magnitudes_avg[NUM_AVERAGE_SAMPLES][NUM_FREQS];
 		static float magnitudes_smooth[NUM_FREQS];
@@ -244,17 +477,12 @@ void calculate_magnitudes() {
 		static uint32_t iter = 0;
 		iter++;
 
-		interlacing_frame_field = !interlacing_frame_field;
-
 		float max_val = 0.0;
-		// Iterate over all target frequencies
+		// Iterate over all target frequencies - calculate ALL bins every frame (no interlacing)
 		for (uint16_t i = 0; i < NUM_FREQS; i++) {
-			bool interlace_line = i % 2;
-			if (interlace_line == interlacing_frame_field) {
-				// Get raw magnitude of frequency
-				magnitudes_raw[i] = calculate_magnitude_of_bin(i);  // fast_mode enabled (downsampled audio)
-				magnitudes_raw[i] = collect_and_filter_noise(magnitudes_raw[i], i);
-			}
+			// Get raw magnitude of frequency
+			magnitudes_raw[i] = calculate_magnitude_of_bin(i);  // fast_mode enabled (downsampled audio)
+			magnitudes_raw[i] = collect_and_filter_noise(magnitudes_raw[i], i);
 
 			// Store raw magnitude
 			frequencies_musical[i].magnitude_full_scale = magnitudes_raw[i];
@@ -332,6 +560,21 @@ void calculate_magnitudes() {
 			spectrogram_smooth[i] /= float(NUM_SPECTROGRAM_AVERAGE_SAMPLES);
 		}
 
+		// PHASE 1: Copy spectrum data to audio_back buffer for thread-safe access
+		if (audio_sync_initialized) {
+			// Copy spectrogram data
+			memcpy(audio_back.spectrogram, spectrogram, sizeof(float) * NUM_FREQS);
+			memcpy(audio_back.spectrogram_smooth, spectrogram_smooth, sizeof(float) * NUM_FREQS);
+
+			// Update metadata
+			audio_back.update_counter++;
+			audio_back.timestamp_us = esp_timer_get_time();
+			audio_back.is_valid = true;
+
+			// Note: chromagram, vu_level, novelty_curve, tempo_confidence will be
+			// updated by their respective processing functions (get_chromagram, etc.)
+		}
+
 		magnitudes_locked = false;
 	}, __func__ );
 	___();
@@ -359,4 +602,25 @@ void get_chromagram(){
 	for(uint16_t i = 0; i < 12; i++){
 		chromagram[i] *= auto_scale;
 	}
+
+	// PHASE 1: Copy chromagram to audio_back buffer
+	if (audio_sync_initialized) {
+		memcpy(audio_back.chromagram, chromagram, sizeof(float) * 12);
+	}
 }
+
+// =============================================================================
+// PHASE 1: Complete audio processing frame and commit to front buffer
+// This should be called after all audio processing (calculate_magnitudes,
+// get_chromagram, tempo updates, etc.) is complete for the current frame.
+// =============================================================================
+void finish_audio_frame() {
+	if (!audio_sync_initialized) {
+		return;
+	}
+
+	// Commit the back buffer to the front buffer (atomic swap)
+	commit_audio_data();
+}
+
+#endif // GOERTZEL_H

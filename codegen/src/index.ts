@@ -56,6 +56,7 @@ const multiPatternTemplate = `
 #pragma once
 
 #include "pattern_registry.h"
+#include "pattern_audio_interface.h"
 
 extern CRGBF leds[NUM_LEDS];
 
@@ -63,6 +64,16 @@ extern CRGBF leds[NUM_LEDS];
 // Pattern: {{name}}
 // {{description}}
 void draw_{{safe_id}}(float time, const PatternParameters& params) {
+    {{#if is_audio_reactive}}
+    // Thread-safe audio snapshot acquisition
+    PATTERN_AUDIO_START();
+
+    // Early exit if audio data is stale (no new updates since last frame)
+    if (!AUDIO_IS_FRESH()) {
+        return;  // Reuse previous frame to avoid redundant rendering
+    }
+
+    {{/if}}
     {{#each steps}}
     {{{this}}}
     {{/each}}
@@ -73,7 +84,7 @@ void draw_{{safe_id}}(float time, const PatternParameters& params) {
 // Pattern registry array
 const PatternInfo g_pattern_registry[] = {
 {{#each patterns}}
-    { "{{name}}", "{{safe_id}}", "{{description}}", draw_{{safe_id}}, {{is_audio_reactive}} }{{#unless @last}},{{/unless}}
+    { "{{name}}", "{{safe_id}}", "{{description}}", draw_{{safe_id}}, {{#if is_audio_reactive}}true{{else}}false{{/if}} }{{#unless @last}},{{/unless}}
 {{/each}}
 };
 
@@ -354,7 +365,7 @@ function generateNodeCode(node: Node, graph: Graph): string {
             if (bin < 0 || bin > 63) {
                 throw new Error(`spectrum_bin: bin ${bin} out of range (0-63)`);
             }
-            return `spectrogram[${bin}]`;
+            return `AUDIO_SPECTRUM[${bin}]`;
         }
 
         case 'spectrum_interpolate': {
@@ -365,7 +376,7 @@ function generateNodeCode(node: Node, graph: Graph): string {
                 throw new Error(`spectrum_interpolate: bins out of range (0-63)`);
             }
             // Calculate bin index based on LED position
-            return `spectrogram[${startBin} + int((float(i) / float(NUM_LEDS - 1)) * ${endBin - startBin})]`;
+            return `AUDIO_SPECTRUM[${startBin} + int((float(i) / float(NUM_LEDS - 1)) * ${endBin - startBin})]`;
         }
 
         case 'spectrum_range': {
@@ -377,36 +388,36 @@ function generateNodeCode(node: Node, graph: Graph): string {
                 // Bass: bins 0-20 (~0-175Hz), controlled by params.spectrum_low
                 return `(
                     fmin(1.0f, fmax(0.0f, (
-                        spectrogram[0] + spectrogram[1] + spectrogram[2] + spectrogram[3] +
-                        spectrogram[4] + spectrogram[5] + spectrogram[6] + spectrogram[7] +
-                        spectrogram[8] + spectrogram[9] + spectrogram[10] + spectrogram[11] +
-                        spectrogram[12] + spectrogram[13] + spectrogram[14] + spectrogram[15] +
-                        spectrogram[16] + spectrogram[17] + spectrogram[18] + spectrogram[19] +
-                        spectrogram[20]
+                        AUDIO_SPECTRUM[0] + AUDIO_SPECTRUM[1] + AUDIO_SPECTRUM[2] + AUDIO_SPECTRUM[3] +
+                        AUDIO_SPECTRUM[4] + AUDIO_SPECTRUM[5] + AUDIO_SPECTRUM[6] + AUDIO_SPECTRUM[7] +
+                        AUDIO_SPECTRUM[8] + AUDIO_SPECTRUM[9] + AUDIO_SPECTRUM[10] + AUDIO_SPECTRUM[11] +
+                        AUDIO_SPECTRUM[12] + AUDIO_SPECTRUM[13] + AUDIO_SPECTRUM[14] + AUDIO_SPECTRUM[15] +
+                        AUDIO_SPECTRUM[16] + AUDIO_SPECTRUM[17] + AUDIO_SPECTRUM[18] + AUDIO_SPECTRUM[19] +
+                        AUDIO_SPECTRUM[20]
                     ) / 21.0f)) * params.spectrum_low
                 )`;
             } else if (band === 'mid') {
                 // Midrange: bins 20-42 (~175-366Hz), controlled by params.spectrum_mid
                 return `(
                     fmin(1.0f, fmax(0.0f, (
-                        spectrogram[20] + spectrogram[21] + spectrogram[22] + spectrogram[23] +
-                        spectrogram[24] + spectrogram[25] + spectrogram[26] + spectrogram[27] +
-                        spectrogram[28] + spectrogram[29] + spectrogram[30] + spectrogram[31] +
-                        spectrogram[32] + spectrogram[33] + spectrogram[34] + spectrogram[35] +
-                        spectrogram[36] + spectrogram[37] + spectrogram[38] + spectrogram[39] +
-                        spectrogram[40] + spectrogram[41] + spectrogram[42]
+                        AUDIO_SPECTRUM[20] + AUDIO_SPECTRUM[21] + AUDIO_SPECTRUM[22] + AUDIO_SPECTRUM[23] +
+                        AUDIO_SPECTRUM[24] + AUDIO_SPECTRUM[25] + AUDIO_SPECTRUM[26] + AUDIO_SPECTRUM[27] +
+                        AUDIO_SPECTRUM[28] + AUDIO_SPECTRUM[29] + AUDIO_SPECTRUM[30] + AUDIO_SPECTRUM[31] +
+                        AUDIO_SPECTRUM[32] + AUDIO_SPECTRUM[33] + AUDIO_SPECTRUM[34] + AUDIO_SPECTRUM[35] +
+                        AUDIO_SPECTRUM[36] + AUDIO_SPECTRUM[37] + AUDIO_SPECTRUM[38] + AUDIO_SPECTRUM[39] +
+                        AUDIO_SPECTRUM[40] + AUDIO_SPECTRUM[41] + AUDIO_SPECTRUM[42]
                     ) / 23.0f)) * params.spectrum_mid
                 )`;
             } else if (band === 'high') {
                 // Treble: bins 42-63 (~366Hz+), controlled by params.spectrum_high
                 return `(
                     fmin(1.0f, fmax(0.0f, (
-                        spectrogram[42] + spectrogram[43] + spectrogram[44] + spectrogram[45] +
-                        spectrogram[46] + spectrogram[47] + spectrogram[48] + spectrogram[49] +
-                        spectrogram[50] + spectrogram[51] + spectrogram[52] + spectrogram[53] +
-                        spectrogram[54] + spectrogram[55] + spectrogram[56] + spectrogram[57] +
-                        spectrogram[58] + spectrogram[59] + spectrogram[60] + spectrogram[61] +
-                        spectrogram[62] + spectrogram[63]
+                        AUDIO_SPECTRUM[42] + AUDIO_SPECTRUM[43] + AUDIO_SPECTRUM[44] + AUDIO_SPECTRUM[45] +
+                        AUDIO_SPECTRUM[46] + AUDIO_SPECTRUM[47] + AUDIO_SPECTRUM[48] + AUDIO_SPECTRUM[49] +
+                        AUDIO_SPECTRUM[50] + AUDIO_SPECTRUM[51] + AUDIO_SPECTRUM[52] + AUDIO_SPECTRUM[53] +
+                        AUDIO_SPECTRUM[54] + AUDIO_SPECTRUM[55] + AUDIO_SPECTRUM[56] + AUDIO_SPECTRUM[57] +
+                        AUDIO_SPECTRUM[58] + AUDIO_SPECTRUM[59] + AUDIO_SPECTRUM[60] + AUDIO_SPECTRUM[61] +
+                        AUDIO_SPECTRUM[62] + AUDIO_SPECTRUM[63]
                     ) / 22.0f)) * params.spectrum_high
                 )`;
             } else {
@@ -419,7 +430,7 @@ function generateNodeCode(node: Node, graph: Graph): string {
                 const numBins = endBin - startBin + 1;
                 let sumCode = '';
                 for (let b = startBin; b <= endBin; b++) {
-                    sumCode += (b > startBin ? ' + ' : '') + `spectrogram[${b}]`;
+                    sumCode += (b > startBin ? ' + ' : '') + `AUDIO_SPECTRUM[${b}]`;
                 }
                 return `((${sumCode}) / ${numBins}.0f)`;
             }
@@ -427,7 +438,7 @@ function generateNodeCode(node: Node, graph: Graph): string {
 
         case 'audio_level': {
             // VU meter / overall volume (0-1)
-            return `audio_level`;
+            return `AUDIO_VU`;
         }
 
         case 'beat': {
@@ -435,12 +446,14 @@ function generateNodeCode(node: Node, graph: Graph): string {
             const tempoBin = Number(node.parameters?.tempo_bin ?? -1);
             if (tempoBin === -1) {
                 // Auto-detect strongest tempo with beat_sensitivity multiplier
-                return `fmin(1.0f, (tempi[0].beat * 0.5f + 0.5f) * params.beat_sensitivity)`;
+                // Note: AUDIO_TEMPO_CONFIDENCE provides overall beat confidence
+                return `fmin(1.0f, AUDIO_TEMPO_CONFIDENCE * params.beat_sensitivity)`;
             } else {
                 if (tempoBin < 0 || tempoBin > 63) {
                     throw new Error(`beat: tempo_bin ${tempoBin} out of range (0-63)`);
                 }
-                return `fmin(1.0f, (tempi[${tempoBin}].beat * 0.5f + 0.5f) * params.beat_sensitivity)`;
+                // Use tempo magnitude array for specific bin
+                return `fmin(1.0f, audio.tempo_magnitude[${tempoBin}] * params.beat_sensitivity)`;
             }
         }
 
@@ -450,7 +463,7 @@ function generateNodeCode(node: Node, graph: Graph): string {
             if (tempoBin < 0 || tempoBin > 63) {
                 throw new Error(`tempo_magnitude: tempo_bin ${tempoBin} out of range (0-63)`);
             }
-            return `tempi[${tempoBin}].magnitude`;
+            return `audio.tempo_magnitude[${tempoBin}]`;
         }
 
         case 'chromagram': {
@@ -459,7 +472,7 @@ function generateNodeCode(node: Node, graph: Graph): string {
             if (pitch < 0 || pitch > 11) {
                 throw new Error(`chromagram: pitch ${pitch} out of range (0-11)`);
             }
-            return `chromagram[${pitch}]`;
+            return `AUDIO_CHROMAGRAM[${pitch}]`;
         }
 
         default:
@@ -550,7 +563,8 @@ function compileMultiPattern(graphs: Graph[]): string {
     // Prepare pattern data
     const patterns = graphs.map(graph => {
         try {
-            console.log(`  Compiling: ${graph.name}`);
+            const audioReactive = isAudioReactive(graph);
+            console.log(`  Compiling: ${graph.name} (audio_reactive: ${audioReactive})`);
 
             // Validate center-origin compliance
             validateCenterOriginCompliance(graph);
@@ -574,7 +588,7 @@ function compileMultiPattern(graphs: Graph[]): string {
                 name: graph.name || 'Unnamed Pattern',
                 description: graph.description || 'No description',
                 safe_id: generateSafeId(graph.name || 'unnamed'),
-                is_audio_reactive: isAudioReactive(graph) ? 'true' : 'false',
+                is_audio_reactive: isAudioReactive(graph),
                 steps
             };
         } catch (error) {
@@ -585,10 +599,35 @@ function compileMultiPattern(graphs: Graph[]): string {
 
     // Compile template
     const template = Handlebars.compile(multiPatternTemplate);
-    return template({
+    const cppCode = template({
         timestamp: new Date().toISOString(),
         patterns
     });
+
+    // VALIDATION: Verify audio-reactive patterns include PATTERN_AUDIO_START macro
+    const audioReactivePatterns = patterns.filter(p => p.is_audio_reactive);
+    const audioStartCount = (cppCode.match(/PATTERN_AUDIO_START\(\)/g) || []).length;
+
+    console.log(`\nValidation:`);
+    console.log(`  Audio-reactive patterns: ${audioReactivePatterns.length}`);
+    console.log(`  PATTERN_AUDIO_START() calls: ${audioStartCount}`);
+
+    if (audioReactivePatterns.length > 0 && audioStartCount === 0) {
+        throw new Error(
+            'CRITICAL ERROR: Audio-reactive patterns detected but PATTERN_AUDIO_START macro missing!\n' +
+            `  ${audioReactivePatterns.length} patterns need thread-safe audio access but template failed to generate it.`
+        );
+    }
+
+    if (audioReactivePatterns.length !== audioStartCount) {
+        console.warn(
+            `⚠️  WARNING: Macro count mismatch!\n` +
+            `  Expected: ${audioReactivePatterns.length} PATTERN_AUDIO_START calls\n` +
+            `  Generated: ${audioStartCount} calls`
+        );
+    }
+
+    return cppCode;
 }
 
 // Load all JSON graph files from a directory

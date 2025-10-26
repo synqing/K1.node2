@@ -1127,7 +1127,7 @@ firmware/
 - ESP32-S3 Datasheet: Espressif
 
 ### Related K1 Documentation
-- `README_Claude_Skills.md` - Pattern development workflow
+- `../resources/README_Claude_Skills.md` - Pattern development workflow
 - `Implementation.plans/` - Architecture planning docs
 
 ---

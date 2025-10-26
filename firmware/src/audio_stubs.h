@@ -9,24 +9,29 @@
 #define NUM_TEMPI 64
 
 // Audio-reactive globals that patterns reference
-float spectrogram[NUM_FREQS] = {0.0};              // Frequency spectrum (64 bins)
-float spectrogram_smooth[NUM_FREQS] = {0.0};      // Smoothed spectrum
-float chromagram[12] = {0.0};                      // 12-pitch-class energy
+// IMPORTANT: These are declared extern here and defined in audio/goertzel.h
+// to avoid duplicate definition errors
+extern float spectrogram[NUM_FREQS];              // Frequency spectrum (64 bins)
+extern float spectrogram_smooth[NUM_FREQS];      // Smoothed spectrum
+extern float chromagram[12];                      // 12-pitch-class energy
 
-// Tempo detection structure
+// Tempo detection structure - must match definition used in audio/tempo.h
 typedef struct {
     float magnitude;           // Current beat magnitude
     float magnitude_smooth;    // Smoothed beat magnitude
     float beat;                // Beat trigger (0.0 - 1.0)
     float phase;               // Beat phase
     float target_tempo_hz;     // Target tempo frequency
+    uint16_t block_size;
+    float window_step;
+    float coeff;
 } tempo;
 
-tempo tempi[NUM_TEMPI];  // Beat detection for 64 tempo bins
-float tempi_smooth[NUM_TEMPI] = {0.0};
+extern tempo tempi[NUM_TEMPI];  // Beat detection for 64 tempo bins (defined in tempo.h)
+extern float tempi_smooth[NUM_TEMPI];
 
 // Audio level tracker
-float audio_level = 0.0;                           // Overall audio RMS level
+extern float audio_level;                           // Overall audio RMS level
 
 // Initialize audio stubs to default state
 void init_audio_stubs() {
@@ -81,6 +86,27 @@ void update_audio_stubs() {
     }
 
     audio_level = beat_pulse * 0.5;
+}
+
+// Debug: Print audio state every 500ms
+void print_audio_debug() {
+    static uint32_t last_print = 0;
+    uint32_t now = millis();
+
+    if (now - last_print < 500) return;  // Print every 500ms
+    last_print = now;
+
+    Serial.print("[AUDIO] beat_pulse=");
+    Serial.print(tempi[0].beat, 3);
+    Serial.print(" audio_level=");
+    Serial.print(audio_level, 3);
+    Serial.print(" spec[0]=");
+    Serial.print(spectrogram[0], 3);
+    Serial.print(" spec[32]=");
+    Serial.print(spectrogram[32], 3);
+    Serial.print(" chroma[0]=");
+    Serial.print(chromagram[0], 3);
+    Serial.println();
 }
 
 #endif  // AUDIO_STUBS_H

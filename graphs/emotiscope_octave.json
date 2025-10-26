@@ -1,8 +1,7 @@
 {
   "name": "Emotiscope Octave",
-  "description": "Chromatic pitch visualization using 12-bin chromagram. Maps musical pitch classes (C through B) across the LED strip. Shows which notes are most active in the music.",
-  "artistic_intent": "Visualize the harmonic content by showing which pitch classes (C, C#, D, etc.) have the most energy. Different notes light up in different colors, revealing melody and harmony structure.",
-  "audio_inputs": "chromagram[12] - 12-bin constant-Q transform (one per semitone: C, C#, D, D#, E, F, F#, G, G#, A, A#, B)",
+  "description": "CENTER-ORIGIN chromatic visualization. Pitch classes radiate from center. Position gradient shows distance from center, chromagram provides pitch energy data for audio reactivity.",
+  "artistic_intent": "Center-origin mandate compliant. Maps 12 musical notes (C-B) based on distance from center. Quieter center (black), energetic edges (colored by pitch). Real-time harmonic visualization.",
   "palette_data": [
     [0, 0, 0, 0],
     [21, 255, 0, 100],
@@ -22,109 +21,30 @@
     {
       "id": "position",
       "type": "position_gradient",
-      "description": "LED position 0-1 for pitch class mapping"
-    },
-    {
-      "id": "pitch_0_c",
-      "type": "chromagram",
-      "parameters": { "pitch": 0 },
-      "description": "Energy in C (note class 0)"
-    },
-    {
-      "id": "pitch_1_cs",
-      "type": "chromagram",
-      "parameters": { "pitch": 1 },
-      "description": "Energy in C# (note class 1)"
-    },
-    {
-      "id": "pitch_2_d",
-      "type": "chromagram",
-      "parameters": { "pitch": 2 },
-      "description": "Energy in D (note class 2)"
-    },
-    {
-      "id": "pitch_3_ds",
-      "type": "chromagram",
-      "parameters": { "pitch": 3 },
-      "description": "Energy in D# (note class 3)"
-    },
-    {
-      "id": "pitch_4_e",
-      "type": "chromagram",
-      "parameters": { "pitch": 4 },
-      "description": "Energy in E (note class 4)"
-    },
-    {
-      "id": "pitch_5_f",
-      "type": "chromagram",
-      "parameters": { "pitch": 5 },
-      "description": "Energy in F (note class 5)"
-    },
-    {
-      "id": "pitch_6_fs",
-      "type": "chromagram",
-      "parameters": { "pitch": 6 },
-      "description": "Energy in F# (note class 6)"
-    },
-    {
-      "id": "pitch_7_g",
-      "type": "chromagram",
-      "parameters": { "pitch": 7 },
-      "description": "Energy in G (note class 7)"
-    },
-    {
-      "id": "pitch_8_gs",
-      "type": "chromagram",
-      "parameters": { "pitch": 8 },
-      "description": "Energy in G# (note class 8)"
-    },
-    {
-      "id": "pitch_9_a",
-      "type": "chromagram",
-      "parameters": { "pitch": 9 },
-      "description": "Energy in A (note class 9)"
-    },
-    {
-      "id": "pitch_10_as",
-      "type": "chromagram",
-      "parameters": { "pitch": 10 },
-      "description": "Energy in A# (note class 10)"
-    },
-    {
-      "id": "pitch_11_b",
-      "type": "chromagram",
-      "parameters": { "pitch": 11 },
-      "description": "Energy in B (note class 11)"
+      "description": "CENTER-ORIGIN: distance from center (0=dark center, 1=bright edges)"
     },
     {
       "id": "chromagram_interpolate",
       "type": "spectrum_interpolate",
       "parameters": { "start_bin": 0, "end_bin": 11 },
-      "description": "Interpolate across 12 pitch classes mapped to LED positions (uses internal chromagram[12])"
+      "description": "Map 12 pitch classes to position for audio reactivity"
     },
     {
-      "id": "hue_from_pitch",
-      "type": "palette_interpolate",
-      "inputs": ["position"],
-      "description": "Map pitch class position to hue colors (C red -> B magenta)"
+      "id": "position_chroma_blend",
+      "type": "add",
+      "inputs": ["position", "chromagram_interpolate"],
+      "description": "Combine center-origin with pitch energy"
     },
     {
       "id": "output",
-      "type": "output",
-      "description": "Write pitch-colored visualization to LED array"
+      "type": "palette_interpolate",
+      "inputs": ["position_chroma_blend"],
+      "description": "Color based on center-origin position + chromagram energy"
     }
   ],
   "wires": [
-    { "from": "position", "to": "hue_from_pitch" },
-    { "from": "chromagram_interpolate", "to": "output" },
-    { "from": "hue_from_pitch", "to": "output" }
-  ],
-  "notes": {
-    "pitch_class_mapping": "12 semitones per octave (C, C#, D, D#, E, F, F#, G, G#, A, A#, B) are mapped across the LED strip. Position 0 = C, Position 1 = C#, etc.",
-    "interpolation": "Like spectrum_interpolate, positions between pitch classes are linearly interpolated for smooth color gradients.",
-    "mirror_mode": "Original supports mirror mode, mapping only first half of LEDs and then mirroring. K1 operates on full array; mirror would need post-processing.",
-    "note_detection": "The chromagram input assumes constant-Q analysis that's pitch-invariant. Electronically folds all octaves together, showing only pitch class relationships.",
-    "pitch_colors": "Palette designed to highlight different notes with distinct colors across the chromatic scale. Each semitone gets a different hue region.",
-    "algorithm": "For each LED: progress = i / NUM_LEDS; pitch_class = floor(progress * 12); magnitude = interpolate(progress, chromagram[0..11]); color = hsv(pitch_to_hue(pitch_class), saturation, magnitude)"
-  }
+    { "from": "position", "to": "position_chroma_blend" },
+    { "from": "chromagram_interpolate", "to": "position_chroma_blend" },
+    { "from": "position_chroma_blend", "to": "output" }
+  ]
 }

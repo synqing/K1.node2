@@ -50,6 +50,7 @@ Phase A has three objectives:
 1. Read `README.md` - understand *why* this exists
 2. Read `MISSION.md` - understand *how* to work here
 3. Read `docs/TEST_PATTERNS.md` - understand *what* we're proving
+4. If you are a Claude agent (or partnering with one), read `CLAUDE.md` to follow the documentation taxonomy and guardrails.
 
 Don't skip this. If you don't understand the mission, you'll drift into optimization for the wrong things.
 

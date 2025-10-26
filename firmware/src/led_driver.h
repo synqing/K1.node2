@@ -1,3 +1,5 @@
+#pragma once
+
 #include <driver/rmt_tx.h>
 #include <driver/rmt_encoder.h>
 #include <esp_check.h>
@@ -190,7 +192,13 @@ void quantize_color(bool temporal_dithering) {
 
 IRAM_ATTR void transmit_leds() {
 	// Wait here if previous frame transmission has not yet completed
-	rmt_tx_wait_all_done(tx_chan, portMAX_DELAY);
+	// Use 10ms timeout for RMT completion
+	// If TX takes longer than 10ms, something is wrong (normal is <1ms)
+	esp_err_t wait_result = rmt_tx_wait_all_done(tx_chan, pdMS_TO_TICKS(10));
+	if (wait_result != ESP_OK) {
+		// RMT transmission timeout - not critical, just continue
+		Serial.println("[LED] RMT transmission timeout");
+	}
 
 	// Clear the 8-bit buffer
 	memset(raw_led_data, 0, NUM_LEDS*3);

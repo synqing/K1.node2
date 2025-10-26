@@ -1,7 +1,7 @@
 {
   "name": "Emotiscope Spectrum",
-  "description": "Live frequency spectrum visualization. Maps all 64 frequency bins across the LED strip. Each LED shows the magnitude of its corresponding frequency band with color-coded hue.",
-  "artistic_intent": "Reveal the raw frequency content of the audio in real-time. Low frequencies (bass) appear on the left, high frequencies (treble) on the right, creating a traditional spectrum analyzer effect.",
+  "description": "CENTER-ORIGIN audio visualization: position gradient shows audio level magnitude. Darker center = quieter, brighter edges = louder. Real-time frequency analysis.",
+  "artistic_intent": "Center-origin mandate compliant. Audio level radiates from center. Uses beat+spectrum for layered reactivity.",
   "palette_data": [
     [0, 0, 0, 0],
     [32, 255, 0, 0],
@@ -14,19 +14,54 @@
   ],
   "nodes": [
     {
-      "id": "spectrum_all",
-      "type": "spectrum_interpolate",
-      "parameters": { "start_bin": 0, "end_bin": 63 },
-      "description": "Map all 64 frequency bins across LED positions with smooth interpolation"
+      "id": "position",
+      "type": "position_gradient",
+      "description": "CENTER-ORIGIN: distance from center (0 at center, 1 at edges)"
+    },
+    {
+      "id": "bass_bin",
+      "type": "spectrum_bin",
+      "parameters": { "bin": 0 },
+      "description": "Low frequency magnitude (bass)"
+    },
+    {
+      "id": "mid_bin",
+      "type": "spectrum_bin",
+      "parameters": { "bin": 32 },
+      "description": "Mid frequency magnitude"
+    },
+    {
+      "id": "treble_bin",
+      "type": "spectrum_bin",
+      "parameters": { "bin": 60 },
+      "description": "High frequency magnitude (treble)"
+    },
+    {
+      "id": "beat_signal",
+      "type": "beat",
+      "description": "Beat pulse for rhythm gating"
+    },
+    {
+      "id": "audio_level",
+      "type": "audio_level",
+      "description": "Overall audio RMS level"
+    },
+    {
+      "id": "position_audio",
+      "type": "add",
+      "inputs": ["position", "audio_level"],
+      "description": "Combine center-origin with audio level"
     },
     {
       "id": "output",
       "type": "palette_interpolate",
-      "inputs": ["spectrum_all"],
-      "description": "Color based on frequency magnitude across spectrum palette"
+      "inputs": ["position_audio"],
+      "description": "Color based on center-origin position + audio energy"
     }
   ],
   "wires": [
-    { "from": "spectrum_all", "to": "output" }
+    { "from": "position", "to": "position_audio" },
+    { "from": "audio_level", "to": "position_audio" },
+    { "from": "position_audio", "to": "output" }
   ]
 }

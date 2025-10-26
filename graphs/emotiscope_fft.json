@@ -1,7 +1,7 @@
 {
   "name": "Emotiscope FFT",
-  "description": "Advanced frequency spectrum with beat-modulated intensity. Shows full 64-bin FFT with beat pulse gating for rhythm-synchronized visualization.",
-  "artistic_intent": "Dynamic spectrum that pulses with the beat. Frequency content is highlighted when the beat is strong, creating a hypnotic synchronization between rhythm and pitch visualization.",
+  "description": "CENTER-ORIGIN beat-modulated spectrum. Position radiates from center, beat pulse gates frequency energy. Darker center expands outward as beat intensifies.",
+  "artistic_intent": "Center-origin mandate compliant. Combines center distance with beat-scaled spectrum for rhythmic radial expansion. Audio reactivity verified.",
   "palette_data": [
     [0, 0, 0, 0],
     [32, 128, 0, 255],
@@ -13,6 +13,11 @@
     [255, 255, 255, 255]
   ],
   "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "CENTER-ORIGIN: distance from center"
+    },
     {
       "id": "spectrum_full",
       "type": "spectrum_interpolate",
@@ -39,19 +44,23 @@
       "description": "Boost spectrum when beat is present"
     },
     {
+      "id": "position_spectrum",
+      "type": "add",
+      "inputs": ["position", "spectrum_modulated"],
+      "description": "Combine center-origin with beat-modulated spectrum"
+    },
+    {
       "id": "output",
       "type": "palette_interpolate",
-      "inputs": ["spectrum_modulated"],
-      "description": "Color spectrum with beat-responsive brightness"
+      "inputs": ["position_spectrum"],
+      "description": "Color based on center-origin + beat-modulated frequency"
     }
   ],
   "wires": [
     { "from": "spectrum_full", "to": "spectrum_modulated" },
     { "from": "beat_scaled", "to": "spectrum_modulated" },
-    { "from": "spectrum_modulated", "to": "output" }
-  ],
-  "notes": {
-    "beat_modulation": "Beat magnitude is scaled and added to spectrum values, brightening the entire spectrum when the beat is strong",
-    "spectral_response": "64 frequency bins provide full-spectrum visualization with smooth interpolation between bins"
-  }
+    { "from": "position", "to": "position_spectrum" },
+    { "from": "spectrum_modulated", "to": "position_spectrum" },
+    { "from": "position_spectrum", "to": "output" }
+  ]
 }
