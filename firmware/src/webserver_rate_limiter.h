@@ -11,6 +11,7 @@
 
 #include <cstring>
 #include <cstdint>
+#include <freertos/FreeRTOS.h>
 
 // Method-aware rate limiting
 enum RouteMethod { ROUTE_GET = 0, ROUTE_POST = 1 };
@@ -36,6 +37,10 @@ static const char* ROUTE_TEST_CONNECTION = "/api/test-connection";
 static const char* ROUTE_DEVICE_PERFORMANCE = "/api/device/performance";
 static const char* ROUTE_CONFIG_BACKUP = "/api/config/backup";
 static const char* ROUTE_CONFIG_RESTORE = "/api/config/restore";
+
+// Spinlock for protecting rate limiter state against concurrent access
+// Prevents race condition where two requests could both pass the rate limit check
+static portMUX_TYPE rate_limiter_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 // Per-route windows; GET requests are not rate limited by default
 static RouteWindow control_windows[] = {
@@ -89,17 +94,27 @@ static bool route_is_rate_limited(
                 return false;
             }
 
+            // SECURITY FIX: Critical section to prevent TOCTOU race condition
+            // Two concurrent requests must not both pass the rate limit check
+            portENTER_CRITICAL(&rate_limiter_spinlock);
+
             // Check if within rate limit window
-            if (w.last_ms != 0 && (now - w.last_ms) < w.window_ms) {
+            bool is_limited = (w.last_ms != 0 && (now - w.last_ms) < w.window_ms);
+
+            if (is_limited) {
                 // RATE LIMITED: too soon since last request
-                if (out_window_ms) *out_window_ms = w.window_ms;
                 uint32_t remaining = (w.last_ms + w.window_ms > now) ? (w.last_ms + w.window_ms - now) : 0;
+                portEXIT_CRITICAL(&rate_limiter_spinlock);
+
+                if (out_window_ms) *out_window_ms = w.window_ms;
                 if (out_next_allowed_ms) *out_next_allowed_ms = remaining;
                 return true;  // This request is rate limited
             }
 
             // Not limited; update last_ms and allow this request
             w.last_ms = now;
+            portEXIT_CRITICAL(&rate_limiter_spinlock);
+
             if (out_window_ms) *out_window_ms = w.window_ms;
             if (out_next_allowed_ms) *out_next_allowed_ms = 0;
             return false;  // This request is allowed

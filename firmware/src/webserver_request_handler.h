@@ -5,6 +5,10 @@
 #include "webserver_rate_limiter.h"
 #include "webserver_response_builders.h"
 
+// Security: Maximum POST body size (64KB) to prevent memory exhaustion attacks
+// Requests exceeding this will be rejected with 413 Payload Too Large
+#define K1_MAX_REQUEST_BODY_SIZE (64 * 1024)
+
 // Forward declarations
 class AsyncWebServer;
 class AsyncWebServerRequest;
@@ -17,6 +21,8 @@ class K1RequestHandler;
  * and encapsulates all request-related state.
  */
 struct RequestContext {
+    // Note: request is exposed for advanced handlers that need custom response headers
+    // Most handlers should use convenience methods (sendJson, sendError, sendText, sendJsonWithHeaders)
     AsyncWebServerRequest* request;
     const char* route_path;
     RouteMethod route_method;
@@ -98,6 +104,24 @@ struct RequestContext {
         attach_cors_headers(resp);
         request->send(resp);
     }
+
+    /**
+     * Send JSON response with custom headers
+     *
+     * Allows handlers to attach additional headers (e.g., Content-Disposition)
+     * while maintaining consistent error handling and CORS support.
+     *
+     * @param status HTTP status code (200, 201, etc.)
+     * @param json JSON response body
+     * @param headerName Custom header name (e.g., "Content-Disposition")
+     * @param headerValue Custom header value (e.g., "attachment; filename=\"...\"")
+     */
+    void sendJsonWithHeaders(int status, const String& json, const char* headerName, const char* headerValue) {
+        auto* resp = request->beginResponse(status, "application/json", json);
+        resp->addHeader(headerName, headerValue);
+        attach_cors_headers(resp);
+        request->send(resp);
+    }
 };
 
 /**
@@ -174,6 +198,16 @@ public:
      */
     void operator()(AsyncWebServerRequest* request, uint8_t* data, size_t len,
                     size_t index, size_t total) {
+        // SECURITY FIX: Reject oversized POST bodies to prevent memory exhaustion
+        // This prevents attackers from sending Content-Length: 2GB and exhausting heap
+        if (total > K1_MAX_REQUEST_BODY_SIZE) {
+            auto *resp = request->beginResponse(413, "application/json",
+                "{\"error\":\"payload_too_large\",\"max_size\":" + String(K1_MAX_REQUEST_BODY_SIZE) + "}");
+            resp->addHeader("Content-Type", "application/json");
+            request->send(resp);
+            return;
+        }
+
         String *body = static_cast<String*>(request->_tempObject);
 
         // Initialize body buffer on first chunk

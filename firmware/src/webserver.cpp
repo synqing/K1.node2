@@ -322,10 +322,23 @@ public:
         serializeJson(doc, output);
 
         // Send with attachment header for downloading as file
-        AsyncWebServerResponse* resp = ctx.request->beginResponse(200, "application/json", output);
-        resp->addHeader("Content-Disposition", "attachment; filename=\"k1-config-backup.json\"");
-        attach_cors_headers(resp);
-        ctx.request->send(resp);
+        ctx.sendJsonWithHeaders(200, output, "Content-Disposition", "attachment; filename=\"k1-config-backup.json\"");
+    }
+};
+
+// GET /api/wifi/link-options - Get current WiFi link options
+class GetWifiLinkOptionsHandler : public K1RequestHandler {
+public:
+    GetWifiLinkOptionsHandler() : K1RequestHandler(ROUTE_WIFI_LINK_OPTIONS, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        WifiLinkOptions opts;
+        wifi_monitor_get_link_options(opts);
+        StaticJsonDocument<128> doc;
+        doc["force_bg_only"] = opts.force_bg_only;
+        doc["force_ht20"] = opts.force_ht20;
+        String output;
+        serializeJson(doc, output);
+        ctx.sendJson(200, output);
     }
 };
 
@@ -397,6 +410,18 @@ public:
 };
 
 // ============================================================================
+// Handler Memory Management Note
+//
+// All handlers (14 instances) are allocated with `new` and intentionally never freed.
+// This is acceptable because:
+// 1. Handlers are singletons (one instance per endpoint, live for device lifetime)
+// 2. Total memory: 336 bytes (0.004% of 8MB heap) - negligible
+// 3. Device never shuts down handlers - only power cycle resets memory
+// 4. Alternative (static allocation) would require changes to registration pattern
+//
+// If dynamic handler registration is added in future, implement handler_registry
+// to track and delete handlers on deregistration.
+// ============================================================================
 // Initialize web server with REST API endpoints
 void init_webserver() {
     // Register GET handlers (with built-in rate limiting)
@@ -418,6 +443,7 @@ void init_webserver() {
     // Register remaining GET handlers
     registerGetHandler(server, ROUTE_AUDIO_CONFIG, new GetAudioConfigHandler());
     registerGetHandler(server, ROUTE_CONFIG_BACKUP, new GetConfigBackupHandler());
+    registerGetHandler(server, ROUTE_WIFI_LINK_OPTIONS, new GetWifiLinkOptionsHandler());
 
     // GET / - Serve minimal inline HTML dashboard (SPIFFS fallback for Phase 1)
     // Note: Full UI moved to SPIFFS but served inline here until SPIFFS mounting is resolved
@@ -484,29 +510,6 @@ void init_webserver() {
         auto *response = request->beginResponse(404, "application/json", "{\"error\":\"Not found\"}");
         attach_cors_headers(response);
         request->send(response);
-    });
-
-    // GET /api/wifi/link-options - Get current WiFi link options
-    server.on(ROUTE_WIFI_LINK_OPTIONS, HTTP_GET, [](AsyncWebServerRequest *request) {
-        uint32_t window_ms = 0, next_ms = 0;
-        if (route_is_rate_limited(ROUTE_WIFI_LINK_OPTIONS, ROUTE_GET, &window_ms, &next_ms)) {
-            auto *resp429 = request->beginResponse(429, "application/json", "{\"error\":\"rate_limited\"}");
-            resp429->addHeader("X-RateLimit-Window", String(window_ms));
-            resp429->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
-            attach_cors_headers(resp429);
-            request->send(resp429);
-            return;
-        }
-        WifiLinkOptions opts;
-        wifi_monitor_get_link_options(opts);
-        StaticJsonDocument<128> doc;
-        doc["force_bg_only"] = opts.force_bg_only;
-        doc["force_ht20"] = opts.force_ht20;
-        String output;
-        serializeJson(doc, output);
-        auto *resp = request->beginResponse(200, "application/json", output);
-        attach_cors_headers(resp);
-        request->send(resp);
     });
 
     // Static file serving is configured below with serveStatic()
