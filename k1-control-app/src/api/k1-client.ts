@@ -23,7 +23,14 @@ export class K1Client {
   private reconnectDelay = 1000; // Start with 1 second
 
   constructor(ip: string, port: number = 80) {
-    this.baseURL = `http://${ip}:${port}`;
+    // In dev, prefer VITE_API_BASE or fall back to localhost:8000
+    const devEnv = (import.meta as any).env;
+    const devBase: string | undefined = devEnv?.VITE_API_BASE;
+    if (devEnv?.DEV) {
+      this.baseURL = devBase ?? 'http://localhost:8000';
+    } else {
+      this.baseURL = `http://${ip}:${port}`;
+    }
   }
 
   // Update the base URL (when user changes IP)
@@ -35,6 +42,11 @@ export class K1Client {
 
   // Test connection to device
   async testConnection(): Promise<boolean> {
+    const devEnv = (import.meta as any).env;
+    // Skip connection probing in dev to avoid noisy errors when device is offline
+    if (devEnv?.DEV) {
+      return false;
+    }
     try {
       const response = await fetch(`${this.baseURL}/api/patterns`, {
         method: 'GET',
@@ -42,7 +54,10 @@ export class K1Client {
       } as RequestInit);
       return response.ok;
     } catch (error) {
-      console.error('Connection test failed:', error);
+      // Silence errors in dev; log in production only
+      if (!devEnv?.DEV) {
+        console.error('Connection test failed:', error);
+      }
       return false;
     }
   }
