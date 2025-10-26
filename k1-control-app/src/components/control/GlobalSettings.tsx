@@ -196,7 +196,7 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
             max={100}
             step={1}
             value={[warmth]}
-            onValueChange={([value]) => setWarmth(value)}
+            onValueChange={([value]: number[]) => setWarmth(value)}
             disabled={disabled}
             className="w-full"
           />
