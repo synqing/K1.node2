@@ -245,19 +245,24 @@ export function K1Provider({
 
   /**
    * Calculate exponential backoff delay with jitter
+   * Implements: delay = min(30000, base * 2^n) with ±20% jitter
    */
   const calculateBackoffDelay = useCallback((attempt: number): number => {
-    const baseDelay = K1_DEFAULTS.RECONNECT.BASE_DELAY;
-    const maxDelay = K1_DEFAULTS.RECONNECT.MAX_DELAY;
-    const jitterPercent = K1_DEFAULTS.RECONNECT.JITTER_PERCENT;
+    const baseDelay = K1_DEFAULTS.RECONNECT.BASE_DELAY; // 500ms
+    const maxDelay = K1_DEFAULTS.RECONNECT.MAX_DELAY;   // 30000ms
+    const jitterPercent = K1_DEFAULTS.RECONNECT.JITTER_PERCENT; // 20%
     
-    // Exponential backoff: baseDelay * 2^attempt
+    // Exponential backoff: baseDelay * 2^attempt, capped at maxDelay
     const exponentialDelay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
     
-    // Add jitter: ±20% random variation
-    const jitter = exponentialDelay * (jitterPercent / 100) * (Math.random() * 2 - 1);
+    // Calculate jitter band: ±20% of the exponential delay
+    const jitterRange = exponentialDelay * (jitterPercent / 100);
+    const jitter = (Math.random() * 2 - 1) * jitterRange; // Random value between -jitterRange and +jitterRange
     
-    return Math.max(0, exponentialDelay + jitter);
+    // Apply jitter and ensure minimum delay of 0
+    const finalDelay = Math.max(0, exponentialDelay + jitter);
+    
+    return Math.round(finalDelay); // Round to avoid fractional milliseconds
   }, []);
 
   /**
