@@ -4,6 +4,8 @@ import { Slider } from '../ui/slider';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { useCoalescedParams } from '../../hooks/useCoalescedParams';
+import { useK1Actions } from '../../providers/K1Provider';
 
 interface ColorManagementProps {
   disabled: boolean;
@@ -29,6 +31,9 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
   const [hue, setHue] = useState(180);
   const [saturation, setSaturation] = useState(70);
   const [value, setValue] = useState(90);
+
+  const queue = useCoalescedParams();
+  const actions = useK1Actions();
 
   const hsvToHex = (h: number, s: number, v: number) => {
     s = s / 100;
@@ -63,12 +68,17 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
       <div className="space-y-3 mb-6">
         <Label className="text-[var(--k1-text-dim)]">Presets</Label>
         <div className="grid grid-cols-3 gap-2">
-          {colorPalettes.map((palette) => (
+          {colorPalettes.map((palette, idx) => (
             <TooltipProvider key={palette.id}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => !disabled && setSelectedPalette(palette.id)}
+                    onClick={() => {
+                      if (disabled) return;
+                      setSelectedPalette(palette.id);
+                      // Map palette index to firmware palette_id
+                      actions.setPalette(idx).catch(() => {});
+                    }}
                     disabled={disabled}
                     className={`h-10 rounded-lg border-2 transition-all ${
                       selectedPalette === palette.id
@@ -104,7 +114,13 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
             max={360}
             step={1}
             value={[hue]}
-            onValueChange={([value]: number[]) => setHue(value)}
+            onValueChange={([value]: number[]) => {
+              setHue(value);
+              if (!disabled) {
+                const huePct = Math.round((value / 360) * 100);
+                queue({ color: huePct });
+              }
+            }}
             disabled={disabled}
             className="w-full"
           />
@@ -123,7 +139,12 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
             max={100}
             step={1}
             value={[saturation]}
-            onValueChange={([value]: number[]) => setSaturation(value)}
+            onValueChange={([value]: number[]) => {
+              setSaturation(value);
+              if (!disabled) {
+                queue({ saturation: value });
+              }
+            }}
             disabled={disabled}
             className="w-full"
           />
@@ -142,7 +163,11 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
             max={100}
             step={1}
             value={[value]}
-            onValueChange={([value]: number[]) => setValue(value)}
+            onValueChange={([value]: number[]) => {
+              setValue(value);
+              // Intentionally not dispatching brightness here to avoid conflicts
+              // with GlobalSettings brightness control
+            }}
             disabled={disabled}
             className="w-full"
           />

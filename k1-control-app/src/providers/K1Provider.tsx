@@ -13,6 +13,20 @@ import {
   K1_DEFAULTS,
   K1_STORAGE_KEYS,
 } from '../types/k1-types';
+import {
+  savePatternParameters,
+  loadPatternParameters,
+  savePatternPalette,
+  loadPatternPalette,
+  saveEndpoint,
+  loadEndpoint,
+  safeSetItem,
+  safeGetItem,
+  addStorageListener,
+  migrateStorage,
+  cleanupStorage,
+  StorageChangeHandler,
+} from '../utils/persistence';
 
 // ============================================================================
 // PROVIDER STATE MANAGEMENT
@@ -221,6 +235,7 @@ export function K1Provider({
   const clientRef = useRef<K1Client | null>(null);
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const storageListenerCleanupRef = useRef<(() => void) | null>(null);
 
   // ============================================================================
   // UTILITY FUNCTIONS
@@ -379,7 +394,7 @@ export function K1Provider({
         
         // Persist endpoint if feature enabled
         if (state.featureFlags.persistState) {
-          localStorage.setItem(K1_STORAGE_KEYS.ENDPOINT, targetEndpoint);
+          saveEndpoint(targetEndpoint);
         }
 
         // Start WebSocket connection if enabled
@@ -442,7 +457,19 @@ export function K1Provider({
         
         // Persist pattern if feature enabled
         if (state.featureFlags.persistState) {
-          localStorage.setItem(K1_STORAGE_KEYS.PATTERN, patternId);
+          safeSetItem(K1_STORAGE_KEYS.PATTERN, patternId);
+          
+          // Load per-pattern parameters and palette when pattern changes
+          const patternParams = loadPatternParameters(patternId);
+          const patternPalette = loadPatternPalette(patternId);
+          
+          if (patternParams) {
+            dispatch({ type: 'SET_PARAMETERS', payload: patternParams });
+          }
+          
+          if (patternPalette !== null) {
+            dispatch({ type: 'SET_PALETTE', payload: patternPalette });
+          }
         }
       } catch (error) {
         const k1Error = createError(
@@ -468,10 +495,10 @@ export function K1Provider({
         const response = await clientRef.current.updateParameters(params);
         dispatch({ type: 'UPDATE_PARAMETERS', payload: params });
         
-        // Persist parameters if feature enabled
-        if (state.featureFlags.persistState) {
+        // Persist parameters if feature enabled (per-pattern)
+        if (state.featureFlags.persistState && state.selectedPatternId) {
           const updatedParams = { ...state.parameters, ...params };
-          localStorage.setItem(K1_STORAGE_KEYS.PARAMS, JSON.stringify(updatedParams));
+          savePatternParameters(state.selectedPatternId, updatedParams);
         }
         
         return response;
@@ -499,9 +526,9 @@ export function K1Provider({
         await clientRef.current.updateParameters({ palette_id: paletteId });
         dispatch({ type: 'SET_PALETTE', payload: paletteId });
         
-        // Persist palette if feature enabled
-        if (state.featureFlags.persistState) {
-          localStorage.setItem(K1_STORAGE_KEYS.PALETTE, paletteId.toString());
+        // Persist palette if feature enabled (per-pattern)
+        if (state.featureFlags.persistState && state.selectedPatternId) {
+          savePatternPalette(state.selectedPatternId, paletteId);
         }
       } catch (error) {
         const k1Error = createError(
@@ -799,14 +826,18 @@ export function K1Provider({
   // ============================================================================
 
   /**
-   * Initialize provider on mount
+   * Initialize provider on mount with enhanced persistence (Subtask 2.6)
    */
   useEffect(() => {
+    // Run storage migration and cleanup
+    migrateStorage();
+    cleanupStorage();
+    
     // Load persisted state if feature enabled
     if (state.featureFlags.persistState) {
       try {
-        // Load endpoint
-        const savedEndpoint = localStorage.getItem(K1_STORAGE_KEYS.ENDPOINT);
+        // Load endpoint with validation
+        const savedEndpoint = loadEndpoint();
         if (savedEndpoint) {
           // Auto-connect to saved endpoint
           actions.connect(savedEndpoint).catch(() => {
@@ -814,44 +845,115 @@ export function K1Provider({
           });
         }
 
-        // Load parameters
-        const savedParams = localStorage.getItem(K1_STORAGE_KEYS.PARAMS);
-        if (savedParams) {
-          const params = JSON.parse(savedParams) as K1Parameters;
-          dispatch({ type: 'SET_PARAMETERS', payload: params });
-        }
-
-        // Load palette
-        const savedPalette = localStorage.getItem(K1_STORAGE_KEYS.PALETTE);
-        if (savedPalette) {
-          dispatch({ type: 'SET_PALETTE', payload: parseInt(savedPalette) });
-        }
-
-        // Load pattern
-        const savedPattern = localStorage.getItem(K1_STORAGE_KEYS.PATTERN);
+        // Load current pattern first
+        const savedPattern = safeGetItem(K1_STORAGE_KEYS.PATTERN);
         if (savedPattern) {
           dispatch({ type: 'SET_SELECTED_PATTERN', payload: savedPattern });
+          
+          // Load per-pattern parameters and palette
+          const patternParams = loadPatternParameters(savedPattern);
+          const patternPalette = loadPatternPalette(savedPattern);
+          
+          if (patternParams) {
+            dispatch({ type: 'SET_PARAMETERS', payload: patternParams });
+          }
+          
+          if (patternPalette !== null) {
+            dispatch({ type: 'SET_PALETTE', payload: patternPalette });
+          }
         }
 
-        // Load feature flags
-        const savedFlags = localStorage.getItem(K1_STORAGE_KEYS.FEATURE_FLAGS);
+        // Load feature flags with validation
+        const savedFlags = safeGetItem(K1_STORAGE_KEYS.FEATURE_FLAGS);
         if (savedFlags) {
-          const flags = JSON.parse(savedFlags);
-          Object.entries(flags).forEach(([flag, value]) => {
-            dispatch({ 
-              type: 'SET_FEATURE_FLAG', 
-              payload: { flag: flag as keyof K1ProviderState['featureFlags'], value: Boolean(value) } 
-            });
-          });
+          try {
+            const flags = JSON.parse(savedFlags);
+            if (flags && typeof flags === 'object') {
+              Object.entries(flags).forEach(([flag, value]) => {
+                if (typeof value === 'boolean') {
+                  dispatch({ 
+                    type: 'SET_FEATURE_FLAG', 
+                    payload: { flag: flag as keyof K1ProviderState['featureFlags'], value } 
+                  });
+                }
+              });
+            }
+          } catch (error) {
+            console.warn('Failed to parse feature flags:', error);
+          }
         }
       } catch (error) {
         console.warn('Failed to load persisted K1 state:', error);
       }
     }
 
+    // Set up cross-tab synchronization
+    const handleStorageChange: StorageChangeHandler = (key, newValue, oldValue) => {
+      console.log(`Storage changed: ${key}`, { newValue, oldValue });
+      
+      // Handle endpoint changes
+      if (key === K1_STORAGE_KEYS.ENDPOINT && newValue) {
+        const validEndpoint = validateEndpoint(newValue);
+        if (validEndpoint && validEndpoint !== state.deviceInfo?.ip) {
+          // Another tab changed the endpoint
+          actions.connect(validEndpoint).catch(() => {
+            // Ignore connection errors from cross-tab sync
+          });
+        }
+      }
+      
+      // Handle pattern changes
+      if (key === K1_STORAGE_KEYS.PATTERN && newValue && newValue !== state.selectedPatternId) {
+        dispatch({ type: 'SET_SELECTED_PATTERN', payload: newValue });
+        
+        // Load per-pattern data for the new pattern
+        const patternParams = loadPatternParameters(newValue);
+        const patternPalette = loadPatternPalette(newValue);
+        
+        if (patternParams) {
+          dispatch({ type: 'SET_PARAMETERS', payload: patternParams });
+        }
+        
+        if (patternPalette !== null) {
+          dispatch({ type: 'SET_PALETTE', payload: patternPalette });
+        }
+      }
+      
+      // Handle per-pattern parameter changes
+      if (key.startsWith('k1:v1:params:') && newValue && state.selectedPatternId) {
+        const patternId = key.replace('k1:v1:params:', '');
+        if (patternId === state.selectedPatternId) {
+          try {
+            const params = JSON.parse(newValue);
+            const validated = validateParameters(params);
+            if (validated) {
+              dispatch({ type: 'SET_PARAMETERS', payload: validated });
+            }
+          } catch (error) {
+            console.warn('Failed to sync parameters from storage:', error);
+          }
+        }
+      }
+      
+      // Handle per-pattern palette changes
+      if (key.startsWith('k1:v1:palette:') && newValue && state.selectedPatternId) {
+        const patternId = key.replace('k1:v1:palette:', '');
+        if (patternId === state.selectedPatternId) {
+          const paletteId = validatePaletteId(newValue);
+          dispatch({ type: 'SET_PALETTE', payload: paletteId });
+        }
+      }
+    };
+    
+    // Add storage listener for cross-tab sync
+    storageListenerCleanupRef.current = addStorageListener(handleStorageChange);
+
     // Cleanup on unmount
     return () => {
       clearReconnectTimer();
+      if (storageListenerCleanupRef.current) {
+        storageListenerCleanupRef.current();
+      }
     };
   }, []); // Only run on mount
 
