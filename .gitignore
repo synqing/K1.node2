@@ -36,4 +36,4 @@ package-lock.json
 .taskmaster/state.json
 .taskmaster/reports/
 .taskmaster/.locks/
-.env
+.envcompile_commands.json
