@@ -6,6 +6,7 @@
 #include <esp_check.h>
 #include <esp_log.h>
 #include "types.h"
+#include "profiler.h"
 
 #define LED_DATA_PIN ( 5 )
 
@@ -97,6 +98,7 @@ void init_rmt_driver();
 // Quantize floating-point colors to 8-bit with optional dithering
 // INLINE FUNCTION: definition must be in header for compiler inlining
 inline void quantize_color(bool temporal_dithering) {
+	uint32_t t0 = micros();
 	if (temporal_dithering == true) {
 		const float dither_table[4] = {0.25, 0.50, 0.75, 1.00};
 		static uint8_t dither_step = 0;
@@ -133,6 +135,7 @@ inline void quantize_color(bool temporal_dithering) {
 			raw_led_data[3*i+2] = (uint8_t)(leds[i].b * global_brightness * 255);
 		}
 	}
+	ACCUM_QUANTIZE_US += (micros() - t0);
 }
 
 // IRAM_ATTR function must be in header for memory placement
@@ -141,7 +144,9 @@ IRAM_ATTR static inline void transmit_leds() {
 	// Wait here if previous frame transmission has not yet completed
 	// Use 10ms timeout for RMT completion
 	// If TX takes longer than 10ms, something is wrong (normal is <1ms)
+	uint32_t t_wait0 = micros();
 	esp_err_t wait_result = rmt_tx_wait_all_done(tx_chan, pdMS_TO_TICKS(10));
+	ACCUM_RMT_WAIT_US += (micros() - t_wait0);
 	if (wait_result != ESP_OK) {
 		// RMT transmission timeout - not critical, just continue
 		Serial.println("[LED] RMT transmission timeout");
@@ -158,5 +163,7 @@ IRAM_ATTR static inline void transmit_leds() {
 	quantize_color(true);
 
 	// Transmit to LEDs
+	uint32_t t_tx0 = micros();
 	rmt_transmit(tx_chan, led_encoder, raw_led_data, NUM_LEDS*3, &tx_config);
+	ACCUM_RMT_TRANSMIT_US += (micros() - t_tx0);
 }

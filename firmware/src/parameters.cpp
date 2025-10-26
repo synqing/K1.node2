@@ -2,9 +2,7 @@
 // Prevents crashes from NaN/Inf/overflow in web API inputs
 
 #include "parameters.h"
-
-// Number of available palettes (must match pattern_registry palettes)
-#define NUM_PALETTES 8
+#include "palettes.h"  // Use central NUM_PALETTES definition from palettes.h
 
 // Validate and clamp parameters to safe ranges
 // Returns true if any parameter was clamped (indicates invalid input)

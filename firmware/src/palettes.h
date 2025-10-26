@@ -471,7 +471,7 @@ const PaletteInfo palette_table[] PROGMEM = {
 // COLOR FROM PALETTE - Replaces hsv() function
 // ============================================================================
 
-CRGBF color_from_palette(uint8_t palette_index, float progress, float brightness) {
+inline CRGBF color_from_palette(uint8_t palette_index, float progress, float brightness) {
 	// Clamp inputs
 	palette_index = palette_index % NUM_PALETTES;
 	progress = fmodf(progress, 1.0f);

@@ -158,7 +158,7 @@ void draw_departure(float time, const PatternParameters& params) {
 		float palette_progress = (float)i / NUM_LEDS;
 
 		// Get color from palette
-		CRGBF color = color_from_palette(0, palette_progress, params.brightness * pulse);
+		CRGBF color = color_from_palette(params.palette_id, palette_progress, params.brightness * pulse);
 
 		// Apply softness (gentle blur effect by averaging adjacent LEDs slightly)
 		leds[i] = color;
@@ -190,7 +190,7 @@ void draw_lava(float time, const PatternParameters& params) {
 		float explosive = intensity_progress * intensity_progress * intensity_progress;
 
 		// Get color from palette using explosive progression
-		CRGBF color = color_from_palette(1, explosive, params.brightness);
+		CRGBF color = color_from_palette(params.palette_id, explosive, params.brightness);
 
 		// Apply warmth parameter (boost red channel for incandescent effect)
 		float warmth_boost = 1.0f + (params.warmth * 0.4f);
@@ -228,7 +228,7 @@ void draw_twilight(float time, const PatternParameters& params) {
 		if (palette_progress < 0.0f) palette_progress += 1.0f;
 
 		// Get color from twilight palette
-		CRGBF color = color_from_palette(2, palette_progress, params.brightness);
+		CRGBF color = color_from_palette(params.palette_id, palette_progress, params.brightness);
 
 		// Apply warmth boost to maintain amber tone
 		float warmth = 1.0f + (params.warmth * 0.2f);
@@ -559,18 +559,8 @@ void draw_pulse(float time, const PatternParameters& params) {
 			float intensity = pulse_waves[w].brightness * gaussian * decay;
 			intensity = fmaxf(0.0f, fminf(1.0f, intensity));
 
-			// DUAL-MODE COLOR SYSTEM
-			uint8_t palette_id = (uint8_t)(params.color * 32.0f);
-			bool use_palette = params.color_range > 0.5f;
-
-			CRGBF color;
-			if (use_palette) {
-				// Palette Mode: Use discrete color gradients
-				color = color_from_palette(palette_id, pulse_waves[w].hue, intensity);
-			} else {
-				// HSV Mode: Use parametric color generation
-				color = hsv(pulse_waves[w].hue, params.saturation, intensity);
-			}
+			// Use palette system directly from web UI selection
+			CRGBF color = color_from_palette(params.palette_id, pulse_waves[w].hue, intensity);
 
 			// Additive blending for overlapping waves
 			leds[i].r = fmaxf(0.0f, fminf(1.0f, leds[i].r + color.r * intensity));
@@ -666,18 +656,8 @@ void draw_tempiscope(float time, const PatternParameters& params) {
 		// Color gradient across tempo range
 		float hue_progress = LED_PROGRESS(i);
 
-		// DUAL-MODE COLOR SYSTEM
-		uint8_t palette_id = (uint8_t)(params.color * 32.0f);
-		bool use_palette = params.color_range > 0.5f;
-
-		CRGBF color;
-		if (use_palette) {
-			// Palette Mode: Use discrete color gradients
-			color = color_from_palette(palette_id, hue_progress, brightness);
-		} else {
-			// HSV Mode: Use parametric color generation
-			color = hsv(hue_progress, params.saturation, brightness);
-		}
+		// Use palette system directly from web UI selection
+		CRGBF color = color_from_palette(params.palette_id, hue_progress, brightness);
 
 		// Apply brightness and saturation
 		leds[i].r = color.r * params.brightness * params.saturation;
@@ -742,25 +722,15 @@ void draw_beat_tunnel(float time, const PatternParameters& params) {
 	}
 
 	if (!AUDIO_IS_AVAILABLE()) {
-		// Fallback: simple animated pattern
-		// DUAL-MODE COLOR SYSTEM
-		uint8_t palette_id = (uint8_t)(params.color * 32.0f);
-		bool use_palette = params.color_range > 0.5f;
-
+		// Fallback: simple animated pattern using palette system
 		for (int i = 0; i < NUM_LEDS; i++) {
 			float led_pos = LED_PROGRESS(i);
 			float distance = fabsf(led_pos - position);
 			float brightness = expf(-(distance * distance) / (2.0f * 0.08f * 0.08f));
 			brightness = fmaxf(0.0f, fminf(1.0f, brightness));
 
-			CRGBF color;
-			if (use_palette) {
-				// Palette Mode: Use discrete color gradients
-				color = color_from_palette(palette_id, led_pos, brightness * 0.5f);
-			} else {
-				// HSV Mode: Use parametric color generation
-				color = hsv(led_pos, params.saturation, brightness * 0.5f);
-			}
+			// Use palette system directly from web UI selection
+			CRGBF color = color_from_palette(params.palette_id, led_pos, brightness * 0.5f);
 
 			beat_tunnel_image[i].r += color.r * brightness;
 			beat_tunnel_image[i].g += color.g * brightness;
@@ -768,9 +738,6 @@ void draw_beat_tunnel(float time, const PatternParameters& params) {
 		}
 	} else {
 		// Audio-reactive: render tempo bins with per-bin phase/magnitude (EMOTISCOPE PROPER ARCHITECTURE)
-		// DUAL-MODE COLOR SYSTEM
-		uint8_t palette_id = (uint8_t)(params.color * 32.0f);
-		bool use_palette = params.color_range > 0.5f;
 
 		// Render each tempo bin individually with phase synchronization
 		for (uint16_t i = 0; i < NUM_TEMPI && i < NUM_LEDS; i++) {
@@ -802,14 +769,8 @@ void draw_beat_tunnel(float time, const PatternParameters& params) {
 				float brightness = magnitude * window_brightness;
 				brightness = fmaxf(0.0f, fminf(1.0f, brightness));
 
-				CRGBF color;
-				if (use_palette) {
-					// Palette Mode: Use discrete color gradients
-					color = color_from_palette(palette_id, hue, brightness);
-				} else {
-					// HSV Mode: Use parametric color generation
-					color = hsv(hue, params.saturation, brightness);
-				}
+				// Use palette system directly from web UI selection
+				CRGBF color = color_from_palette(params.palette_id, hue, brightness);
 
 				beat_tunnel_image[i].r += color.r * brightness;
 				beat_tunnel_image[i].g += color.g * brightness;

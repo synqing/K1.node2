@@ -14,6 +14,8 @@
 #include "pattern_registry.h"
 #include "generated_patterns.h"
 #include "webserver.h"
+#include "connection_state.h"
+#include "wifi_monitor.h"
 
 // Configuration (hardcoded for Phase A simplicity)
 #define WIFI_SSID "VX220-013F"
@@ -22,6 +24,32 @@
 
 // Global LED buffer
 CRGBF leds[NUM_LEDS];
+
+// Forward declaration for single-core audio pipeline helper
+static inline void run_audio_pipeline_once();
+
+static bool network_services_started = false;
+
+void handle_wifi_connected() {
+    connection_logf("INFO", "WiFi connected callback fired");
+    Serial.print("Connected! IP: ");
+    Serial.println(WiFi.localIP());
+
+    ArduinoOTA.begin();
+
+    if (!network_services_started) {
+        Serial.println("Initializing web server...");
+        init_webserver();
+        network_services_started = true;
+    }
+
+    Serial.printf("  Control UI: http://%s.local/\n", ArduinoOTA.getHostname());
+}
+
+void handle_wifi_disconnected() {
+    connection_logf("WARN", "WiFi disconnected callback");
+    Serial.println("WiFi connection lost, attempting recovery...");
+}
 
 // ============================================================================
 // AUDIO TASK - Runs on Core 1 @ ~100 Hz (audio processing only)
@@ -95,16 +123,17 @@ void setup() {
     Serial.println("Initializing LED driver...");
     init_rmt_driver();
 
-    // Initialize WiFi
-    Serial.print("Connecting to WiFi");
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(100);
-        Serial.print(".");
-    }
-    Serial.println();
-    Serial.print("Connected! IP: ");
-    Serial.println(WiFi.localIP());
+    // Configure WiFi link options (defaults retain current stable behavior)
+    WifiLinkOptions wifi_opts;
+    wifi_opts.force_bg_only = true; // default if NVS missing
+    wifi_opts.force_ht20 = true;    // default if NVS missing
+    wifi_monitor_load_link_options_from_nvs(wifi_opts);
+    wifi_monitor_set_link_options(wifi_opts);
+
+    // Initialize WiFi monitor/state machine
+    wifi_monitor_on_connect(handle_wifi_connected);
+    wifi_monitor_on_disconnect(handle_wifi_disconnected);
+    wifi_monitor_init(WIFI_SSID, WIFI_PASS);
 
     // Initialize OTA
     ArduinoOTA.setHostname("k1-reinvented");
@@ -125,7 +154,6 @@ void setup() {
         else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
         else if (error == OTA_END_ERROR) Serial.println("End Failed");
     });
-    ArduinoOTA.begin();
 
     // Initialize audio stubs (demo audio-reactive globals)
     Serial.println("Initializing audio-reactive stubs...");
@@ -159,10 +187,6 @@ void setup() {
     Serial.printf("  Starting pattern: %s\n", get_current_pattern().name);
 
     // Initialize web server
-    Serial.println("Initializing web server...");
-    init_webserver();
-    Serial.printf("  Control UI: http://%s.local/\n", ArduinoOTA.getHostname());
-
     // ========================================================================
     // CREATE AUDIO TASK ON CORE 1
     // ========================================================================
@@ -174,22 +198,9 @@ void setup() {
     // Priority: 10 (high, but lower than WiFi stack priority 24)
     // ========================================================================
 
-    BaseType_t audio_task_result = xTaskCreatePinnedToCore(
-        audio_task,                    // Function to run
-        "K1_Audio",                    // Task name (for debugging)
-        8192,                          // Stack size in bytes (8 KB)
-        NULL,                          // Task parameter (unused)
-        10,                            // Priority (0=lowest, 25=highest for application tasks)
-        NULL,                          // Task handle (we don't need it)
-        1                              // Core 1 (app runs on Core 1 in Arduino)
-    );
 
-    if (audio_task_result != pdPASS) {
-        Serial.println("ERROR: Failed to create audio task!");
-        // Fall back to single-threaded operation
-    } else {
-        Serial.println("Audio task created successfully on Core 1");
-    }
+    // Single-core mode: run audio pipeline inside main loop
+    Serial.println("Single-core mode: audio runs in main loop");
 
     Serial.println("Ready!");
     Serial.println("Upload new effects with:");
@@ -200,8 +211,19 @@ void setup() {
 // MAIN LOOP - Runs on Core 0 @ 200+ FPS (pattern rendering only)
 // ============================================================================
 void loop() {
+    wifi_monitor_loop();
+
     // Handle OTA updates (non-blocking check)
     ArduinoOTA.handle();
+
+    // Run audio processing at fixed cadence to avoid throttling render FPS
+    static uint32_t last_audio_ms = 0;
+    const uint32_t audio_interval_ms = 20; // ~50 Hz audio processing
+    uint32_t now_ms = millis();
+    if ((now_ms - last_audio_ms) >= audio_interval_ms) {
+        run_audio_pipeline_once();
+        last_audio_ms = now_ms;
+    }
 
     // Track time for animation
     static uint32_t start_time = millis();
@@ -210,8 +232,15 @@ void loop() {
     // Get current parameters (thread-safe read from active buffer)
     const PatternParameters& params = get_params();
 
+    // BRIGHTNESS BINDING: Synchronize global_brightness with params.brightness
+    // This ensures UI brightness slider changes are reflected in LED output
+    extern float global_brightness;  // From led_driver.cpp
+    global_brightness = params.brightness;
+
     // Draw current pattern (reads audio_front updated by Core 1 audio task)
+    uint32_t t_render0 = micros();
     draw_current_pattern(time, params);
+    ACCUM_RENDER_US += (micros() - t_render0);
 
     // Transmit to LEDs via RMT (with timeout instead of portMAX_DELAY)
     // Modified transmit_leds() should use pdMS_TO_TICKS(10) timeout
@@ -222,3 +251,31 @@ void loop() {
     print_fps();
 }
 // All patterns are included from generated_patterns.h
+
+static inline void run_audio_pipeline_once() {
+    // Acquire and process audio in the same thread as rendering
+    acquire_sample_chunk();
+    calculate_magnitudes();
+    get_chromagram();
+
+    // Beat detection pipeline
+    float peak_energy = 0.0f;
+    for (int i = 0; i < NUM_FREQS; i++) {
+        peak_energy = fmaxf(peak_energy, audio_back.spectrogram[i]);
+    }
+    update_novelty_curve(peak_energy);
+    smooth_tempi_curve();
+    detect_beats();
+
+    // Sync tempo confidence and per-bin data to snapshot
+    extern float tempo_confidence;
+    audio_back.tempo_confidence = tempo_confidence;
+    extern tempo tempi[NUM_TEMPI];
+    for (uint16_t i = 0; i < NUM_TEMPI; i++) {
+        audio_back.tempo_magnitude[i] = tempi[i].magnitude;
+        audio_back.tempo_phase[i] = tempi[i].phase;
+    }
+
+    // Commit audio frame
+    finish_audio_frame();
+}

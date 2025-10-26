@@ -5,6 +5,8 @@
 #include "parameters.h"
 #include "pattern_registry.h"
 #include "audio/goertzel.h"  // For audio configuration (microphone gain)
+#include "palettes.h"        // For palette metadata API
+#include "wifi_monitor.h"    // For WiFi link options API
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
 
@@ -57,6 +59,40 @@ String build_patterns_json() {
     return output;
 }
 
+// Helper: Build JSON response for palette metadata
+String build_palettes_json() {
+    DynamicJsonDocument doc(4096);  // Larger buffer for palette data
+    JsonArray palettes = doc.createNestedArray("palettes");
+
+    for (uint8_t i = 0; i < NUM_PALETTES; i++) {
+        JsonObject palette = palettes.createNestedObject();
+        palette["id"] = i;
+        palette["name"] = palette_names[i];
+        
+        // Add color preview - sample 5 colors across the palette
+        JsonArray colors = palette.createNestedArray("colors");
+        for (int j = 0; j < 5; j++) {
+            float progress = j / 4.0f;  // 0.0, 0.25, 0.5, 0.75, 1.0
+            CRGBF color = color_from_palette(i, progress, 1.0f);
+            JsonObject colorObj = colors.createNestedObject();
+            colorObj["r"] = (uint8_t)(color.r * 255);
+            colorObj["g"] = (uint8_t)(color.g * 255);
+            colorObj["b"] = (uint8_t)(color.b * 255);
+        }
+        
+        // Add metadata
+        PaletteInfo info;
+        memcpy_P(&info, &palette_table[i], sizeof(PaletteInfo));
+        palette["num_keyframes"] = info.num_entries;
+    }
+
+    doc["count"] = NUM_PALETTES;
+
+    String output;
+    serializeJson(doc, output);
+    return output;
+}
+
 // Initialize web server with REST API endpoints
 void init_webserver() {
     // GET /api/patterns - List all available patterns
@@ -69,6 +105,13 @@ void init_webserver() {
     // GET /api/params - Get current parameters
     server.on("/api/params", HTTP_GET, [](AsyncWebServerRequest *request) {
         auto *response = request->beginResponse(200, "application/json", build_params_json());
+        attach_cors_headers(response);
+        request->send(response);
+    });
+
+    // GET /api/palettes - Get palette metadata
+    server.on("/api/palettes", HTTP_GET, [](AsyncWebServerRequest *request) {
+        auto *response = request->beginResponse(200, "application/json", build_palettes_json());
         attach_cors_headers(response);
         request->send(response);
     });
@@ -277,6 +320,71 @@ void init_webserver() {
         request->send(response);
     });
 
+    // GET /api/wifi/link-options - Get current WiFi link options
+    server.on("/api/wifi/link-options", HTTP_GET, [](AsyncWebServerRequest *request) {
+        WifiLinkOptions opts;
+        wifi_monitor_get_link_options(opts);
+        StaticJsonDocument<128> doc;
+        doc["force_bg_only"] = opts.force_bg_only;
+        doc["force_ht20"] = opts.force_ht20;
+        String output;
+        serializeJson(doc, output);
+        auto *resp = request->beginResponse(200, "application/json", output);
+        attach_cors_headers(resp);
+        request->send(resp);
+    });
+
+    // POST /api/wifi/link-options - Update WiFi link options (persist to NVS)
+    server.on("/api/wifi/link-options", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
+        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+            String *body = static_cast<String*>(request->_tempObject);
+            if (index == 0) {
+                body = new String();
+                body->reserve(total);
+                request->_tempObject = body;
+            }
+            body->concat(reinterpret_cast<const char*>(data), len);
+
+            if (index + len != total) {
+                return;  // Wait for more data
+            }
+
+            StaticJsonDocument<256> doc;
+            DeserializationError error = deserializeJson(doc, *body);
+            delete body;
+            request->_tempObject = nullptr;
+
+            if (error) {
+                auto *response = request->beginResponse(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+                attach_cors_headers(response);
+                request->send(response);
+                return;
+            }
+
+            WifiLinkOptions opts;
+            wifi_monitor_get_link_options(opts);
+            if (doc.containsKey("force_bg_only")) {
+                opts.force_bg_only = doc["force_bg_only"].as<bool>();
+            }
+            if (doc.containsKey("force_ht20")) {
+                opts.force_ht20 = doc["force_ht20"].as<bool>();
+            }
+
+            // Apply immediately and persist
+            wifi_monitor_update_link_options(opts);
+            wifi_monitor_save_link_options_to_nvs(opts);
+
+            StaticJsonDocument<128> respDoc;
+            respDoc["success"] = true;
+            respDoc["force_bg_only"] = opts.force_bg_only;
+            respDoc["force_ht20"] = opts.force_ht20;
+            String output;
+            serializeJson(respDoc, output);
+            auto *resp = request->beginResponse(200, "application/json", output);
+            attach_cors_headers(resp);
+            request->send(resp);
+        });
+
     // GET / - Serve web dashboard (premium instrument interface)
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         const char* html = R"HTML(
@@ -408,118 +516,6 @@ void init_webserver() {
             font-weight: 600;
             color: #ffd700;
             font-family: 'Monaco', monospace;
-            min-width: 35px;
-            text-align: right;
-        }
-        .slider {
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: linear-gradient(to right,
-                rgba(255, 255, 255, 0.05),
-                rgba(255, 255, 255, 0.15),
-                rgba(255, 255, 255, 0.05)
-            );
-            outline: none;
-            -webkit-appearance: none;
-            appearance: none;
-            cursor: pointer;
-            margin-bottom: 8px;
-            transition: background 0.2s;
-        }
-        .slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #fff 0%, #e8e8e8 100%);
-            cursor: grab;
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.4),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.8);
-            transition: all 0.2s;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        .slider::-webkit-slider-thumb:hover {
-            width: 20px;
-            height: 20px;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.6),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.8),
-                        0 0 8px rgba(255, 215, 0, 0.3);
-        }
-        .slider::-webkit-slider-thumb:active {
-            cursor: grabbing;
-            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-            box-shadow: 0 0 24px rgba(255, 215, 0, 0.6),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.9);
-        }
-        .slider::-moz-range-track {
-            background: transparent;
-            border: none;
-        }
-        .slider::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #fff 0%, #e8e8e8 100%);
-            cursor: grab;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.4),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.8);
-            transition: all 0.2s;
-        }
-        .slider::-moz-range-thumb:hover {
-            width: 20px;
-            height: 20px;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.6),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.8),
-                        0 0 8px rgba(255, 215, 0, 0.3);
-        }
-        .slider::-moz-range-thumb:active {
-            cursor: grabbing;
-            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-        }
-        .slider:focus {
-            outline: 2px solid rgba(255, 215, 0, 0.5);
-            outline-offset: 2px;
-        }
-        .divider {
-            height: 1px;
-            background: rgba(255, 255, 255, 0.05);
-            margin: 40px 0;
-        }
-        #palette-select {
-            width: 100%;
-            padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            color: #fff;
-            font-size: 12px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            outline: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        #palette-select:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-        #palette-select:focus {
-            outline: 2px solid rgba(255, 215, 0, 0.5);
-            outline-offset: 2px;
-            border-color: rgba(255, 215, 0, 0.5);
-        }
-        #palette-select option {
-            background: #1a1a2e;
-            color: #fff;
-            padding: 8px;
-        }
-        #palette-name {
-            font-size: 12px;
-            font-weight: 600;
-            color: #ffd700;
-            font-family: 'Monaco', monospace;
             text-align: center;
             margin-top: 8px;
             padding: 8px;
@@ -566,7 +562,7 @@ void init_webserver() {
                         <span>Brightness</span>
                         <span class="control-value" id="brightness-val">1.00</span>
                     </label>
-                    <input type="range" class="slider" id="brightness" min="0" max="1" step="0.01" value="1.0" oninput="updateDisplay('brightness')">
+                    <input type="range" class="slider" id="brightness" min="0" max="1" step="0.01" value="1.0" oninput="updateDisplay('brightness')" onchange="updateDisplay('brightness')">
                 </div>
 
                 <div class="control-group">
@@ -591,6 +587,7 @@ void init_webserver() {
                         <span class="control-value" id="color_range-val">0.00</span>
                     </label>
                     <input type="range" class="slider" id="color_range" min="0" max="1" step="0.01" value="0.0" oninput="updateDisplay('color_range')">
+                <div id="color-mode" class="mode-indicator" role="status" aria-live="polite" title="Color Range ≤ 0.5: HSV mode. Color Range > 0.5: Palette mode." data-mode="hsv">HSV Mode</div>
                 </div>
 
                 <div class="control-group">
@@ -643,43 +640,12 @@ void init_webserver() {
                 <div class="control-group">
                     <label class="control-label">
                         <span>Palette</span>
+                        <span class="loading-indicator" id="palette-loading" style="display: none; font-size: 10px; color: #999;">Loading...</span>
                     </label>
-                    <select id="palette-select" onchange="updatePalette()">
-                        <option value="0">Sunset Real</option>
-                        <option value="1">Rivendell</option>
-                        <option value="2">Ocean Breeze 036</option>
-                        <option value="3">RGI 15</option>
-                        <option value="4">Retro 2</option>
-                        <option value="5">Analogous 1</option>
-                        <option value="6">Pink Splash 08</option>
-                        <option value="7">Coral Reef</option>
-                        <option value="8">Ocean Breeze 068</option>
-                        <option value="9">Pink Splash 07</option>
-                        <option value="10">Vintage 01</option>
-                        <option value="11">Departure</option>
-                        <option value="12">Landscape 64</option>
-                        <option value="13">Landscape 33</option>
-                        <option value="14">Rainbow Sherbet</option>
-                        <option value="15">GR65 Hult</option>
-                        <option value="16">GR64 Hult</option>
-                        <option value="17">GMT Dry Wet</option>
-                        <option value="18">IB Jul01</option>
-                        <option value="19">Vintage 57</option>
-                        <option value="20">IB15</option>
-                        <option value="21">Fuschia 7</option>
-                        <option value="22">Emerald Dragon</option>
-                        <option value="23">Lava</option>
-                        <option value="24">Fire</option>
-                        <option value="25">Colorful</option>
-                        <option value="26">Magenta Evening</option>
-                        <option value="27">Pink Purple</option>
-                        <option value="28">Autumn 19</option>
-                        <option value="29">Blue Magenta White</option>
-                        <option value="30">Black Magenta Red</option>
-                        <option value="31">Red Magenta Yellow</option>
-                        <option value="32">Blue Cyan Yellow</option>
+                    <select id="palette-select" onchange="updatePalette()" disabled>
+                        <option value="">Loading palettes...</option>
                     </select>
-                    <div id="palette-name">Sunset Real</div>
+                    <div id="palette-name">Loading...</div>
                 </div>
             </div>
         </div>
@@ -728,6 +694,12 @@ void init_webserver() {
                         updateDisplay(key, true);
                     }
                 });
+
+                // Update color mode indicator based on current color_range
+                if (typeof params.color_range === 'number') {
+                    updateColorModeIndicator(params.color_range);
+                }
+
                 console.log('[K1] Parameters loaded from device:', params);
             } catch (err) {
                 console.error('[K1] Error loading parameters:', err);
@@ -748,13 +720,34 @@ void init_webserver() {
             const val = document.getElementById(id + '-val');
             if (elem && val) {
                 val.textContent = parseFloat(elem.value).toFixed(2);
+                if (id === 'color_range') {
+                    updateColorModeIndicator(parseFloat(elem.value));
+                }
                 if (!skipUpdate) {
-                    updateParams();
+                    if (id === 'brightness') {
+                        scheduleBrightnessUpdate();
+                    } else {
+                        updateParams();
+                    }
                 }
             }
         }
 
+        // Debounce brightness changes to avoid flooding device with updates
+        let brightnessDebounceTimer = null;
+        const BRIGHTNESS_DEBOUNCE_MS = 150;
+        function scheduleBrightnessUpdate() {
+            if (brightnessDebounceTimer) {
+                clearTimeout(brightnessDebounceTimer);
+            }
+            brightnessDebounceTimer = setTimeout(() => {
+                updateParams();
+                brightnessDebounceTimer = null;
+            }, BRIGHTNESS_DEBOUNCE_MS);
+        }
+
         async function updateParams() {
+            const paletteSelect = document.getElementById('palette-select');
             const params = {
                 brightness: parseFloat(document.getElementById('brightness').value),
                 softness: parseFloat(document.getElementById('softness').value),
@@ -763,7 +756,8 @@ void init_webserver() {
                 saturation: parseFloat(document.getElementById('saturation').value),
                 warmth: parseFloat(document.getElementById('warmth').value),
                 background: parseFloat(document.getElementById('background').value),
-                speed: parseFloat(document.getElementById('speed').value)
+                speed: parseFloat(document.getElementById('speed').value),
+                palette_id: parseInt(paletteSelect.value)
             };
             await fetch('/api/params', {
                 method: 'POST',
@@ -808,61 +802,109 @@ void init_webserver() {
             });
         }
 
-        const paletteNames = [
-            "Sunset Real",
-            "Rivendell",
-            "Ocean Breeze 036",
-            "RGI 15",
-            "Retro 2",
-            "Analogous 1",
-            "Pink Splash 08",
-            "Coral Reef",
-            "Ocean Breeze 068",
-            "Pink Splash 07",
-            "Vintage 01",
-            "Departure",
-            "Landscape 64",
-            "Landscape 33",
-            "Rainbow Sherbet",
-            "GR65 Hult",
-            "GR64 Hult",
-            "GMT Dry Wet",
-            "IB Jul01",
-            "Vintage 57",
-            "IB15",
-            "Fuschia 7",
-            "Emerald Dragon",
-            "Lava",
-            "Fire",
-            "Colorful",
-            "Magenta Evening",
-            "Pink Purple",
-            "Autumn 19",
-            "Blue Magenta White",
-            "Black Magenta Red",
-            "Red Magenta Yellow",
-            "Blue Cyan Yellow"
-        ];
+        // Palette cache and API management
+        let paletteCache = null;
+        let paletteLoadPromise = null;
+
+        async function loadPalettes() {
+            if (paletteCache) {
+                return paletteCache;
+            }
+
+            if (paletteLoadPromise) {
+                return paletteLoadPromise;
+            }
+
+            paletteLoadPromise = (async () => {
+                try {
+                    const loadingIndicator = document.getElementById('palette-loading');
+                    if (loadingIndicator) {
+                        loadingIndicator.style.display = 'inline';
+                    }
+
+                    const res = await fetch('/api/palettes');
+                    if (!res.ok) {
+                        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                    }
+
+                    const data = await res.json();
+                    paletteCache = data;
+                    console.log('[K1] Loaded', data.count, 'palettes from API');
+                    return data;
+                } catch (err) {
+                    console.error('[K1] Failed to load palettes:', err);
+                    // Fallback to basic palette names
+                    paletteCache = {
+                        palettes: Array.from({length: 33}, (_, i) => ({
+                            id: i,
+                            name: `Palette ${i}`,
+                            colors: []
+                        })),
+                        count: 33
+                    };
+                    return paletteCache;
+                } finally {
+                    const loadingIndicator = document.getElementById('palette-loading');
+                    if (loadingIndicator) {
+                        loadingIndicator.style.display = 'none';
+                    }
+                    paletteLoadPromise = null;
+                }
+            })();
+
+            return paletteLoadPromise;
+        }
 
         async function initPalettes() {
             try {
-                const res = await fetch('/api/params');
-                if (!res.ok) {
-                    console.error('[K1] Failed to fetch palette params:', res.status);
-                    return;
-                }
-                const params = await res.json();
-
+                // Load palette metadata from API
+                const paletteData = await loadPalettes();
                 const paletteSelect = document.getElementById('palette-select');
                 const paletteName = document.getElementById('palette-name');
 
-                if (params.palette_id !== undefined) {
-                    paletteSelect.value = params.palette_id;
-                    paletteName.textContent = paletteNames[params.palette_id] || 'Unknown';
+                // Clear existing options
+                paletteSelect.innerHTML = '';
+                paletteSelect.disabled = false;
+
+                // Populate dropdown with API data
+                paletteData.palettes.forEach(palette => {
+                    const option = document.createElement('option');
+                    option.value = palette.id;
+                    option.textContent = palette.name;
+                    
+                    // Add color preview as title attribute
+                    if (palette.colors && palette.colors.length > 0) {
+                        const colorPreview = palette.colors.map(c => 
+                            `rgb(${c.r},${c.g},${c.b})`
+                        ).join(', ');
+                        option.title = `Colors: ${colorPreview}`;
+                    }
+                    
+                    paletteSelect.appendChild(option);
+                });
+
+                // Get current parameters and set selection
+                const paramsRes = await fetch('/api/params');
+                if (paramsRes.ok) {
+                    const params = await paramsRes.json();
+                    if (params.palette_id !== undefined) {
+                        paletteSelect.value = params.palette_id;
+                        const selectedPalette = paletteData.palettes.find(p => p.id === params.palette_id);
+                        paletteName.textContent = selectedPalette ? selectedPalette.name : 'Unknown';
+                    }
+                    console.log('[K1] Palette initialized:', params.palette_id);
+                } else {
+                    console.error('[K1] Failed to fetch current params');
+                    paletteName.textContent = paletteData.palettes[0]?.name || 'Unknown';
                 }
-                console.log('[K1] Palette initialized:', params.palette_id);
             } catch (err) {
                 console.error('[K1] Error initializing palettes:', err);
+                const paletteSelect = document.getElementById('palette-select');
+                const paletteName = document.getElementById('palette-name');
+                
+                paletteSelect.innerHTML = '<option value="0">Error loading palettes</option>';
+                paletteSelect.disabled = true;
+                paletteName.textContent = 'Error';
             }
         }
 
@@ -871,7 +913,10 @@ void init_webserver() {
             const paletteName = document.getElementById('palette-name');
 
             const paletteId = parseInt(paletteSelect.value);
-            paletteName.textContent = paletteNames[paletteId] || 'Unknown';
+            if (paletteName && paletteCache) {
+                const palette = paletteCache.palettes.find(p => p.id === paletteId);
+                paletteName.textContent = palette ? palette.name : 'Unknown';
+            }
 
             await fetch('/api/params', {
                 method: 'POST',
