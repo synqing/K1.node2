@@ -6,16 +6,17 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card } from './ui/card';
 import { toast } from 'sonner';
+import { ConnectionStatus } from '../types/k1-types';
 
 interface SidebarProps {
   isConnected: boolean;
-  connectionStatus: 'connected' | 'connecting' | 'disconnected';
+  connectionStatus: ConnectionStatus;
   onConnect: () => Promise<void>;
   connectionIP: string;
   onIPChange: (ip: string) => void;
 }
 
-export function Sidebar({ isConnected, connectionStatus, onConnect, connectionIP, onIPChange }: SidebarProps) {
+export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectionIP, onIPChange }: SidebarProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [serialPort, setSerialPort] = useState('/dev/tty.usbserial-0001');
   const [ipValid, setIpValid] = useState(true);
@@ -38,7 +39,7 @@ export function Sidebar({ isConnected, connectionStatus, onConnect, connectionIP
 
     setIsConnecting(true);
     setTimeout(() => {
-      onConnect(!isConnected);
+      onConnect();
       setIsConnecting(false);
       if (!isConnected) {
         toast.success('Connected to device', {

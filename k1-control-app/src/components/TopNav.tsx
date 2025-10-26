@@ -1,8 +1,8 @@
 import { Settings, HelpCircle, Activity } from 'lucide-react';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+// import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import logoImage from 'figma:asset/8dea8cd0277edf56f4875391a0f1f70359f1254d.png';
+// import logoImage from 'figma:asset/8dea8cd0277edf56f4875391a0f1f70359f1254d.png';
 
 type ViewType = 'control' | 'profiling' | 'terminal';
 

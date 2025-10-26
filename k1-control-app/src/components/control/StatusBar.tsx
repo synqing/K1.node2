@@ -83,7 +83,6 @@ export function StatusBar({ isConnected }: StatusBarProps) {
           <Progress
             value={cpuPercent}
             className="h-1.5"
-            indicatorClassName={cpuUsage < 300 ? 'bg-[var(--k1-success)]' : cpuUsage < 500 ? 'bg-[var(--k1-warning)]' : 'bg-[var(--k1-error)]'}
           />
         </div>
       </div>
@@ -109,7 +108,6 @@ export function StatusBar({ isConnected }: StatusBarProps) {
           <Progress
             value={memoryPercent}
             className="h-1.5"
-            indicatorClassName={memoryPercent < 70 ? 'bg-[var(--k1-success)]' : memoryPercent < 85 ? 'bg-[var(--k1-warning)]' : 'bg-[var(--k1-error)]'}
           />
           {memoryPercent > 85 && (
             <p className="text-[8px] text-[var(--k1-error)]">

@@ -3,7 +3,7 @@ import { Card } from '../ui/card';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
-import { ChevronDown, ChevronUp, Copy, Trash2, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface TerminalViewProps {
@@ -94,7 +94,7 @@ const commandResponses: Record<string, { type: 'success' | 'error' | 'info'; tex
   },
 };
 
-export function TerminalView({ isConnected, k1Client }: TerminalViewProps) {
+export function TerminalView({ isConnected, k1Client: _ }: TerminalViewProps) {
   const [logs, setLogs] = useState<LogEntry[]>(initialLogs);
   const [commandInput, setCommandInput] = useState('');
   const [commandHistory, setCommandHistory] = useState<CommandHistoryEntry[]>([]);

@@ -1,6 +1,6 @@
 import { Card } from '../ui/card';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 interface ProfilingChartsProps {
   isConnected: boolean;
@@ -42,7 +42,7 @@ const generateMemoryData = (count: number) => {
   }));
 };
 
-export function ProfilingCharts({ isConnected, timeRange, showComparison, selectedEffect }: ProfilingChartsProps) {
+export function ProfilingCharts({ isConnected, timeRange, showComparison: _, selectedEffect: __ }: ProfilingChartsProps) {
   const dataCount = parseInt(timeRange);
   const fpsData = generateFPSData(dataCount);
   const frameTimeData = generateFrameTimeData(dataCount);

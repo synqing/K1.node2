@@ -13,15 +13,9 @@
 #include "profiler.h"        // For performance metrics (FPS, micro-timings)
 #include "cpu_monitor.h"     // For CPU usage monitoring
 #include <AsyncWebSocket.h>  // For WebSocket real-time updates
-
-// Forward declaration: Attach CORS headers to response
-static void attach_cors_headers(AsyncWebServerResponse *response);
-
-// Forward declaration: Create standardized error response
-static AsyncWebServerResponse* create_error_response(AsyncWebServerRequest *request, int status_code, const char* error_code, const char* message = nullptr);
-
-// Forward declaration: Apply partial parameter updates from JSON
-static void apply_params_json(const JsonObjectConst& root);
+#include "webserver_rate_limiter.h"       // Per-route rate limiting
+#include "webserver_response_builders.h"  // JSON response building utilities
+#include <SPIFFS.h>                       // For serving static web files
 
 // Forward declaration: WebSocket event handler
 static void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);

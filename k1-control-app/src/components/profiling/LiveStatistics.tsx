@@ -33,7 +33,7 @@ const mockMetrics: Metric[] = [
   { id: 'buffer', label: 'Buffer Health', value: '94', trend: 'stable', status: 'good', unit: '%' },
 ];
 
-export function LiveStatistics({ isConnected, selectedEffect }: LiveStatisticsProps) {
+export function LiveStatistics({ isConnected, selectedEffect: _ }: LiveStatisticsProps) {
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
 

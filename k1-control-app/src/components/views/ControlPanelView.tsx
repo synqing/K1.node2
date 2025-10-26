@@ -21,7 +21,7 @@ export type EffectType =
   | 'pulse' 
   | 'sparkle';
 
-export function ControlPanelView({ isConnected, k1Client }: ControlPanelViewProps) {
+export function ControlPanelView({ isConnected, k1Client: _ }: ControlPanelViewProps) {
   const [selectedEffect, setSelectedEffect] = useState<EffectType>('analog');
 
   return (

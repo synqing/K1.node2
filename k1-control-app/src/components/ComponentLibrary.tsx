@@ -266,15 +266,15 @@ export function ComponentLibrary() {
               <div className="space-y-4">
                 <div>
                   <div className="text-[10px] text-[var(--k1-text-dim)] mb-1">Success</div>
-                  <Progress value={60} indicatorClassName="bg-[var(--k1-success)]" />
+                  <Progress value={60} />
                 </div>
                 <div>
                   <div className="text-[10px] text-[var(--k1-text-dim)] mb-1">Warning</div>
-                  <Progress value={75} indicatorClassName="bg-[var(--k1-warning)]" />
+                  <Progress value={75} />
                 </div>
                 <div>
                   <div className="text-[10px] text-[var(--k1-text-dim)] mb-1">Error</div>
-                  <Progress value={90} indicatorClassName="bg-[var(--k1-error)]" />
+                  <Progress value={90} />
                 </div>
               </div>
             </Card>
