@@ -13,17 +13,18 @@
 #include "driver/i2s_std.h"
 #include "driver/gpio.h"
 
-// Define I2S pins for SPH0645 microphone
-#define I2S_LRCLK_PIN 12  // LRCL (Left/Right Clock)
+// Define I2S pins for SPH0645 microphone (standard I2S, NOT PDM)
 #define I2S_BCLK_PIN  14  // BCLK (Bit Clock)
-#define I2S_DIN_PIN   13  // DOUT (Data Out) - SEL tied to ground
+#define I2S_LRCLK_PIN 12  // LRCLK (Left/Right Clock / Word Select) - CRITICAL!
+#define I2S_DIN_PIN   13  // DIN (Data In / DOUT from microphone)
 
 #define CHUNK_SIZE 64
 #define SAMPLE_RATE 12800
 
 #define SAMPLE_HISTORY_LENGTH 4096
 
-float sample_history[SAMPLE_HISTORY_LENGTH];
+// NOTE: sample_history is declared in goertzel.h - don't duplicate
+// float sample_history[SAMPLE_HISTORY_LENGTH];
 const float recip_scale = 1.0 / 131072.0; // max 18 bit signed value
 
 volatile bool waveform_locked = false;
@@ -32,33 +33,33 @@ volatile bool waveform_sync_flag = false;
 i2s_chan_handle_t rx_handle;
 
 void init_i2s_microphone(){
-	// Get the default channel configuration
-	i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
+	// SPH0645LM4H is a standard I2S microphone (NOT PDM)
+	// Requires: BCLK (clock input), LRCLK (word select), DIN (data output)
 
-	// Create a new RX channel and get the handle of this channel
+	i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
 	i2s_new_channel(&chan_cfg, NULL, &rx_handle);
 
-	// Configuration for the I2S standard mode, suitable for the SPH0645 microphone
+	// Standard I2S RX configuration for SPH0645 (EXACT match to original Emotiscope)
 	i2s_std_config_t std_cfg = {
-		.clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(12800), // BCLK frequency for a 2kHz sample rate (64 * 2kHz)
+		.clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(12800),  // 12.8 kHz sample rate
 		.slot_cfg = {
-			.data_bit_width = I2S_DATA_BIT_WIDTH_32BIT, // Data bit width as 24 bits
-			.slot_bit_width = I2S_SLOT_BIT_WIDTH_32BIT, // Slot width as 32 bits to accommodate data
-			.slot_mode = I2S_SLOT_MODE_STEREO, // Mono mode since it's a single microphone
-			.slot_mask = I2S_STD_SLOT_RIGHT, // Only reading the left channel slot
-			.ws_width = 32, // WS signal width as 32 BCLK periods (since BCLK/64 and we are in mono mode)
-			.ws_pol = true, // Inverting WS polarity, so it changes on falling edge of BCLK
-			.bit_shift = false, // No bit shift needed as MSB is delayed by 1 BCLK after WS
-			.left_align = true, // Data is left-aligned within the 32-bit slot
-			.big_endian = false, // Data format is little endian
-			.bit_order_lsb = false, // MSB is received first
+			.data_bit_width = I2S_DATA_BIT_WIDTH_32BIT,  // 32-bit data width
+			.slot_bit_width = I2S_SLOT_BIT_WIDTH_32BIT,  // 32-bit slot width
+			.slot_mode = I2S_SLOT_MODE_STEREO,           // STEREO mode (not mono!)
+			.slot_mask = I2S_STD_SLOT_RIGHT,             // Read RIGHT channel (not left!)
+			.ws_width = 32,                              // Word select width = 32 bits
+			.ws_pol = true,                              // Word select polarity INVERTED
+			.bit_shift = false,                          // No bit shift
+			.left_align = true,                          // Left-aligned data
+			.big_endian = false,                         // Little endian
+			.bit_order_lsb = false,                      // MSB first
 		},
 		.gpio_cfg = {
-			.mclk = I2S_GPIO_UNUSED,
-			.bclk = (gpio_num_t)I2S_BCLK_PIN,
-			.ws = (gpio_num_t)I2S_LRCLK_PIN,
-			.dout = I2S_GPIO_UNUSED,
-			.din = (gpio_num_t)I2S_DIN_PIN,
+			.mclk = I2S_GPIO_UNUSED,                     // No MCLK needed
+			.bclk = (gpio_num_t)I2S_BCLK_PIN,            // GPIO 14 - bit clock
+			.ws = (gpio_num_t)I2S_LRCLK_PIN,             // GPIO 12 - word select
+			.dout = I2S_GPIO_UNUSED,                     // No output needed
+			.din = (gpio_num_t)I2S_DIN_PIN,              // GPIO 13 - data input
 			.invert_flags = {
 				.mclk_inv = false,
 				.bclk_inv = false,
@@ -67,9 +68,7 @@ void init_i2s_microphone(){
 		},
 	};
 
-
-
-	// Initialize the channel
+	// Initialize as standard I2S RX mode
 	i2s_channel_init_std_mode(rx_handle, &std_cfg);
 
 	// Start the RX channel
