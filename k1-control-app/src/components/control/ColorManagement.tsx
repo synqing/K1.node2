@@ -6,31 +6,20 @@ import { Input } from '../ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { useCoalescedParams } from '../../hooks/useCoalescedParams';
 import { useK1Actions } from '../../providers/K1Provider';
+import { K1_PALETTES } from '../../api/k1-data';
 
 interface ColorManagementProps {
   disabled: boolean;
 }
 
-const colorPalettes = [
-  { id: 'ocean', name: 'Ocean', gradient: 'linear-gradient(90deg, #1e3a8a, #0891b2, #06b6d4)' },
-  { id: 'sunset', name: 'Sunset', gradient: 'linear-gradient(90deg, #7c2d12, #ea580c, #fbbf24)' },
-  { id: 'forest', name: 'Forest', gradient: 'linear-gradient(90deg, #14532d, #15803d, #84cc16)' },
-  { id: 'purple', name: 'Purple Rain', gradient: 'linear-gradient(90deg, #4c1d95, #7c3aed, #a78bfa)' },
-  { id: 'fire', name: 'Fire', gradient: 'linear-gradient(90deg, #7f1d1d, #dc2626, #f97316)' },
-  { id: 'ice', name: 'Ice', gradient: 'linear-gradient(90deg, #0c4a6e, #0284c7, #7dd3fc)' },
-  { id: 'candy', name: 'Candy', gradient: 'linear-gradient(90deg, #831843, #db2777, #f9a8d4)' },
-  { id: 'earth', name: 'Earth', gradient: 'linear-gradient(90deg, #422006, #92400e, #d97706)' },
-  { id: 'neon', name: 'Neon', gradient: 'linear-gradient(90deg, #be185d, #06b6d4, #84cc16)' },
-  { id: 'pastel', name: 'Pastel', gradient: 'linear-gradient(90deg, #fda4af, #a5b4fc, #99f6e4)' },
-  { id: 'monochrome', name: 'Mono', gradient: 'linear-gradient(90deg, #18181b, #71717a, #f4f4f5)' },
-  { id: 'rainbow', name: 'Rainbow', gradient: 'linear-gradient(90deg, #ef4444, #f59e0b, #84cc16, #06b6d4, #8b5cf6)' },
-];
+// (legacy local colorPalettes removed; using K1_PALETTES catalog)
 
 export function ColorManagement({ disabled }: ColorManagementProps) {
-  const [selectedPalette, setSelectedPalette] = useState('ocean');
+  const [selectedPalette, setSelectedPalette] = useState<number>(K1_PALETTES[0]?.id ?? 0);
   const [hue, setHue] = useState(180);
   const [saturation, setSaturation] = useState(70);
   const [value, setValue] = useState(90);
+  const [colorRange, setColorRange] = useState(50);
 
   const queue = useCoalescedParams();
   const actions = useK1Actions();
@@ -68,7 +57,7 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
       <div className="space-y-3 mb-6">
         <Label className="text-[var(--k1-text-dim)]">Presets</Label>
         <div className="grid grid-cols-3 gap-2">
-          {colorPalettes.map((palette, idx) => (
+          {K1_PALETTES.map((palette) => (
             <TooltipProvider key={palette.id}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -76,8 +65,7 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
                     onClick={() => {
                       if (disabled) return;
                       setSelectedPalette(palette.id);
-                      // Map palette index to firmware palette_id
-                      actions.setPalette(idx).catch(() => {});
+                      actions.setPalette(palette.id).catch(() => {});
                     }}
                     disabled={disabled}
                     className={`h-10 rounded-lg border-2 transition-all ${
@@ -86,6 +74,7 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
                         : 'border-[var(--k1-border)] hover:border-[var(--k1-text-dim)]'
                     } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                     style={{ background: palette.gradient }}
+                    aria-label={`Palette: ${palette.name}`}
                   />
                 </TooltipTrigger>
                 <TooltipContent>
@@ -97,9 +86,9 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
         </div>
       </div>
 
-      {/* Manual HSV Controls */}
+      {/* Manual Controls */}
       <div className="space-y-4 pt-4 border-t border-[var(--k1-border)]">
-        <Label className="text-[var(--k1-text-dim)]">Manual HSV</Label>
+        <Label className="text-[var(--k1-text-dim)]">Manual HSV + Range</Label>
 
         {/* Hue */}
         <div className="space-y-2">
@@ -150,10 +139,10 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
           />
         </div>
 
-        {/* Value */}
+        {/* Brightness (Value) */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-[var(--k1-text)]">Value</Label>
+            <Label className="text-[var(--k1-text)]">Brightness</Label>
             <span className="text-[var(--k1-text-dim)] font-[family-name:var(--k1-code-family)] text-[10px] px-2 py-0.5 bg-[var(--k1-bg)] rounded">
               {value}%
             </span>
@@ -163,10 +152,35 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
             max={100}
             step={1}
             value={[value]}
+            onValueChange={([v]: number[]) => {
+              setValue(v);
+              if (!disabled) {
+                queue({ brightness: v });
+              }
+            }}
+            disabled={disabled}
+            className="w-full"
+          />
+        </div>
+
+        {/* Color Range (optional, pattern-specific use) */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-[var(--k1-text)]">Color Range</Label>
+            <span className="text-[var(--k1-text-dim)] font-[family-name:var(--k1-code-family)] text-[10px] px-2 py-0.5 bg-[var(--k1-bg)] rounded">
+              {colorRange}%
+            </span>
+          </div>
+          <Slider
+            min={0}
+            max={100}
+            step={1}
+            value={[colorRange]}
             onValueChange={([value]: number[]) => {
-              setValue(value);
-              // Intentionally not dispatching brightness here to avoid conflicts
-              // with GlobalSettings brightness control
+              setColorRange(value);
+              if (!disabled) {
+                queue({ color_range: value });
+              }
             }}
             disabled={disabled}
             className="w-full"

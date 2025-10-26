@@ -264,6 +264,138 @@ public:
     }
 };
 
+// GET /api/audio-config - Get audio configuration (microphone gain)
+class GetAudioConfigHandler : public K1RequestHandler {
+public:
+    GetAudioConfigHandler() : K1RequestHandler(ROUTE_AUDIO_CONFIG, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        StaticJsonDocument<128> doc;
+        doc["microphone_gain"] = configuration.microphone_gain;
+        String response;
+        serializeJson(doc, response);
+        ctx.sendJson(200, response);
+    }
+};
+
+// GET /api/config/backup - Export current configuration as JSON
+class GetConfigBackupHandler : public K1RequestHandler {
+public:
+    GetConfigBackupHandler() : K1RequestHandler(ROUTE_CONFIG_BACKUP, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        // Create comprehensive configuration backup
+        StaticJsonDocument<1024> doc;
+        doc["version"] = "1.0";
+        doc["device"] = "K1.reinvented";
+        doc["timestamp"] = millis();
+        doc["uptime_seconds"] = millis() / 1000;
+
+        // Current parameters
+        const PatternParameters& params = get_params();
+        JsonObject parameters = doc.createNestedObject("parameters");
+        parameters["brightness"] = params.brightness;
+        parameters["softness"] = params.softness;
+        parameters["color"] = params.color;
+        parameters["color_range"] = params.color_range;
+        parameters["saturation"] = params.saturation;
+        parameters["warmth"] = params.warmth;
+        parameters["background"] = params.background;
+        parameters["speed"] = params.speed;
+        parameters["palette_id"] = params.palette_id;
+        parameters["custom_param_1"] = params.custom_param_1;
+        parameters["custom_param_2"] = params.custom_param_2;
+        parameters["custom_param_3"] = params.custom_param_3;
+
+        // Current pattern selection
+        doc["current_pattern"] = g_current_pattern_index;
+
+        // Device information
+        JsonObject device_info = doc.createNestedObject("device_info");
+        device_info["ip"] = WiFi.localIP().toString();
+        device_info["mac"] = WiFi.macAddress();
+        #ifdef ESP_ARDUINO_VERSION
+        device_info["firmware"] = String(ESP.getSdkVersion());
+        #else
+        device_info["firmware"] = "Unknown";
+        #endif
+
+        String output;
+        serializeJson(doc, output);
+
+        // Send with attachment header for downloading as file
+        AsyncWebServerResponse* resp = ctx.request->beginResponse(200, "application/json", output);
+        resp->addHeader("Content-Disposition", "attachment; filename=\"k1-config-backup.json\"");
+        attach_cors_headers(resp);
+        ctx.request->send(resp);
+    }
+};
+
+// POST /api/config/restore - Import configuration from JSON
+class PostConfigRestoreHandler : public K1RequestHandler {
+public:
+    PostConfigRestoreHandler() : K1RequestHandler(ROUTE_CONFIG_RESTORE, ROUTE_POST) {}
+
+    void handle(RequestContext& ctx) override {
+        if (!ctx.hasJson()) {
+            ctx.sendError(400, "invalid_json", "Failed to parse configuration JSON");
+            return;
+        }
+
+        JsonObjectConst doc = ctx.getJson();
+
+        // Validate backup format
+        if (!doc.containsKey("version") || !doc.containsKey("parameters")) {
+            ctx.sendError(400, "invalid_backup_format", "Missing required fields: version, parameters");
+            return;
+        }
+
+        // Extract and validate parameters
+        JsonObjectConst params_obj = doc["parameters"];
+        PatternParameters new_params;
+
+        // Load parameters with defaults for missing values
+        new_params.brightness = params_obj["brightness"] | 1.0f;
+        new_params.softness = params_obj["softness"] | 0.25f;
+        new_params.color = params_obj["color"] | 0.33f;
+        new_params.color_range = params_obj["color_range"] | 0.0f;
+        new_params.saturation = params_obj["saturation"] | 0.75f;
+        new_params.warmth = params_obj["warmth"] | 0.0f;
+        new_params.background = params_obj["background"] | 0.25f;
+        new_params.speed = params_obj["speed"] | 0.5f;
+        new_params.palette_id = params_obj["palette_id"] | 0;
+        new_params.custom_param_1 = params_obj["custom_param_1"] | 0.5f;
+        new_params.custom_param_2 = params_obj["custom_param_2"] | 0.5f;
+        new_params.custom_param_3 = params_obj["custom_param_3"] | 0.5f;
+
+        // Validate and apply parameters
+        bool params_valid = update_params_safe(new_params);
+
+        // Restore pattern selection if provided and valid
+        bool pattern_restored = false;
+        if (doc.containsKey("current_pattern")) {
+            int pattern_index = doc["current_pattern"];
+            if (pattern_index >= 0 && pattern_index < g_num_patterns) {
+                g_current_pattern_index = pattern_index;
+                pattern_restored = true;
+            }
+        }
+
+        // Build response
+        StaticJsonDocument<256> response_doc;
+        response_doc["success"] = true;
+        response_doc["parameters_restored"] = params_valid;
+        response_doc["pattern_restored"] = pattern_restored;
+        response_doc["timestamp"] = millis();
+
+        if (!params_valid) {
+            response_doc["warning"] = "Some parameters were clamped to valid ranges";
+        }
+
+        String output;
+        serializeJson(response_doc, output);
+        ctx.sendJson(200, output);
+    }
+};
+
 // ============================================================================
 // Initialize web server with REST API endpoints
 void init_webserver() {
@@ -281,26 +413,11 @@ void init_webserver() {
     registerPostHandler(server, ROUTE_RESET, new PostResetHandler());
     registerPostHandler(server, ROUTE_AUDIO_CONFIG, new PostAudioConfigHandler());
     registerPostHandler(server, ROUTE_WIFI_LINK_OPTIONS, new PostWifiLinkOptionsHandler());
+    registerPostHandler(server, ROUTE_CONFIG_RESTORE, new PostConfigRestoreHandler());
 
-    // GET /api/audio-config - Get audio configuration (microphone gain)
-    server.on(ROUTE_AUDIO_CONFIG, HTTP_GET, [](AsyncWebServerRequest *request) {
-        uint32_t window_ms = 0, next_ms = 0;
-        if (route_is_rate_limited(ROUTE_AUDIO_CONFIG, ROUTE_GET, &window_ms, &next_ms)) {
-            auto *resp429 = request->beginResponse(429, "application/json", "{\"error\":\"rate_limited\"}");
-            resp429->addHeader("X-RateLimit-Window", String(window_ms));
-            resp429->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
-            attach_cors_headers(resp429);
-            request->send(resp429);
-            return;
-        }
-        StaticJsonDocument<128> doc;
-        doc["microphone_gain"] = configuration.microphone_gain;
-        String response;
-        serializeJson(doc, response);
-        auto *resp = request->beginResponse(200, "application/json", response);
-        attach_cors_headers(resp);
-        request->send(resp);
-    });
+    // Register remaining GET handlers
+    registerGetHandler(server, ROUTE_AUDIO_CONFIG, new GetAudioConfigHandler());
+    registerGetHandler(server, ROUTE_CONFIG_BACKUP, new GetConfigBackupHandler());
 
     // GET / - Serve minimal inline HTML dashboard (SPIFFS fallback for Phase 1)
     // Note: Full UI moved to SPIFFS but served inline here until SPIFFS mounting is resolved
@@ -393,157 +510,6 @@ void init_webserver() {
     });
 
     // Static file serving is configured below with serveStatic()
-
-    // GET /api/config/backup - Export current configuration as JSON
-    server.on(ROUTE_CONFIG_BACKUP, HTTP_GET, [](AsyncWebServerRequest *request) {
-        uint32_t window_ms = 0, next_ms = 0;
-        if (route_is_rate_limited(ROUTE_CONFIG_BACKUP, ROUTE_GET, &window_ms, &next_ms)) {
-            auto *resp = create_error_response(request, 429, "rate_limited");
-            resp->addHeader("X-RateLimit-Window", String(window_ms));
-            resp->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
-            request->send(resp);
-            return;
-        }
-
-        // Create comprehensive configuration backup
-        StaticJsonDocument<1024> doc;
-        doc["version"] = "1.0";
-        doc["device"] = "K1.reinvented";
-        doc["timestamp"] = millis();
-        doc["uptime_seconds"] = millis() / 1000;
-
-        // Current parameters
-        const PatternParameters& params = get_params();
-        JsonObject parameters = doc.createNestedObject("parameters");
-        parameters["brightness"] = params.brightness;
-        parameters["softness"] = params.softness;
-        parameters["color"] = params.color;
-        parameters["color_range"] = params.color_range;
-        parameters["saturation"] = params.saturation;
-        parameters["warmth"] = params.warmth;
-        parameters["background"] = params.background;
-        parameters["speed"] = params.speed;
-        parameters["palette_id"] = params.palette_id;
-        parameters["custom_param_1"] = params.custom_param_1;
-        parameters["custom_param_2"] = params.custom_param_2;
-        parameters["custom_param_3"] = params.custom_param_3;
-
-        // Current pattern selection
-        doc["current_pattern"] = g_current_pattern_index;
-
-        // Device information
-        JsonObject device_info = doc.createNestedObject("device_info");
-        device_info["ip"] = WiFi.localIP().toString();
-        device_info["mac"] = WiFi.macAddress();
-        #ifdef ESP_ARDUINO_VERSION
-        device_info["firmware"] = String(ESP.getSdkVersion());
-        #else
-        device_info["firmware"] = "Unknown";
-        #endif
-
-        String output;
-        serializeJson(doc, output);
-        
-        auto *resp = request->beginResponse(200, "application/json", output);
-        resp->addHeader("Content-Disposition", "attachment; filename=\"k1-config-backup.json\"");
-        attach_cors_headers(resp);
-        request->send(resp);
-    });
-
-    // POST /api/config/restore - Import configuration from JSON
-    server.on(ROUTE_CONFIG_RESTORE, HTTP_POST, [](AsyncWebServerRequest *request) {
-        uint32_t window_ms = 0, next_ms = 0;
-        if (route_is_rate_limited(ROUTE_CONFIG_RESTORE, ROUTE_POST, &window_ms, &next_ms)) {
-            auto *resp = create_error_response(request, 429, "rate_limited");
-            resp->addHeader("X-RateLimit-Window", String(window_ms));
-            resp->addHeader("X-RateLimit-NextAllowedMs", String(next_ms));
-            request->send(resp);
-            return;
-        }
-
-        // This will be handled by the body handler below
-        auto *resp = create_error_response(request, 400, "missing_body", "Configuration data required in request body");
-        request->send(resp);
-    }, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-        // Handle POST body for configuration restore
-        if (index == 0) {
-            // First chunk - validate content type
-            if (!request->hasHeader("Content-Type") || 
-                request->getHeader("Content-Type")->value().indexOf("application/json") == -1) {
-                auto *resp = create_error_response(request, 400, "invalid_content_type", "Content-Type must be application/json");
-                request->send(resp);
-                return;
-            }
-        }
-
-        if (index + len == total) {
-            // Last chunk - process complete JSON
-            StaticJsonDocument<1024> doc;
-            DeserializationError error = deserializeJson(doc, data, len);
-            
-            if (error) {
-                auto *resp = create_error_response(request, 400, "invalid_json", "Failed to parse configuration JSON");
-                request->send(resp);
-                return;
-            }
-
-            // Validate backup format
-            if (!doc.containsKey("version") || !doc.containsKey("parameters")) {
-                auto *resp = create_error_response(request, 400, "invalid_backup_format", "Missing required fields: version, parameters");
-                request->send(resp);
-                return;
-            }
-
-            // Extract and validate parameters
-            JsonObject params_obj = doc["parameters"];
-            PatternParameters new_params;
-            
-            // Load parameters with defaults for missing values
-            new_params.brightness = params_obj["brightness"] | 1.0f;
-            new_params.softness = params_obj["softness"] | 0.25f;
-            new_params.color = params_obj["color"] | 0.33f;
-            new_params.color_range = params_obj["color_range"] | 0.0f;
-            new_params.saturation = params_obj["saturation"] | 0.75f;
-            new_params.warmth = params_obj["warmth"] | 0.0f;
-            new_params.background = params_obj["background"] | 0.25f;
-            new_params.speed = params_obj["speed"] | 0.5f;
-            new_params.palette_id = params_obj["palette_id"] | 0;
-            new_params.custom_param_1 = params_obj["custom_param_1"] | 0.5f;
-            new_params.custom_param_2 = params_obj["custom_param_2"] | 0.5f;
-            new_params.custom_param_3 = params_obj["custom_param_3"] | 0.5f;
-
-            // Validate and apply parameters
-            bool params_valid = update_params_safe(new_params);
-            
-            // Restore pattern selection if provided and valid
-             bool pattern_restored = false;
-             if (doc.containsKey("current_pattern")) {
-                 int pattern_index = doc["current_pattern"];
-                 if (pattern_index >= 0 && pattern_index < g_num_patterns) {
-                     g_current_pattern_index = pattern_index;
-                     pattern_restored = true;
-                 }
-             }
-
-            // Build response
-            StaticJsonDocument<256> response_doc;
-            response_doc["success"] = true;
-            response_doc["parameters_restored"] = params_valid;
-            response_doc["pattern_restored"] = pattern_restored;
-            response_doc["timestamp"] = millis();
-            
-            if (!params_valid) {
-                response_doc["warning"] = "Some parameters were clamped to valid ranges";
-            }
-
-            String output;
-            serializeJson(response_doc, output);
-            
-            auto *resp = request->beginResponse(200, "application/json", output);
-            attach_cors_headers(resp);
-            request->send(resp);
-        }
-    });
 
     // Initialize WebSocket server
     ws.onEvent(onWebSocketEvent);
