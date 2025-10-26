@@ -64,6 +64,30 @@ These define **how** to measure, test, and document things.
 3. Use templates in those docs
 4. Verify your output matches the schema
 
+### For Multiplier Patterns: Strategic Tool Combinations
+
+These unlock 5-10x productivity gains by combining tools strategically.
+
+| Pattern | Quick Reference | Detailed Guide | Gain |
+|---------|-----------------|----------------|------|
+| **Design-to-Deployed** (ship features fast) | [Reference](multiplier_pattern_reference.md#recipe-1-design-to-deployed-feature-shipping) | [Patterns](workflow_multiplier_patterns.md#pattern-1-design-to-deployed-pipeline-5x-multiplier) | 5x |
+| **Bug Detection & Fix** (production bugs) | [Reference](multiplier_pattern_reference.md#recipe-2-bug-detection--fix) | [Patterns](workflow_multiplier_patterns.md#pattern-2-bug-detection--systematic-fix-8x-multiplier) | 8x |
+| **Architecture Evolution** (major redesign) | [Reference](multiplier_pattern_reference.md#recipe-3-architecture-evolution-major-redesign) | [Patterns](workflow_multiplier_patterns.md#pattern-3-architecture-evolution-10x-multiplier) | 10x |
+| **Feature Pipeline** (large features) | [Reference](multiplier_pattern_reference.md#recipe-4-feature-pipeline-major-feature) | [Patterns](workflow_multiplier_patterns.md#pattern-4-feature-development-pipeline-7x-multiplier) | 7x |
+| **Performance Loop** (optimization) | [Reference](multiplier_pattern_reference.md#recipe-5-performance-optimization-loop) | [Patterns](workflow_multiplier_patterns.md#pattern-5-performance-optimization-loop-6x-multiplier) | 6x |
+| **Security Hardening** (vulnerabilities) | [Reference](multiplier_pattern_reference.md#recipe-6-security-hardening) | [Patterns](workflow_multiplier_patterns.md#pattern-6-security-hardening-8x-multiplier) | 8x |
+| **Documentation Gen** (missing docs) | [Reference](multiplier_pattern_reference.md#recipe-7-documentation-generation) | [Patterns](workflow_multiplier_patterns.md#pattern-7-documentation-generation-5x-multiplier) | 5x |
+| **Skill Development** (new skills/tools) | [Reference](multiplier_pattern_reference.md#recipe-8-skill-development-pipeline) | [Patterns](workflow_multiplier_patterns.md#pattern-8-skill-development-pipeline-6x-multiplier) | 6x |
+| **Rapid Testing** (low coverage → 95%+) | [Reference](multiplier_pattern_reference.md#recipe-9-rapid-test-coverage) | [Patterns](workflow_multiplier_patterns.md#pattern-9-rapid-testing--coverage-7x-multiplier) | 7x |
+| **ML Optimization** (model tuning) | [Reference](multiplier_pattern_reference.md#recipe-10-ml-model-optimization) | [Patterns](workflow_multiplier_patterns.md#pattern-10-ml-model-optimization-9x-multiplier) | 9x |
+
+**How to use:**
+1. Find your task in the matrix above
+2. Look up the multiplier pattern
+3. Read detailed guide for full explanation
+4. Use quick reference for tool recipes
+5. Execute following the implementation checklist
+
 ---
 
 ### For Architecture: ADRs & Documentation

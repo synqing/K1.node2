@@ -319,6 +319,42 @@ Deployment Decision
 
 ---
 
+## Workflow Multiplier Patterns
+
+**The magic is not in individual tools. It's in strategic combinations of tools orchestrated together.**
+
+When you have a task, **don't just run one agent**. Use a multiplier pattern that combines 3-7 tools in parallel + quality gates.
+
+Available patterns unlock 5-10x productivity:
+
+| Task Type | Pattern | Tools Used | Gain |
+|-----------|---------|-----------|------|
+| Ship a feature | Design-to-Deployed | Brainstorm → Pattern-Design → Code → Tests → Review → Deploy | 5x |
+| Fix production bug | Bug Detection & Fix | Error-Detective + Debugger → Code → Tests → Review → Deploy | 8x |
+| Major redesign | Architecture Evolution | SUPREME + Architect → Plan → Parallel implementation → Quality gates | 10x |
+| Large new feature | Feature Pipeline | Designer → Brainstorm → Plan → Parallel devs → Tests → Docs → Deploy | 7x |
+| System slow | Performance Loop | DevOps + SUPREME → Fix → Tests → Verify → ROI → Deploy | 6x |
+| Security issue | Security Hardening | Review + Detective → Debugger → Fix → Tests → Architect → Docs | 8x |
+| No documentation | Documentation Gen | SUPREME + DocArch → Reference-Builder → Write-Plans → Cross-link | 5x |
+| New skill | Skill Development | Brainstorm → Write-Skill → Test → Validate → Publish | 6x |
+| Low test coverage | Rapid Testing | TDD + Test-Auto + Condition-Based-Wait + Defense-in-Depth | 7x |
+| ML model tuning | ML Optimization | Business-Analyst + MLOps + Python-Pro → Tests → Profiling → Deploy | 9x |
+
+**How to use:**
+1. Identify your task type (what are you trying to accomplish?)
+2. Select the corresponding multiplier pattern from the table above
+3. Read detailed guide: `docs/resources/workflow_multiplier_patterns.md`
+4. Get tool recipes: `docs/resources/multiplier_pattern_reference.md`
+5. Execute following the pattern's implementation checklist
+
+**Key principles:**
+- Use parallelization where pattern shows (don't serialize parallel stages)
+- Converge at quality gates (don't accumulate issues)
+- Measure before/after (prove the multiplier worked)
+- Document decisions (create ADRs if architectural)
+
+---
+
 ## Agent Resources & Quick References
 
 **All agents must consult the appropriate quick reference before starting work.**
