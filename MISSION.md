@@ -72,25 +72,15 @@ You are building proof.
 
 Proof that flexibility and performance aren't opposites. Proof that you can demand both uncompromisingly and have both delivered. Proof that in a landscape of mediocrity and compromise, you can create something that refuses to apologize for its purity.
 
-### Phase A: The Core Proof (Now)
+### Two Domains, One Philosophy
 
-The three patterns—Departure, Lava, Twilight—are not examples. They are *statements*. Each one is a choice about what's worth expressing through light. Together, they prove the system works. They prove that when you refuse compromise, beauty emerges.
+Whether you're building intentional static patterns (Departure, Lava, Twilight) or audio-reactive visualizations, the principle is the same:
 
-They are intentional static patterns that exist to answer one question:
+**Move the creative work to the computer. Move the execution to the device.**
 
-**Can you have artistic freedom (design in node graphs) AND execution perfection (120 FPS native C++) simultaneously?**
+Compile, don't interpret. Demand uncompromising purity in both domains.
 
-The answer is yes. Phase A proves it.
-
-### Phase D: The Expansion (Future)
-
-When you add audio-reactive patterns (and you will), extend this system the same way. Apply the same philosophy: move the creative work to the computer, move the execution to the device. Compile, don't interpret. Demand the same uncompromising purity.
-
-Whether a pattern is static or audio-reactive doesn't change the core principle. Both domains prove the same thesis: flexibility and performance don't have to be opposites.
-
----
-
-In both cases: every pattern you build should be a *statement*. As something that matters. As something you would stand behind.
+Every pattern you build should be a *statement*. Something that matters. Something you would stand behind.
 
 If you're building a pattern just to test the system, you're missing the point.
 

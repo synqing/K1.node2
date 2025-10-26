@@ -164,7 +164,7 @@ Compiling to C++ isn't a performance optimization—it's the *right way* to exec
 The codegen tool doesn't exist because writing C++ by hand is hard. It exists because node graphs are the right way to *think* about the problem, and C++ is the right way to *execute* it. The compilation step is the translation between those two correct domains.
 
 **Minimalism is uncompromising intentionality.**
-Every line of code is a choice. This project contains roughly 1,200 lines across firmware and codegen. Not because we haven't added features—we've explicitly *refused* them. Refused complexity. Refused convenience features that don't serve the core mission.
+Every line of code is a choice. The core system (firmware + codegen) is ruthlessly minimal: no unnecessary abstractions, no feature bloat. When you add patterns, each one must justify its existence by saying something true through light.
 
 This is what uncompromising software looks like.
 
@@ -180,7 +180,7 @@ You can update firmware over WiFi, and if the new code crashes within 30 seconds
 
 K1.reinvented solves the flexibility/performance dilemma using the same architectural foundation, but applies it to two distinct problem domains:
 
-### Domain 1: Intentional Static Patterns (Phase A — Now)
+### Domain 1: Intentional Static Patterns
 
 **What they are:** Carefully composed, time-based light expressions. No external data input. Pure artistic statements.
 
@@ -188,32 +188,27 @@ K1.reinvented solves the flexibility/performance dilemma using the same architec
 
 **How they work:**
 - Node graph compiled to C++ at build time
-- Time accumulation (`g_time`) drives the expression
+- Time accumulation drives the expression
 - No audio input required
 - ~120 FPS execution
-- Core 0: LED rendering only
-- Core 1: optional for future use
+- Core 0: LED rendering
 
-**Philosophy:** Each pattern exists because someone *decided* it should. A statement about what deserves to be expressed through light.
+**Philosophy:** Each pattern exists because someone *decided* it should exist. A statement about what deserves to be expressed through light. The pattern is complete in itself.
 
-**Proof:** Phase A demonstrates that code generation + compilation solves the fundamental problem: you can have artistic freedom (design in node graphs) AND execution perfection (120 FPS native C++) simultaneously. No compromise.
-
-### Domain 2: Audio-Reactive Visualizations (Phase D — Future)
+### Domain 2: Audio-Reactive Visualizations
 
 **What they are:** Patterns driven by real-time music analysis. Light responding to sound with full artistic control.
 
-**Key difference from Domain 1:** They accept audio data as input and must synchronize rendering with audio processing.
+**Key difference from Domain 1:** They accept audio data as input and respond to music in real-time, computed at compile-time (not interpreted at runtime).
 
-**How they will work:**
+**How they work:**
 - Same node graph → C++ compilation pipeline
 - Additional node types for frequency analysis, beat detection, spectrum mapping
-- Audio input via I2S microphone (SPH0645)
+- Audio input via I2S microphone (live Goertzel analysis + FFT)
 - Core 0: LED rendering (uses audio snapshot)
 - Core 1: continuous audio capture and analysis
 
-**Philosophy:** The same principle applies: move complex decision-making to compile time. Don't ask the device to interpret music in real-time. Ask the computer to design how patterns *should* respond to music, then compile that logic into C++.
-
-**Future proof:** Phase D won't introduce a new paradigm—it extends the existing one. The compilation architecture supports audio-reactive patterns with the same ruthless minimalism and execution perfection.
+**Philosophy:** The same principle applies: move complex decision-making to compile time. Don't ask the device to interpret music in real-time. Ask the computer to design how patterns *should* respond to music, then compile that logic into C++. The pattern responds to music, but that responsiveness is baked into the C++.
 
 ### The Shared Foundation
 
@@ -227,6 +222,8 @@ Both domains use the same:
 The architectural difference is what data flows into the render loop:
 - Domain 1: `draw_current_pattern(time, params)`
 - Domain 2: `draw_current_pattern(time, params, audio_snapshot)`
+
+Both execute at native C++ speed. Both demand artistic intentionality. Both refuse compromise.
 
 ---
 
@@ -337,43 +334,32 @@ Note: Web endpoints are scaffolding; consult `webserver.cpp` in this repo for cu
 
 ---
 
-## What Comes Next
+## Current Status & Roadmap
 
-**Phase A (Now): Static Intentional Patterns — Proof of Concept**
+**Core System: COMPLETE** ✓
+- Dual-core architecture (audio + rendering)
+- Node graph compilation pipeline (JSON → C++)
+- Pattern registry (runtime switching)
+- Parameter system (thread-safe updates)
+- Web API scaffolding
 
-Three patterns (Departure, Lava, Twilight) that prove the core thesis:
-- You *can* have complete artistic freedom (node graph design)
-- AND complete execution perfection (120 FPS native C++)
-- In 1,200 lines of ruthlessly minimal code
-- Without compromise
+**Visualization Pipeline: IN PROGRESS**
 
-Phase A is the proof. Everything that follows assumes this proof is solid.
+The existing patterns were built without understanding the core principles of the system:
+- Palette logic (colour spaces, intentional progressions)
+- Centre-origin rendering (symmetry, mirror modes)
+- Audio pipeline → Visual pipeline flow
+- Creating stunning audio-reactive patterns
 
-**Phase B: Expand static node types**
-
-More nodes for color manipulation, transformation, progression logic. Unlocks more creative possibilities within the static domain.
-
-**Phase C: Visual editor**
-
-No more JSON hand-editing. Draw your patterns visually. But still compiles to native C++.
-
-**Phase D: Audio-Reactive Visualizations — Domain Extension**
-
-Apply the same compilation principle to music-reactive patterns. Light responding to sound with full artistic control, compiled at build time (not interpreted at runtime).
-
-Introduces:
-- Additional node types (frequency analysis, beat detection, spectrum mapping)
-- Audio input from microphone
-- Core 1 audio processing + Core 0 rendering
-- Same philosophical guarantee: flexibility + perfection, no compromise
+See `Implementation.plans/` for the detailed rebuild strategy.
 
 ---
 
+**What this means:**
+
 Everything collapses if we lose the core commitment: **refusing compromise between artistic vision and execution perfection.**
 
-Every feature we add should serve that mission. Every optimization should remove obstacles between intention and reality. Everything else is noise.
-
-This applies equally to both domains. Domain 1 proves it's possible. Domain 2 extends it.
+Every pattern we build should serve that mission. Every optimization should remove obstacles between intention and reality. Everything else is noise.
 
 ---
 
