@@ -2,14 +2,14 @@
 // Handles all communication with K1 devices via REST API
 
 import {
-  K1Pattern,
+  // K1Pattern,
   K1PatternResponse,
   K1Parameters,
   K1ParameterUI,
   K1AudioConfig,
-  K1AudioData,
+  // K1AudioData,
   K1DeviceInfo,
-  K1PerformanceData,
+  // K1PerformanceData,
   K1RealtimeData,
   K1ApiResponse,
   ConnectionStatus
