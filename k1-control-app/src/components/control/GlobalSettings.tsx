@@ -4,7 +4,7 @@ import { Slider } from '../ui/slider';
 import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Sun, Activity, HelpCircle } from 'lucide-react';
+import { Sun, HelpCircle } from 'lucide-react';
 
 interface GlobalSettingsProps {
   disabled: boolean;
