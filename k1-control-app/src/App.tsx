@@ -47,9 +47,15 @@ export default function App() {
   };
 
   const isConnected = connectionStatus === 'connected';
++  const devApiBase = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:8000';
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[var(--k1-bg)] text-[var(--k1-text)] overflow-hidden">
++      {import.meta.env.DEV && (
++        <div className="px-3 py-1 text-xs bg-[var(--k1-panel)] text-[var(--k1-text-dim)] border-b border-[var(--k1-border)]">
++          Dev API base: {devApiBase}
++        </div>
++      )}
       {/* Top Navigation */}
       <TopNav 
         activeView={activeView}

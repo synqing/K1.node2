@@ -32,6 +32,33 @@ export class K1Client {
       this.baseURL = `http://${ip}:${port}`;
     }
   }
++
++  // Centralized request with simple retry/backoff for transient failures
++  private async request<T>(path: string, init?: RequestInit, retries = 2, backoffMs = 250): Promise<T> {
++    const devEnv = (import.meta as any).env;
++    let attempt = 0;
++    // Ensure path joins correctly
++    const url = `${this.baseURL}${path}`;
++    while (attempt <= retries) {
++      try {
++        const res = await fetch(url, init);
++        if (!res.ok) {
++          throw new Error(`Request failed: ${res.status} ${res.statusText}`);
++        }
++        return (await res.json()) as T;
++      } catch (error) {
++        if (attempt === retries) {
++          if (!devEnv?.DEV) {
++            console.error('API request error:', error);
++          }
++          throw error;
++        }
++        await new Promise((resolve) => setTimeout(resolve, backoffMs * Math.pow(2, attempt)));
++        attempt++;
++      }
++    }
++    throw new Error('Unexpected retry loop exit');
++  }
 
   // Update the base URL (when user changes IP)
   updateConnection(ip: string, port: number = 80) {
@@ -64,46 +91,58 @@ export class K1Client {
 
   // Pattern Management
   async getPatterns(): Promise<K1PatternResponse> {
-    const response = await fetch(`${this.baseURL}/api/patterns`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch patterns: ${response.statusText}`);
-    }
-    return response.json();
+-    const response = await fetch(`${this.baseURL}/api/patterns`);
+-    if (!response.ok) {
+-      throw new Error(`Failed to fetch patterns: ${response.statusText}`);
+-    }
+-    return response.json();
++    return this.request<K1PatternResponse>('/api/patterns');
   }
 
   async selectPattern(index: number): Promise<K1ApiResponse<{ current_pattern: number }>> {
-    const response = await fetch(`${this.baseURL}/api/select`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ index })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to select pattern: ${response.statusText}`);
-    }
-    return response.json();
+-    const response = await fetch(`${this.baseURL}/api/select`, {
+-      method: 'POST',
+-      headers: { 'Content-Type': 'application/json' },
+-      body: JSON.stringify({ index })
+-    });
+-    
+-    if (!response.ok) {
+-      throw new Error(`Failed to select pattern: ${response.statusText}`);
+-    }
+-    return response.json();
++    return this.request<K1ApiResponse<{ current_pattern: number }>>('/api/select', {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ index })
++    });
   }
 
   async selectPatternById(id: string): Promise<K1ApiResponse<{ current_pattern: number }>> {
-    const response = await fetch(`${this.baseURL}/api/select`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to select pattern: ${response.statusText}`);
-    }
-    return response.json();
+-    const response = await fetch(`${this.baseURL}/api/select`, {
+-      method: 'POST',
+-      headers: { 'Content-Type': 'application/json' },
+-      body: JSON.stringify({ id })
+-    });
+-    
+-    if (!response.ok) {
+-      throw new Error(`Failed to select pattern: ${response.statusText}`);
+-    }
+-    return response.json();
++    return this.request<K1ApiResponse<{ current_pattern: number }>>('/api/select', {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ id })
++    });
   }
 
   // Parameter Management
   async getParameters(): Promise<K1Parameters> {
-    const response = await fetch(`${this.baseURL}/api/params`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch parameters: ${response.statusText}`);
-    }
-    return response.json();
+-    const response = await fetch(`${this.baseURL}/api/params`);
+-    if (!response.ok) {
+-      throw new Error(`Failed to fetch parameters: ${response.statusText}`);
+-    }
+-    return response.json();
++    return this.request<K1Parameters>('/api/params');
   }
 
   async updateParameters(params: Partial<K1ParameterUI>): Promise<K1ApiResponse<{ params: K1Parameters }>> {
@@ -118,49 +157,61 @@ export class K1Client {
     if (params.background !== undefined) firmwareParams.background = params.background / 100;
     if (params.palette_id !== undefined) firmwareParams.palette_id = params.palette_id;
 
-    const response = await fetch(`${this.baseURL}/api/params`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(firmwareParams)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to update parameters: ${response.statusText}`);
-    }
-    return response.json();
+-    const response = await fetch(`${this.baseURL}/api/params`, {
+-      method: 'POST',
+-      headers: { 'Content-Type': 'application/json' },
+-      body: JSON.stringify(firmwareParams)
+-    });
+-    
+-    if (!response.ok) {
+-      throw new Error(`Failed to update parameters: ${response.statusText}`);
+-    }
+-    return response.json();
++    return this.request<K1ApiResponse<{ params: K1Parameters }>>('/api/params', {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify(firmwareParams)
++    });
   }
 
   async resetParameters(): Promise<K1Parameters> {
-    const response = await fetch(`${this.baseURL}/api/reset`, {
-      method: 'POST'
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to reset parameters: ${response.statusText}`);
-    }
-    return response.json();
+-    const response = await fetch(`${this.baseURL}/api/reset`, {
+-      method: 'POST'
+-    });
+-    
+-    if (!response.ok) {
+-      throw new Error(`Failed to reset parameters: ${response.statusText}`);
+-    }
+-    return response.json();
++    return this.request<K1Parameters>('/api/reset', { method: 'POST' });
   }
 
   // Audio Configuration
   async getAudioConfig(): Promise<K1AudioConfig> {
-    const response = await fetch(`${this.baseURL}/api/audio-config`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch audio config: ${response.statusText}`);
-    }
-    return response.json();
+-    const response = await fetch(`${this.baseURL}/api/audio-config`);
+-    if (!response.ok) {
+-      throw new Error(`Failed to fetch audio config: ${response.statusText}`);
+-    }
+-    return response.json();
++    return this.request<K1AudioConfig>('/api/audio-config');
   }
 
   async updateAudioConfig(config: Partial<K1AudioConfig>): Promise<K1AudioConfig> {
-    const response = await fetch(`${this.baseURL}/api/audio-config`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to update audio config: ${response.statusText}`);
-    }
-    return response.json();
+-    const response = await fetch(`${this.baseURL}/api/audio-config`, {
+-      method: 'POST',
+-      headers: { 'Content-Type': 'application/json' },
+-      body: JSON.stringify(config)
+-    });
+-    
+-    if (!response.ok) {
+-      throw new Error(`Failed to update audio config: ${response.statusText}`);
+-    }
+-    return response.json();
++    return this.request<K1AudioConfig>('/api/audio-config', {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify(config)
++    });
   }
 
   // Device Information (future endpoints)
