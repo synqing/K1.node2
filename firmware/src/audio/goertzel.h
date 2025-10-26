@@ -69,8 +69,14 @@ float sample_history[SAMPLE_HISTORY_LENGTH] = {0};
 
 #define NOISE_CALIBRATION_FRAMES 512
 
+// Frequency analysis configuration
+#define NUM_FREQS 64
+
 #define BOTTOM_NOTE 24	// THESE ARE IN QUARTER-STEPS, NOT HALF-STEPS! That's 24 notes to an octave
 #define NOTE_STEP 2 // Use half-steps anyways
+
+// Tempo detection configuration
+#define NUM_TEMPI 64
 
 // Type definitions for audio data structures
 struct freq {
@@ -83,6 +89,18 @@ struct freq {
 	float magnitude_last;
 	float novelty;
 };
+
+// Tempo detection structure - represents a single tempo hypothesis
+typedef struct {
+	float magnitude;           // Current beat magnitude
+	float magnitude_smooth;    // Smoothed beat magnitude
+	float beat;                // Beat trigger (0.0 - 1.0)
+	float phase;               // Beat phase
+	float target_tempo_hz;     // Target tempo frequency
+	uint16_t block_size;
+	float window_step;
+	float coeff;
+} tempo;
 
 uint32_t noise_calibration_active_frames_remaining = 0;
 
@@ -106,11 +124,12 @@ uint16_t max_goertzel_block_size = 0;
 
 volatile bool magnitudes_locked = false;
 
+// Audio-reactive globals (DEFINITIONS - single source of truth)
 float spectrogram[NUM_FREQS];
 float chromagram[12];
 float audio_level = 0.0;  // Overall audio RMS level
 
-// Tempo/beat detection arrays (stubbed for now, will be populated by tempo.h)
+// Tempo/beat detection arrays (definitions - also in tempo.h for initialization)
 tempo tempi[NUM_TEMPI];
 float tempi_smooth[NUM_TEMPI] = {0};
 
@@ -118,6 +137,29 @@ const uint8_t NUM_SPECTROGRAM_AVERAGE_SAMPLES = 8;
 float spectrogram_smooth[NUM_FREQS] = { 0.0 };
 float spectrogram_average[NUM_SPECTROGRAM_AVERAGE_SAMPLES][NUM_FREQS];
 uint8_t spectrogram_average_index = 0;
+
+// Initialize audio globals to default state before microphone is active
+// Called during setup() - provides reasonable test data for patterns
+inline void init_audio_stubs() {
+    // Fill spectrum with soft test data to demonstrate audio reactivity
+    for (int i = 0; i < NUM_FREQS; i++) {
+        spectrogram[i] = 0.1 + 0.05 * sinf(i * 0.2);
+        spectrogram_smooth[i] = spectrogram[i];
+    }
+
+    // Fill tempo detectors with test data
+    for (int i = 0; i < NUM_TEMPI; i++) {
+        tempi[i].beat = 0.5 * sinf(i * 0.05);
+        tempi[i].magnitude = 0.5;
+    }
+
+    // Fill chromagram (12 musical notes) with test data
+    for (int i = 0; i < 12; i++) {
+        chromagram[i] = 0.1 * sinf(i * 0.3);
+    }
+
+    audio_level = 0.3;
+}
 
 // =============================================================================
 // PHASE 1: AUDIO DATA SYNCHRONIZATION - Double-Buffering with FreeRTOS Mutexes

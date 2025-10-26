@@ -10,7 +10,11 @@
 //
 // Functions related to the computation of possible tempi in music
 
-//--------------------------------------------
+#ifndef TEMPO_H
+#define TEMPO_H
+
+// NOTE: Must come after goertzel.h to access NUM_TEMPI and tempo struct
+// (All audio globals and struct definitions consolidated in goertzel.h)
 
 #define NOVELTY_HISTORY_LENGTH (1024)  // 50 FPS for 20.48 seconds
 #define NOVELTY_LOG_HZ (50)
@@ -20,7 +24,9 @@
 
 #define BEAT_SHIFT_PERCENT (0.08)
 
-#define NUM_TEMPI (64)
+// NOTE: NUM_TEMPI, tempo struct, tempi[], and tempi_smooth[] are now defined in audio/goertzel.h
+// to consolidate all audio globals and struct definitions in one place.
+// Tempo-specific data and functions follow below.
 
 bool silence_detected = true;
 float silence_level = 1.0;
@@ -36,8 +42,6 @@ float novelty_curve_normalized[NOVELTY_HISTORY_LENGTH];
 
 float vu_curve[NOVELTY_HISTORY_LENGTH];
 
-tempo tempi[NUM_TEMPI];
-float tempi_smooth[NUM_TEMPI];
 float tempi_power_sum = 0.0;
 
 uint16_t find_closest_tempo_bin(float target_bpm) {
@@ -427,3 +431,5 @@ void update_tempi_phase(float delta) {
 
 	tempo_confidence = max_contribution;
 }
+
+#endif  // TEMPO_H
