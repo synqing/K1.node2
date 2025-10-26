@@ -142,6 +142,7 @@ extern float noise_spectrum[64];
 
 typedef struct {
 	float vu_floor;
+	float microphone_gain;    // 0.5 - 2.0x (0.5 = -6dB, 1.0 = 0dB, 2.0 = +6dB)
 } AudioConfiguration;
 
 extern AudioConfiguration configuration;

@@ -4,6 +4,7 @@
 #include "webserver.h"
 #include "parameters.h"
 #include "pattern_registry.h"
+#include "audio/goertzel.h"  // For audio configuration (microphone gain)
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
 
@@ -206,6 +207,62 @@ void init_webserver() {
         attach_cors_headers(response);
         request->send(response);
     });
+
+    // GET /api/audio-config - Get audio configuration (microphone gain)
+    server.on("/api/audio-config", HTTP_GET, [](AsyncWebServerRequest *request) {
+        StaticJsonDocument<128> doc;
+        doc["microphone_gain"] = configuration.microphone_gain;
+        String response;
+        serializeJson(doc, response);
+        auto *resp = request->beginResponse(200, "application/json", response);
+        attach_cors_headers(resp);
+        request->send(resp);
+    });
+
+    // POST /api/audio-config - Update audio configuration
+    server.on("/api/audio-config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL,
+        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+            String *body = static_cast<String*>(request->_tempObject);
+            if (index == 0) {
+                body = new String();
+                body->reserve(total);
+                request->_tempObject = body;
+            }
+            body->concat(reinterpret_cast<const char*>(data), len);
+
+            if (index + len != total) {
+                return;  // Wait for more data
+            }
+
+            StaticJsonDocument<128> doc;
+            DeserializationError error = deserializeJson(doc, *body);
+            delete body;
+            request->_tempObject = nullptr;
+
+            if (error) {
+                auto *response = request->beginResponse(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+                attach_cors_headers(response);
+                request->send(response);
+                return;
+            }
+
+            // Update microphone gain if provided (range: 0.5 - 2.0)
+            if (doc.containsKey("microphone_gain")) {
+                float gain = doc["microphone_gain"].as<float>();
+                // Clamp to safe range
+                gain = fmaxf(0.5f, fminf(2.0f, gain));
+                configuration.microphone_gain = gain;
+                Serial.printf("[AUDIO CONFIG] Microphone gain updated to %.2fx\n", gain);
+            }
+
+            StaticJsonDocument<128> response_doc;
+            response_doc["microphone_gain"] = configuration.microphone_gain;
+            String response;
+            serializeJson(response_doc, response);
+            auto *resp = request->beginResponse(200, "application/json", response);
+            attach_cors_headers(resp);
+            request->send(resp);
+        });
 
     // OPTIONS preflight for CORS
     server.onNotFound([](AsyncWebServerRequest *request) {
@@ -528,6 +585,21 @@ void init_webserver() {
                     </label>
                     <input type="range" class="slider" id="speed" min="0" max="1" step="0.01" value="0.5" oninput="updateDisplay('speed')">
                 </div>
+
+                <hr style="margin: 16px 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);">
+
+                <div class="control-label" style="font-weight: 600; margin-bottom: 12px; opacity: 0.7; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    Audio Settings
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">
+                        <span>Microphone Gain</span>
+                        <span class="control-value" id="microphone-gain-val">1.00x</span>
+                    </label>
+                    <input type="range" class="slider" id="microphone-gain" min="0.5" max="2" step="0.05" value="1.0" oninput="updateMicrophoneGain()">
+                    <div style="font-size: 10px; color: #999; margin-top: 4px; text-align: center;">-6dB &nbsp; 0dB &nbsp; +6dB</div>
+                </div>
             </div>
         </div>
     </div>
@@ -598,8 +670,36 @@ void init_webserver() {
             });
         }
 
+        async function loadAudioConfig() {
+            const res = await fetch('/api/audio-config');
+            const config = await res.json();
+
+            const gainElem = document.getElementById('microphone-gain');
+            const gainVal = document.getElementById('microphone-gain-val');
+
+            if (gainElem && config.microphone_gain) {
+                gainElem.value = config.microphone_gain;
+                gainVal.textContent = config.microphone_gain.toFixed(2) + 'x';
+            }
+        }
+
+        async function updateMicrophoneGain() {
+            const gainElem = document.getElementById('microphone-gain');
+            const gainVal = document.getElementById('microphone-gain-val');
+
+            const gain = parseFloat(gainElem.value);
+            gainVal.textContent = gain.toFixed(2) + 'x';
+
+            await fetch('/api/audio-config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ microphone_gain: gain })
+            });
+        }
+
         loadPatterns();
         loadParams();
+        loadAudioConfig();
     </script>
 </body>
 </html>

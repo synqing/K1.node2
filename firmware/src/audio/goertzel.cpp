@@ -42,7 +42,10 @@ volatile bool magnitudes_locked = false;
 // Audio processing state
 uint32_t noise_calibration_active_frames_remaining = 0;
 float noise_spectrum[64] = {0};
-AudioConfiguration configuration = {0.0f};
+AudioConfiguration configuration = {
+	.vu_floor = 0.0f,
+	.microphone_gain = 1.0f  // Default: no amplification (0dB)
+};
 bool EMOTISCOPE_ACTIVE = true;
 bool audio_recording_live = false;
 int audio_recording_index = 0;
@@ -457,6 +460,15 @@ void calculate_magnitudes() {
 				spectrogram_smooth[i] += spectrogram_average[a][i];
 			}
 			spectrogram_smooth[i] /= float(NUM_SPECTROGRAM_AVERAGE_SAMPLES);
+		}
+
+		// MICROPHONE GAIN APPLICATION (NEW - FIX FOR BEAT DETECTION SENSITIVITY)
+		// Apply user-configured microphone gain to all frequency bins
+		// This amplifies or attenuates the entire spectrum uniformly
+		// Range: 0.5x (-6dB) to 2.0x (+6dB), default 1.0x (0dB, no change)
+		for (uint16_t i = 0; i < NUM_FREQS; i++) {
+			spectrogram[i] = clip_float(spectrogram[i] * configuration.microphone_gain);
+			spectrogram_smooth[i] = clip_float(spectrogram_smooth[i] * configuration.microphone_gain);
 		}
 
 		// Calculate VU level from overall spectrum energy (average across all bins)
