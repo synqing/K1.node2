@@ -752,6 +752,189 @@ void draw_tempiscope(float time, const PatternParameters& params) {
 }
 
 // ============================================================================
+// BEAT TUNNEL PATTERN - Tempo-driven tunnel with sprite persistence
+// ============================================================================
+
+// Static buffers for tunnel image and motion blur persistence
+static CRGBF beat_tunnel_image[NUM_LEDS];
+static CRGBF beat_tunnel_image_prev[NUM_LEDS];
+static float beat_tunnel_angle = 0.0f;
+
+void draw_beat_tunnel(float time, const PatternParameters& params) {
+	PATTERN_AUDIO_START();
+
+	// Clear frame buffer
+	for (int i = 0; i < NUM_LEDS; i++) {
+		beat_tunnel_image[i] = CRGBF(0, 0, 0);
+	}
+
+	// Animate sprite position using sine wave modulation
+	beat_tunnel_angle += 0.001f * (0.5f + params.speed * 0.5f);
+	float position = (0.125f + 0.875f * params.speed) * sinf(beat_tunnel_angle) * 0.5f;
+
+	// Blend previous frame into current frame (motion blur/persistence)
+	float alpha_blend = 0.95f;  // Previous frame opacity
+	for (int i = 0; i < NUM_LEDS; i++) {
+		beat_tunnel_image[i].r = beat_tunnel_image_prev[i].r * alpha_blend;
+		beat_tunnel_image[i].g = beat_tunnel_image_prev[i].g * alpha_blend;
+		beat_tunnel_image[i].b = beat_tunnel_image_prev[i].b * alpha_blend;
+	}
+
+	if (!AUDIO_IS_AVAILABLE()) {
+		// Fallback: simple animated pattern
+		for (int i = 0; i < NUM_LEDS; i++) {
+			float led_pos = LED_PROGRESS(i);
+			float distance = fabsf(led_pos - position);
+			float brightness = expf(-(distance * distance) / (2.0f * 0.08f * 0.08f));
+			brightness = fmaxf(0.0f, fminf(1.0f, brightness));
+			CRGBF color = color_from_palette(params.palette_id, led_pos, brightness * 0.5f);
+			beat_tunnel_image[i].r += color.r * brightness;
+			beat_tunnel_image[i].g += color.g * brightness;
+			beat_tunnel_image[i].b += color.b * brightness;
+		}
+	} else {
+		// Audio-reactive: accumulate tempo bin colors into tunnel
+		float beat_threshold = 0.2f;
+		float tempo_confidence = AUDIO_TEMPO_CONFIDENCE;
+
+		// Render tempo as colored bands when beat confidence is high
+		if (tempo_confidence > beat_threshold) {
+			for (uint16_t i = 0; i < (NUM_LEDS >> 1); i++) {
+				float led_pos = LED_PROGRESS(i);
+
+				// Use position within tunnel to determine color
+				float hue = fmodf(led_pos + time * 0.3f * params.speed, 1.0f);
+
+				// Brightness modulated by beat
+				float brightness = tempo_confidence * (0.3f + 0.7f * sinf(time * 6.28318f + i * 0.1f));
+				brightness = fmaxf(0.0f, fminf(1.0f, brightness));
+
+				CRGBF color = color_from_palette(params.palette_id, hue, brightness);
+				beat_tunnel_image[i].r += color.r * brightness;
+				beat_tunnel_image[i].g += color.g * brightness;
+				beat_tunnel_image[i].b += color.b * brightness;
+			}
+		}
+	}
+
+	// Clamp values to [0, 1]
+	for (int i = 0; i < NUM_LEDS; i++) {
+		beat_tunnel_image[i].r = fmaxf(0.0f, fminf(1.0f, beat_tunnel_image[i].r));
+		beat_tunnel_image[i].g = fmaxf(0.0f, fminf(1.0f, beat_tunnel_image[i].g));
+		beat_tunnel_image[i].b = fmaxf(0.0f, fminf(1.0f, beat_tunnel_image[i].b));
+	}
+
+	// Apply mirror mode
+	apply_mirror_mode(beat_tunnel_image, true);
+
+	// Copy tunnel image to LED output and apply brightness
+	for (int i = 0; i < NUM_LEDS; i++) {
+		leds[i].r = beat_tunnel_image[i].r * params.brightness;
+		leds[i].g = beat_tunnel_image[i].g * params.brightness;
+		leds[i].b = beat_tunnel_image[i].b * params.brightness;
+	}
+
+	// Save current frame for next iteration's motion blur
+	for (int i = 0; i < NUM_LEDS; i++) {
+		beat_tunnel_image_prev[i] = beat_tunnel_image[i];
+	}
+}
+
+// ============================================================================
+// PERLIN PATTERN - Procedural noise driven by animation
+// ============================================================================
+
+// Static buffers for Perlin noise generation
+static float beat_perlin_noise_array[NUM_LEDS >> 2];  // 32 floats for 128 LEDs
+static float beat_perlin_position_x = 0.0f;
+static float beat_perlin_position_y = 0.0f;
+
+// Simple hash function for Perlin-like noise
+static inline uint32_t hash_ui(uint32_t x, uint32_t seed) {
+	const uint32_t m = 0x5bd1e995U;
+	uint32_t hash = seed;
+	uint32_t k = x;
+	k *= m;
+	k ^= k >> 24;
+	k *= m;
+	hash *= m;
+	hash ^= k;
+	hash ^= hash >> 13;
+	hash *= m;
+	hash ^= hash >> 15;
+	return hash;
+}
+
+// Basic Perlin-like noise value
+static inline float perlin_noise_simple_2d(float x, float y, uint32_t seed) {
+	// Simple 2D noise using hashing and interpolation
+	int xi = (int)floorf(x);
+	int yi = (int)floorf(y);
+	float xf = x - xi;
+	float yf = y - yi;
+
+	// Smooth interpolation curve
+	float u = xf * xf * (3.0f - 2.0f * xf);
+	float v = yf * yf * (3.0f - 2.0f * yf);
+
+	// Hash four corners
+	float n00 = (float)(hash_ui(xi + (yi << 16), seed) & 0x7FFFFFFF) / 1073741824.0f;
+	float n10 = (float)(hash_ui((xi + 1) + (yi << 16), seed) & 0x7FFFFFFF) / 1073741824.0f;
+	float n01 = (float)(hash_ui(xi + ((yi + 1) << 16), seed) & 0x7FFFFFFF) / 1073741824.0f;
+	float n11 = (float)(hash_ui((xi + 1) + ((yi + 1) << 16), seed) & 0x7FFFFFFF) / 1073741824.0f;
+
+	// Bilinear interpolation
+	float nx0 = n00 + u * (n10 - n00);
+	float nx1 = n01 + u * (n11 - n01);
+	return nx0 + v * (nx1 - nx0);
+}
+
+void draw_perlin(float time, const PatternParameters& params) {
+	PATTERN_AUDIO_START();
+
+	// Update Perlin noise position with time
+	beat_perlin_position_x = 0.0f;  // Fixed X
+	beat_perlin_position_y += 0.001f;  // Animated Y
+
+	// Generate Perlin noise for downsampled positions
+	for (uint16_t i = 0; i < (NUM_LEDS >> 2); i++) {
+		float pos_progress = (float)i / (float)(NUM_LEDS >> 2);
+		float noise_x = beat_perlin_position_x + pos_progress * 2.0f;
+		float noise_y = beat_perlin_position_y;
+
+		// Multi-octave Perlin (2 octaves)
+		float value = 0.0f;
+		float amplitude = 1.0f;
+		float frequency = 2.0f;
+
+		for (int oct = 0; oct < 2; oct++) {
+			value += perlin_noise_simple_2d(noise_x * frequency, noise_y * frequency, 0x578437adU + oct) * amplitude;
+			amplitude *= 0.5f;      // persistence
+			frequency *= 2.0f;      // lacunarity
+		}
+
+		// Normalize to [0, 1]
+		beat_perlin_noise_array[i] = (value + 1.0f) * 0.5f;
+		beat_perlin_noise_array[i] = fmaxf(0.0f, fminf(1.0f, beat_perlin_noise_array[i]));
+	}
+
+	// Render Perlin noise field as LEDs
+	for (int i = 0; i < NUM_LEDS; i++) {
+		float noise_value = beat_perlin_noise_array[i >> 2];  // Sample from downsampled array
+
+		// Use noise as hue, fixed saturation and brightness
+		float hue = fmodf(noise_value * 0.66f + time * 0.1f * params.speed, 1.0f);
+		float brightness = 0.25f + noise_value * 0.5f;  // 25-75% brightness
+
+		CRGBF color = color_from_palette(params.palette_id, hue, brightness);
+
+		leds[i].r = color.r * params.brightness * params.saturation;
+		leds[i].g = color.g * params.brightness * params.saturation;
+		leds[i].b = color.b * params.brightness * params.saturation;
+	}
+}
+
+// ============================================================================
 // PATTERN REGISTRY
 // ============================================================================
 
@@ -814,6 +997,20 @@ const PatternInfo g_pattern_registry[] = {
 		"Tempo visualization with phase",
 		draw_tempiscope,
 		true
+	},
+	{
+		"Beat Tunnel",
+		"beat_tunnel",
+		"Animated tunnel with beat persistence",
+		draw_beat_tunnel,
+		true
+	},
+	{
+		"Perlin",
+		"perlin",
+		"Procedural noise field animation",
+		draw_perlin,
+		false
 	}
 };
 
