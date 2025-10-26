@@ -935,6 +935,217 @@ void draw_perlin(float time, const PatternParameters& params) {
 }
 
 // ============================================================================
+// VOID TRAIL PATTERN - Ambient pattern with 3 switchable modes
+// ============================================================================
+
+// Static buffers for Fade-to-Black mode (persistence)
+static CRGBF void_trail_frame_current[NUM_LEDS];
+static CRGBF void_trail_frame_prev[NUM_LEDS];
+
+// Static buffers for Ripple Diffusion mode
+#define MAX_VOID_RIPPLES 8
+typedef struct {
+	float position;      // 0.0-1.0 center position
+	float width;         // Current ring width
+	float brightness;    // Current intensity
+	uint16_t age;        // Frames since spawn
+	bool active;         // Is this ripple active?
+} void_ripple;
+
+static void_ripple void_ripples[MAX_VOID_RIPPLES];
+
+// Helper: Render Fade-to-Black mode (ghostly persistent trails)
+void void_render_fade_to_black(float time, const PatternParameters& params) {
+	PATTERN_AUDIO_START();
+
+	float vu_level = AUDIO_IS_AVAILABLE() ? AUDIO_VU : 0.0f;
+	float freshness = AUDIO_IS_AVAILABLE() && !AUDIO_IS_STALE() ? 1.0f : 0.5f;
+
+	// Decay rate: high VU = slow fade (persist), low VU = fast fade (clear)
+	float decay_base = 0.02f;  // Base decay per frame
+	float decay_rate = decay_base + (1.0f - vu_level) * 0.08f;  // Speed up fade in silence
+
+	// Apply decay to previous frame
+	for (int i = 0; i < NUM_LEDS; i++) {
+		void_trail_frame_current[i].r = void_trail_frame_prev[i].r * (1.0f - decay_rate);
+		void_trail_frame_current[i].g = void_trail_frame_prev[i].g * (1.0f - decay_rate);
+		void_trail_frame_current[i].b = void_trail_frame_prev[i].b * (1.0f - decay_rate);
+	}
+
+	if (!AUDIO_IS_AVAILABLE()) {
+		// Fallback: simple dimming pulse
+		for (int i = 0; i < NUM_LEDS; i++) {
+			float pulse = 0.3f + 0.2f * sinf(time * 2.0f + i * 0.1f);
+			CRGBF color = color_from_palette(params.palette_id, LED_PROGRESS(i), pulse * 0.3f);
+			void_trail_frame_current[i].r += color.r * pulse;
+			void_trail_frame_current[i].g += color.g * pulse;
+			void_trail_frame_current[i].b += color.b * pulse;
+		}
+	} else {
+		// Audio-reactive: add new light on beat/energy
+		float brightness_add = vu_level * 0.5f * freshness;
+		if (brightness_add > 0.01f) {
+			for (int i = 0; i < NUM_LEDS; i++) {
+				float led_pos = LED_PROGRESS(i);
+				float hue = fmodf(led_pos + time * 0.1f * params.speed, 1.0f);
+				CRGBF color = color_from_palette(params.palette_id, hue, brightness_add);
+				void_trail_frame_current[i].r += color.r * brightness_add;
+				void_trail_frame_current[i].g += color.g * brightness_add;
+				void_trail_frame_current[i].b += color.b * brightness_add;
+			}
+		}
+	}
+
+	// Clamp and copy to output
+	for (int i = 0; i < NUM_LEDS; i++) {
+		void_trail_frame_current[i].r = fmaxf(0.0f, fminf(1.0f, void_trail_frame_current[i].r));
+		void_trail_frame_current[i].g = fmaxf(0.0f, fminf(1.0f, void_trail_frame_current[i].g));
+		void_trail_frame_current[i].b = fmaxf(0.0f, fminf(1.0f, void_trail_frame_current[i].b));
+		leds[i] = void_trail_frame_current[i];
+		leds[i].r *= params.brightness;
+		leds[i].g *= params.brightness;
+		leds[i].b *= params.brightness;
+	}
+
+	// Save for next frame
+	for (int i = 0; i < NUM_LEDS; i++) {
+		void_trail_frame_prev[i] = void_trail_frame_current[i];
+	}
+}
+
+// Helper: Render Ripple Diffusion mode (expanding rings from center)
+void void_render_ripple_diffusion(float time, const PatternParameters& params) {
+	PATTERN_AUDIO_START();
+
+	float vu_level = AUDIO_IS_AVAILABLE() ? AUDIO_VU : 0.0f;
+
+	// Clear frame
+	for (int i = 0; i < NUM_LEDS; i++) {
+		leds[i] = CRGBF(0, 0, 0);
+	}
+
+	// Spawn new ripples when energy is present
+	float ripple_spawn_rate = 0.5f + params.speed * 0.5f;
+	if (vu_level > 0.15f && time - floorf(time) < ripple_spawn_rate * 0.1f) {
+		for (uint16_t i = 0; i < MAX_VOID_RIPPLES; i++) {
+			if (!void_ripples[i].active) {
+				void_ripples[i].position = 0.5f;  // Center
+				void_ripples[i].width = 0.02f;
+				void_ripples[i].brightness = vu_level * 0.8f;
+				void_ripples[i].age = 0;
+				void_ripples[i].active = true;
+				break;
+			}
+		}
+	}
+
+	// Render all active ripples
+	float ring_speed = 0.3f + params.speed * 0.4f;
+	for (uint16_t r = 0; r < MAX_VOID_RIPPLES; r++) {
+		if (!void_ripples[r].active) continue;
+
+		void_ripples[r].position += ring_speed * 0.01f;
+		void_ripples[r].age++;
+		void_ripples[r].width += 0.005f;
+
+		// Deactivate when ripple leaves LED strip
+		if (void_ripples[r].position > 1.5f) {
+			void_ripples[r].active = false;
+			continue;
+		}
+
+		// Decay brightness with age
+		float decay = expf(-void_ripples[r].age * 0.05f);
+		float ring_brightness = void_ripples[r].brightness * decay;
+
+		// Render ring across all LEDs
+		for (int i = 0; i < NUM_LEDS; i++) {
+			float led_pos = LED_PROGRESS(i);
+			float distance = fabsf(led_pos - void_ripples[r].position);
+
+			// Gaussian ring around ripple center
+			float ring_intensity = expf(-(distance * distance) / (2.0f * void_ripples[r].width * void_ripples[r].width));
+			ring_intensity *= ring_brightness;
+			ring_intensity = fmaxf(0.0f, fminf(1.0f, ring_intensity));
+
+			if (ring_intensity > 0.01f) {
+				CRGBF color = color_from_palette(params.palette_id, LED_PROGRESS(i), ring_intensity);
+				leds[i].r = fmaxf(0.0f, fminf(1.0f, leds[i].r + color.r * ring_intensity));
+				leds[i].g = fmaxf(0.0f, fminf(1.0f, leds[i].g + color.g * ring_intensity));
+				leds[i].b = fmaxf(0.0f, fminf(1.0f, leds[i].b + color.b * ring_intensity));
+			}
+		}
+	}
+
+	// Apply brightness and saturation
+	for (int i = 0; i < NUM_LEDS; i++) {
+		leds[i].r *= params.brightness * params.saturation;
+		leds[i].g *= params.brightness * params.saturation;
+		leds[i].b *= params.brightness * params.saturation;
+	}
+}
+
+// Helper: Render Flowing Stream mode (sinusoidal wave modulated by audio)
+void void_render_flowing_stream(float time, const PatternParameters& params) {
+	PATTERN_AUDIO_START();
+
+	float vu_level = AUDIO_IS_AVAILABLE() ? AUDIO_VU : 0.3f;
+	float freshness = AUDIO_IS_AVAILABLE() && !AUDIO_IS_STALE() ? 1.0f : 0.7f;
+
+	// Wave properties controlled by audio and parameters
+	float wave_speed = (0.5f + params.speed * 0.5f) * vu_level;
+	float wave_brightness = 0.3f + vu_level * 0.5f;
+	float wave_position = fmodf(time * wave_speed, 1.0f);
+
+	// Clear and render wave
+	for (int i = 0; i < NUM_LEDS; i++) {
+		float led_pos = LED_PROGRESS(i);
+
+		// Multiple sine waves at different frequencies for complexity
+		float wave1 = sinf((led_pos - wave_position) * 6.28318f);
+		float wave2 = sinf((led_pos - wave_position) * 12.56636f + time * 2.0f);
+		float wave_combined = (wave1 + wave2 * 0.5f) * 0.5f;  // Normalized average
+
+		// Gaussian envelope around wave peak
+		float distance_from_peak = fabsf(wave_combined);
+		float brightness = wave_brightness * expf(-distance_from_peak * distance_from_peak * 2.0f);
+		brightness = fmaxf(0.0f, fminf(1.0f, brightness)) * freshness;
+
+		if (brightness > 0.01f) {
+			float hue = fmodf(led_pos + time * 0.05f * params.speed, 1.0f);
+			CRGBF color = color_from_palette(params.palette_id, hue, brightness);
+			leds[i].r = color.r * params.brightness * params.saturation;
+			leds[i].g = color.g * params.brightness * params.saturation;
+			leds[i].b = color.b * params.brightness * params.saturation;
+		} else {
+			leds[i] = CRGBF(0, 0, 0);
+		}
+	}
+}
+
+// Main Void Trail pattern with switchable modes
+void draw_void_trail(float time, const PatternParameters& params) {
+	// Select mode based on custom_param_1 (0.0-1.0 -> 0-2)
+	int mode = (int)(params.custom_param_1 * 3.0f);
+	mode = fmaxf(0, fminf(2, mode));  // Clamp to [0, 2]
+
+	switch (mode) {
+		case 0:
+			void_render_fade_to_black(time, params);
+			break;
+		case 1:
+			void_render_ripple_diffusion(time, params);
+			break;
+		case 2:
+			void_render_flowing_stream(time, params);
+			break;
+		default:
+			void_render_fade_to_black(time, params);
+			break;
+	}
+}
+
+// ============================================================================
 // PATTERN REGISTRY
 // ============================================================================
 
@@ -1011,6 +1222,13 @@ const PatternInfo g_pattern_registry[] = {
 		"Procedural noise field animation",
 		draw_perlin,
 		false
+	},
+	{
+		"Void Trail",
+		"void_trail",
+		"Ambient audio-responsive with 3 switchable modes (custom_param_1)",
+		draw_void_trail,
+		true
 	}
 };
 
