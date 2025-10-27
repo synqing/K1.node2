@@ -1,0 +1,35 @@
+
+name: K1 Tools QA
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Unit tests
+        run: npm test
+      - name: QA pipeline
+        run: npm run qa
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: k1-qa-artifacts
+          path: tools/artifacts/**

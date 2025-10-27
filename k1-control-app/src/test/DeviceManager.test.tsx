@@ -35,9 +35,11 @@ vi.mock('../api/k1-client', () => ({
 
 function renderDeviceManager() {
   return render(
-    <K1Provider>
-      <DeviceManager />
-    </K1Provider>
+    <ErrorProvider>
+      <K1Provider>
+        <DeviceManager />
+      </K1Provider>
+    </ErrorProvider>
   )
 }
 

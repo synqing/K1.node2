@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { userEvent } from '@testing-library/user-event'
+import userEvent from '@testing-library/user-event'
+import { ErrorProvider } from '../components/ErrorProvider'
 import { K1Provider, useK1Actions, useK1State } from '../providers/K1Provider'
 
 function TransportTestComponent() {
@@ -21,9 +22,11 @@ describe('Transport change event emission', () => {
     window.addEventListener('k1:transportChange', handler as EventListener)
 
     render(
-      <K1Provider>
-        <TransportTestComponent />
-      </K1Provider>
+      <ErrorProvider>
+        <K1Provider>
+          <TransportTestComponent />
+        </K1Provider>
+      </ErrorProvider>
     )
 
     // Disable WS

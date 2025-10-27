@@ -203,7 +203,7 @@ describe('K1DiscoveryService', () => {
 
       mockDiscover.mockResolvedValue(mockDevices)
 
-      await service.discoverDevices()
+      await service.discoverDevices({ preferredMethods: ['mdns'] })
 
       const cachedDevices = service.getDiscoveredDevices()
       expect(cachedDevices).toHaveLength(1)
@@ -230,11 +230,11 @@ describe('K1DiscoveryService', () => {
 
       // First discovery
       mockDiscover.mockResolvedValue([initialDevice])
-      await service.discoverDevices()
+      await service.discoverDevices({ preferredMethods: ['mdns'] })
 
       // Second discovery with updated info
       mockDiscover.mockResolvedValue([updatedDevice])
-      await service.discoverDevices()
+      await service.discoverDevices({ preferredMethods: ['mdns'] })
 
       const cachedDevices = service.getDiscoveredDevices()
       expect(cachedDevices).toHaveLength(1)
@@ -255,7 +255,7 @@ describe('K1DiscoveryService', () => {
       }
 
       mockDiscover.mockResolvedValue([mockDevice])
-      await service.discoverDevices()
+      await service.discoverDevices({ preferredMethods: ['mdns'] })
 
       // Get by ID
       const deviceById = service.getDevice('k1-001')
@@ -400,7 +400,7 @@ describe('K1DiscoveryService', () => {
       service.on('devices-found', foundSpy)
       service.on('discovery-completed', completedSpy)
 
-      await service.discoverDevices()
+      await service.discoverDevices({ preferredMethods: ['mdns'] })
 
       expect(startedSpy).toHaveBeenCalledTimes(1)
       expect(foundSpy).toHaveBeenCalledWith(mockDevices)
@@ -444,7 +444,7 @@ describe('K1DiscoveryService', () => {
       const updatedSpy = vi.fn()
       service.on('device-updated', updatedSpy)
 
-      await service.discoverDevices()
+      await service.discoverDevices({ preferredMethods: ['mdns'] })
 
       expect(updatedSpy).toHaveBeenCalledWith(mockDevice)
     })
