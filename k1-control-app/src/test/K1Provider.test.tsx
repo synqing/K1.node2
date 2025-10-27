@@ -155,7 +155,7 @@ describe('K1Provider', () => {
       const connectBtn = screen.getByTestId('connect-btn')
       
       await act(async () => {
-        await userEvent.click(connectBtn)
+        await user.click(connectBtn)
       })
       
       expect(screen.getByTestId('connection-state')).toHaveTextContent('connecting')
@@ -179,7 +179,7 @@ describe('K1Provider', () => {
       const connectBtn = screen.getByTestId('connect-btn')
       
       await act(async () => {
-        await userEvent.click(connectBtn)
+        await user.click(connectBtn)
       })
       
       expect(screen.getByTestId('connection-state')).toHaveTextContent('connecting')
@@ -202,7 +202,7 @@ describe('K1Provider', () => {
       // First connect
       const connectBtn = screen.getByTestId('connect-btn')
       await act(async () => {
-        await userEvent.click(connectBtn)
+        await user.click(connectBtn)
       })
       
       act(() => {
@@ -216,7 +216,7 @@ describe('K1Provider', () => {
       // Then disconnect
       const disconnectBtn = screen.getByTestId('disconnect-btn')
       await act(async () => {
-        await userEvent.click(disconnectBtn)
+        await user.click(disconnectBtn)
       })
       
       act(() => {
@@ -239,7 +239,7 @@ describe('K1Provider', () => {
       // Connect first
       const connectBtn = screen.getByTestId('connect-btn')
       await act(async () => {
-        await userEvent.click(connectBtn)
+        await user.click(connectBtn)
       })
       
       act(() => {
@@ -279,7 +279,7 @@ describe('K1Provider', () => {
       // Start reconnection manually
       const startReconnectBtn = screen.getByTestId('start-reconnect-btn')
       await act(async () => {
-        await userEvent.click(startReconnectBtn)
+        await user.click(startReconnectBtn)
       })
       
       expect(screen.getByTestId('reconnect-active')).toHaveTextContent('true')
@@ -313,13 +313,13 @@ describe('K1Provider', () => {
       const stopReconnectBtn = screen.getByTestId('stop-reconnect-btn')
       
       await act(async () => {
-        await userEvent.click(startReconnectBtn)
+        await user.click(startReconnectBtn)
       })
       
       expect(screen.getByTestId('reconnect-active')).toHaveTextContent('true')
       
       await act(async () => {
-        await userEvent.click(stopReconnectBtn)
+        await user.click(stopReconnectBtn)
       })
       
       expect(screen.getByTestId('reconnect-active')).toHaveTextContent('false')
@@ -334,7 +334,7 @@ describe('K1Provider', () => {
       // Connect first
       const connectBtn = screen.getByTestId('connect-btn')
       await act(async () => {
-        await userEvent.click(connectBtn)
+        await user.click(connectBtn)
       })
       
       act(() => {
@@ -350,7 +350,7 @@ describe('K1Provider', () => {
       const updateParamsBtn = screen.getByTestId('update-params-btn')
       
       await act(async () => {
-        await userEvent.click(updateParamsBtn)
+        await user.click(updateParamsBtn)
       })
       
       act(() => {
@@ -365,7 +365,7 @@ describe('K1Provider', () => {
       const selectPatternBtn = screen.getByTestId('select-pattern-btn')
       
       await act(async () => {
-        await userEvent.click(selectPatternBtn)
+        await user.click(selectPatternBtn)
       })
       
       act(() => {
@@ -379,7 +379,7 @@ describe('K1Provider', () => {
       const setPaletteBtn = screen.getByTestId('set-palette-btn')
       
       await act(async () => {
-        await userEvent.click(setPaletteBtn)
+        await user.click(setPaletteBtn)
       })
       
       act(() => {
@@ -395,7 +395,7 @@ describe('K1Provider', () => {
       const updateParamsBtn = screen.getByTestId('update-params-btn')
       
       await act(async () => {
-        await userEvent.click(updateParamsBtn)
+        await user.click(updateParamsBtn)
       })
       
       act(() => {
@@ -432,7 +432,7 @@ describe('K1Provider', () => {
       // Disconnect and reconnect
       const disconnectBtn = screen.getByTestId('disconnect-btn')
       await act(async () => {
-        await userEvent.click(disconnectBtn)
+        await user.click(disconnectBtn)
       })
       
       act(() => {

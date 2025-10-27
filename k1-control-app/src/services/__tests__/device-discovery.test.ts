@@ -10,6 +10,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DeviceDiscoveryAbstraction, NormalizedDevice, DiscoveryResult } from '../device-discovery';
+import { K1Client } from '../../api/k1-client';
 import { extractHostFromEndpoint, extractPortFromEndpoint, stripCredentialsFromEndpoint } from '../../utils/endpoint-validation';
 
 /**
@@ -806,6 +807,166 @@ describe('DeviceDiscoveryAbstraction', () => {
           expect(result).not.toContain(forbidden);
         }
       }
+    });
+  });
+
+  // ============================================================================
+  // PROMISE QUEUE VERIFICATION
+  // ============================================================================
+
+  describe('Promise Queue Management', () => {
+    it('should resolve ALL pending promises when debounce fires', async () => {
+      // Arrange: Setup rapid calls scenario
+      discovery.setDebounceDelay(50);
+
+      // Mock K1Client to fail so we use the discovery service
+      vi.spyOn(K1Client, 'discover').mockRejectedValue(new Error('K1Client unavailable'));
+
+      // Mock the discovery service to track actual discovery calls
+      const discoverySpy = vi.spyOn(
+        discovery['_discoveryService'],
+        'discoverDevices'
+      ).mockResolvedValue({
+        devices: [
+          {
+            id: 'k1-001',
+            name: 'K1 Device',
+            ip: '192.168.1.100',
+            port: 80,
+            mac: 'AA:BB:CC:DD:EE:FF',
+            firmware: '1.0.0',
+            lastSeen: new Date(),
+            discoveryMethod: 'mdns' as const,
+          },
+        ],
+        method: 'mdns' as const,
+        duration: 10,
+      });
+
+      // Act: Make 5 rapid discover() calls
+      const promises = Array.from({ length: 5 }, () => discovery.discover());
+
+      // Track which promises resolved
+      let resolvedCount = 0;
+      promises.forEach(p => p.then(() => resolvedCount++));
+
+      // Wait for all promises
+      const results = await Promise.all(promises);
+
+      // Assert: ALL 5 promises should resolve (no leaks)
+      expect(resolvedCount).toBe(5);
+      expect(discoverySpy).toHaveBeenCalledTimes(1); // But only ONE actual discovery call
+
+      // All should get same result
+      results.forEach(result => {
+        expect(result.devices.length).toBe(1);
+        expect(result.devices[0].id).toBe('AA:BB:CC:DD:EE:FF');
+      });
+    });
+
+    it('should clear promise queue after resolution', async () => {
+      // Arrange
+      discovery.setDebounceDelay(50);
+      discovery['_discoveryService'].discoverDevices = vi.fn(async () => ({
+        devices: [],
+        method: 'mdns' as const,
+        duration: 10,
+      }));
+
+      // Act: First batch of calls
+      const batch1 = Array.from({ length: 3 }, () => discovery.discover());
+      await Promise.all(batch1);
+
+      // Verify queue is cleared
+      expect(discovery['_pendingResolvers'].length).toBe(0);
+
+      // Second batch should work independently
+      const batch2 = Array.from({ length: 3 }, () => discovery.discover());
+      await Promise.all(batch2);
+
+      expect(discovery['_pendingResolvers'].length).toBe(0);
+    });
+
+    it('should handle promise queue during error conditions', async () => {
+      // Arrange
+      discovery.setDebounceDelay(50);
+
+      // Mock both to fail
+      vi.spyOn(K1Client, 'discover').mockRejectedValue(new Error('K1Client failed'));
+      vi.spyOn(
+        discovery['_discoveryService'],
+        'discoverDevices'
+      ).mockRejectedValue(new Error('Discovery failed'));
+
+      // Act: Make 3 rapid calls
+      const promises = Array.from({ length: 3 }, () => discovery.discover());
+
+      // Wait for all to resolve (with error result)
+      const results = await Promise.all(promises);
+
+      // Assert: All should get error result
+      results.forEach(result => {
+        expect(result.hasErrors).toBe(true);
+        expect(result.devices.length).toBe(0);
+        expect(result.errors?.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should not leak promises (all should resolve)', async () => {
+      // Arrange
+      discovery.setDebounceDelay(50);
+      discovery['_discoveryService'].discoverDevices = vi.fn(async () => ({
+        devices: [],
+        method: 'mdns' as const,
+        duration: 10,
+      }));
+
+      let resolvedCount = 0;
+
+      // Act: Make 100 rapid calls
+      const promises = Array.from({ length: 100 }, () =>
+        discovery.discover().then(() => {
+          resolvedCount++;
+        })
+      );
+
+      // Wait for all to complete
+      await Promise.all(promises);
+
+      // Assert: ALL 100 promises must resolve (no leaks)
+      expect(resolvedCount).toBe(100);
+      expect(discovery['_pendingResolvers'].length).toBe(0);
+    });
+
+    it('should resolve all pending promises when cancelled', async () => {
+      // Arrange
+      discovery.setDebounceDelay(500); // Long delay so we can cancel
+      vi.spyOn(
+        discovery['_discoveryService'],
+        'discoverDevices'
+      ).mockResolvedValue({
+        devices: [],
+        method: 'mdns' as const,
+        duration: 10,
+      });
+
+      // Act: Make multiple rapid calls
+      const promises = Array.from({ length: 5 }, () => discovery.discover());
+
+      // Cancel before debounce fires
+      setTimeout(() => discovery.cancel(), 100);
+
+      // Wait for all to resolve (with cancelled result)
+      const results = await Promise.all(promises);
+
+      // Assert: All should be cancelled
+      results.forEach(result => {
+        expect(result.cancelled).toBe(true);
+        expect(result.hasErrors).toBe(true);
+        expect(result.errors?.[0]).toContain('cancelled');
+      });
+
+      expect(discovery['_pendingResolvers'].length).toBe(0);
     });
   });
 });

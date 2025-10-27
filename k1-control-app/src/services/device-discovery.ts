@@ -74,6 +74,7 @@ export class DeviceDiscoveryAbstraction {
   private _discoveryCache = new Map<string, NormalizedDevice>();
   private _lastDiscovery: DiscoveryResult | null = null;
   private _isDiscoveryInProgress = false; // Prevent concurrent discovery scans
+  private _pendingResolvers: Array<(result: DiscoveryResult) => void> = []; // Queue of promise resolvers
 
   // Cache management configuration
   private _maxCacheSize = 100; // Maximum devices to cache
@@ -152,25 +153,37 @@ export class DeviceDiscoveryAbstraction {
         return resolve(cachedResult);
       }
 
+      // Add this resolver to the pending queue (FIX: was losing previous promises)
+      this._pendingResolvers.push(resolve);
+
       // Debounce if a discovery is already pending
       if (this._debounceTimer) {
         clearTimeout(this._debounceTimer);
       }
 
       this._debounceTimer = setTimeout(async () => {
+        // Capture all pending resolvers atomically and clear queue
+        const resolvers = [...this._pendingResolvers];
+        this._pendingResolvers = [];
+
         // Guard against concurrent discoveries
         if (this._isDiscoveryInProgress) {
           if (this._lastDiscovery) {
-            return resolve(this._lastDiscovery);
+            // Resolve all pending promises with cached result
+            resolvers.forEach(r => r(this._lastDiscovery!));
+          } else {
+            // No cached result, return error to all
+            const errorResult: DiscoveryResult = {
+              devices: [],
+              method: 'hybrid',
+              duration: 0,
+              errors: ['Discovery already in progress'],
+              hasErrors: true,
+              cancelled: true,
+            };
+            resolvers.forEach(r => r(errorResult));
           }
-          return resolve({
-            devices: [],
-            method: 'hybrid',
-            duration: 0,
-            errors: ['Discovery already in progress'],
-            hasErrors: true,
-            cancelled: true,
-          });
+          return;
         }
 
         this._isDiscoveryInProgress = true;
@@ -235,19 +248,24 @@ export class DeviceDiscoveryAbstraction {
           };
 
           this._lastDiscovery = discoveryResult;
-          this._isDiscoveryInProgress = false;
-          resolve(discoveryResult);
+
+          // Resolve ALL pending promises with the same result
+          resolvers.forEach(resolver => resolver(discoveryResult));
         } catch (err) {
-          this._isDiscoveryInProgress = false;
           const errorMessage = err instanceof Error ? err.message : String(err);
-          resolve({
+          const errorResult: DiscoveryResult = {
             devices: [],
             method: 'hybrid',
             duration: 0,
             errors: [errorMessage],
             hasErrors: true,
             cancelled: false,
-          });
+          };
+
+          // Resolve ALL pending promises with error result
+          resolvers.forEach(resolver => resolver(errorResult));
+        } finally {
+          this._isDiscoveryInProgress = false;
         }
       }, this._debounceMs);
     });
@@ -258,6 +276,20 @@ export class DeviceDiscoveryAbstraction {
    */
   cancel(): void {
     this._isDiscoveryInProgress = false;
+
+    // Resolve all pending promises with cancelled result
+    const cancelledResult: DiscoveryResult = {
+      devices: [],
+      method: 'hybrid',
+      duration: 0,
+      errors: ['Discovery cancelled by user'],
+      hasErrors: true,
+      cancelled: true,
+    };
+
+    this._pendingResolvers.forEach(resolver => resolver(cancelledResult));
+    this._pendingResolvers = [];
+
     if (this._abortController) {
       this._abortController.abort();
     }
