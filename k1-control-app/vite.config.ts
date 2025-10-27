@@ -22,6 +22,18 @@ import { defineConfig } from 'vite';
       overlay: false, // Disable error overlay to reduce visual noise
     },
   },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+    // Enable fetch for integration tests
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
+  },
   // Reduce console noise in development
   logLevel: 'warn',
 });
