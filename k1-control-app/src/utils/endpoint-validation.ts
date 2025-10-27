@@ -211,8 +211,15 @@ export function validateEndpoint(input: string): ValidationResult {
  * // "[fe80::1]"
  */
 export function extractHostFromEndpoint(endpoint: string): string {
-  const url = new URL(endpoint);
-  return url.hostname.startsWith('[') ? `[${url.hostname}]` : url.hostname;
+  try {
+    const url = new URL(endpoint);
+    return url.hostname.startsWith('[') ? `[${url.hostname}]` : url.hostname;
+  } catch {
+    // Fallback for malformed URLs: return endpoint as-is or extract host manually
+    // This should only happen if validateEndpoint wasn't called first
+    const match = endpoint.match(/(?:https?:\/\/)?([^\/:]+)/);
+    return match ? match[1] : endpoint;
+  }
 }
 
 /**
@@ -227,8 +234,14 @@ export function extractHostFromEndpoint(endpoint: string): string {
  * // "8443"
  */
 export function extractPortFromEndpoint(endpoint: string): string {
-  const url = new URL(endpoint);
-  return url.port || (url.protocol === 'https:' ? '443' : '80');
+  try {
+    const url = new URL(endpoint);
+    return url.port || (url.protocol === 'https:' ? '443' : '80');
+  } catch {
+    // Fallback for malformed URLs
+    const match = endpoint.match(/:(\d+)/);
+    return match ? match[1] : '80';
+  }
 }
 
 /**
@@ -275,5 +288,24 @@ export function sanitizeEndpointForDisplay(endpoint: string): string {
     return `${url.protocol}//${url.host}`;
   } catch {
     return endpoint;
+  }
+}
+
+/**
+ * Strip credentials from an endpoint URL
+ * Removes username:password@ from URLs before storage/display
+ *
+ * @example
+ * stripCredentialsFromEndpoint("http://user:pass@192.168.1.1:8080")
+ * // "http://192.168.1.1:8080"
+ */
+export function stripCredentialsFromEndpoint(endpoint: string): string {
+  try {
+    const url = new URL(endpoint);
+    // Reconstruct URL without credentials
+    return `${url.protocol}//${url.host}${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    // Fallback: use regex to remove user:pass@
+    return endpoint.replace(/^(https?:\/\/)([^@]+@)(.+)$/, '$1$3');
   }
 }

@@ -34,7 +34,7 @@ export function useAutoReconnect(config: AutoReconnectConfig = {}) {
   // Resolve config with defaults
   const baseDelay = config.baseDelay ?? K1_DEFAULTS.RECONNECT.BASE_DELAY;
   const maxDelay = config.maxDelay ?? K1_DEFAULTS.RECONNECT.MAX_DELAY;
-  const jitterPercent = config.jitterPercent ?? K1_DEFAULTS.RECONNECT.JITTER_PERCENT;
+  const jitterPercent = Math.max(0, Math.min(100, config.jitterPercent ?? K1_DEFAULTS.RECONNECT.JITTER_PERCENT));
   const maxAttempts = config.maxAttempts ?? K1_DEFAULTS.RECONNECT.MAX_ATTEMPTS;
   const autoStart = config.autoStart ?? true;
 

@@ -14,7 +14,7 @@ import { Loader2, AlertCircle, RefreshCw, Star } from 'lucide-react';
 import { useK1State, useK1Actions } from '../providers/K1Provider';
 import { useAutoReconnect } from '../hooks/useAutoReconnect';
 import { getDeviceDiscovery } from '../services/device-discovery';
-import { validateEndpoint } from '../utils/endpoint-validation';
+import { validateEndpoint, stripCredentialsFromEndpoint } from '../utils/endpoint-validation';
 import { K1_STORAGE_KEYS } from '../types/k1-types';
 
 /**
@@ -81,8 +81,9 @@ export function DeviceManager() {
 
       try {
         await k1Actions.connect(validation.normalizedEndpoint!);
-        // Persist endpoint on successful connection
-        localStorage.setItem(K1_STORAGE_KEYS.ENDPOINT, validation.normalizedEndpoint!);
+        // Persist endpoint on successful connection (strip credentials for security)
+        const safeEndpoint = stripCredentialsFromEndpoint(validation.normalizedEndpoint!);
+        localStorage.setItem(K1_STORAGE_KEYS.ENDPOINT, safeEndpoint);
         setManualEndpoint('');
       } catch (error) {
         console.error('[DeviceManager] Manual connection failed:', error);
@@ -122,8 +123,9 @@ export function DeviceManager() {
       const endpoint = `http://${device.ip}:${device.port}`;
       try {
         await k1Actions.connect(endpoint);
-        // Persist endpoint
-        localStorage.setItem(K1_STORAGE_KEYS.ENDPOINT, endpoint);
+        // Persist endpoint (strip credentials for security)
+        const safeEndpoint = stripCredentialsFromEndpoint(endpoint);
+        localStorage.setItem(K1_STORAGE_KEYS.ENDPOINT, safeEndpoint);
         // Stop any ongoing reconnection attempts since we're now connected
         if (autoReconnect.isReconnecting) {
           autoReconnect.stop();
