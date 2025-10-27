@@ -67,6 +67,36 @@ Targets:
   - Default JSON path (when `--json-out` is not provided): `./metrics/graph.metrics.json`
   - Ensures parent directories exist; overwrites existing file.
 
+### Betweenness Controls
+
+- `--betweenness-samples <N>`: number of sample source nodes to evaluate.
+- `--betweenness-domain <selector>`: select sampling pool. Supported selectors:
+  - `all`: all nodes
+  - `layer0`: only nodes from layer 0 in layered DAGs
+  - `layer:<L>`: only nodes from explicit layer index `<L>` (0-based) in layered DAGs
+  - `layers:<L1-L2>`: nodes from an inclusive range of layers `[L1..L2]`
+  - `even` / `odd`: nodes from even/odd indexed layers (0-based)
+  - `layers:<L1-L2>:step:<k>`: nodes from `[L1..L2]` sampled with step `k` across layers
+  - `middle`: nodes from the middle layer (odd) or the two middle layers (even)
+  - `custom:<path>`: nodes listed in a JSON file (array of node ids)
+  - `quantile:<q1-q2>`: layers selected by quantile range `[q1..q2]` over `[0,1]` (requires layered hints)
+  - `quantile:<q1-q2>:step:<k>`: like `quantile`, but only every `k`th layer across the band
+  - `layer_quantile:<width|outdeg|indeg|outdeg_median|indeg_median>:<q1-q2>`: select layers whose metric lies within the `[q1..q2]` quantile band across layers (requires layered hints). Median variants compute per-layer medians of node degrees instead of averages.
+  - `layer_rank:<metric>:<top|bottom>:<k>`: select the `k` layers with highest/lowest values of `<metric>` (`width|outdeg|indeg|outdeg_median|indeg_median`) (requires layered hints)
+- `--betweenness-top-k <N>`: report only top‑`N` nodes by score.
+- `--betweenness-normalize`: normalize scores (shortcut).
+- `--betweenness-normalize-scheme <scheme>`: choose normalization scheme:
+  - `directed`: standard directed Brandes normalization (default when `--betweenness-normalize` is set without a scheme)
+  - `max`: normalize by maximum observed betweenness score within the computed set
+  - `none`: no normalization
+  - `domain_avg`: normalize by average score of the selected domain pool
+  - `layer_max`: normalize by per‑layer maximum (requires layered hints)
+  - `zscore`: standard z‑score `(v - mean) / stddev`
+  - `domain_minmax`: min/max over the selected domain pool (maps to `[0,1]`)
+  - `minmax_layer`: per‑layer min/max (each layer independently scaled to `[0,1]`)
+  - `robust_zscore`: robust z‑score using median and MAD (`1.4826 * MAD`) to reduce outlier influence
+- `--betweenness-seed <int>`: seed for randomized sampling to enable reproducibility.
+
 Actions:
 - Generates layered DAG with given `layers` and `width`.
 - Runs Kahn’s `topo_sort` and times it (milliseconds).
@@ -76,6 +106,17 @@ Example:
 ```
 ./host/libgraph/build/k1_graph_bench 12 34 --json-out host/libgraph/build/metrics/graph.metrics.json
 ```
+
+Examples with betweenness:
+
+- Deterministic across all nodes with top‑k:
+  `./host/libgraph/build/k1_graph_bench --layers 12 --width 34 --betweenness-samples 32 --betweenness-domain all --betweenness-top-k 10 --metrics host/libgraph/build/graph.metrics.json --out host/libgraph/build/bench.topo.json`
+
+- Randomized from layer‑0 with directed normalization:
+  `./host/libgraph/build/k1_graph_bench --layers 12 --width 34 --betweenness-samples 16 --betweenness-domain layer0 --betweenness-normalize-scheme directed --betweenness-seed 42 --metrics host/libgraph/build/graph.metrics.json --out host/libgraph/build/bench.topo.json`
+
+- Target explicit layer with max‑score normalization:
+  `./host/libgraph/build/k1_graph_bench --layers 10 --width 8 --betweenness-samples 10 --betweenness-domain layer:2 --betweenness-top-k 4 --betweenness-normalize-scheme max --betweenness-seed 123 --metrics host/libgraph/build/graph.metrics.json --out host/libgraph/build/bench.topo.json`
 
 ## JSON Metrics Schema
 
@@ -128,10 +169,130 @@ All fields are present for layered DAGs. Types shown as JSON types; numeric valu
   - `avg_shortest_distance_to_sinks_by_layer` (array[number])
 
 - Degree Centrality Approximations
+  
+### Betweenness Metrics Fields
+
+- `betweenness_sample_count` (number): number of samples used.
+- `betweenness_domain` (string): domain used (`all`, `layer0`, `layer:<L>`).
+- `betweenness_top_k` (number): top‑k size when truncating output.
+- `betweenness_normalized` (boolean): whether normalization was applied.
+- `betweenness_normalization_scheme` (string): one of `directed`, `max`, `none`, `domain_avg`, `layer_max`, `zscore`, `domain_minmax`, `minmax_layer`, `robust_zscore`.
+- `betweenness_sampling` (string): `random` or `deterministic`.
+- `betweenness_ms` (number): computation time in milliseconds; also printed by CLI as `Betweenness time: <ms> ms`.
+- `betweenness_seed` (number): seed used when random sampling.
+- `betweenness_top_nodes` (array[object]): top nodes with `{ node, score }`.
   - `layer_out_degree_centrality_avg` (array[number]): per‑layer normalized (`out_degree / width`)
   - `layer_in_degree_centrality_avg` (array[number]): per‑layer normalized (`in_degree / width`)
   - `global_out_degree_centrality_avg` (number): node‑weighted average over layers
   - `global_in_degree_centrality_avg` (number): node‑weighted average over layers
+
+## Domain Selector Reference
+
+This section provides detailed semantics, syntax, examples, and caveats for advanced selectors.
+
+### Quantile Layer Band
+
+- Syntax: `quantile:<q1-q2>`
+- Meaning: Select layers whose normalized index `i/(L-1)` lies within `[q1..q2]`.
+- Requirements: Layered hints available (the bench generator provides them).
+- Edge cases:
+  - Clamp `q1`, `q2` to `[0,1]`; if `q1 > q2`, the selector is invalid.
+  - Bands that resolve to an empty set will produce no samples.
+- Examples:
+  - `--betweenness-domain quantile:0.25-0.75` selects the middle half of layers.
+
+#### Quantile with Stride
+
+- Syntax: `quantile:<q1-q2>:step:<k>`
+- Meaning: Apply a stride `k` across the selected band; effectively sample every `k`‑th layer in the band.
+- Notes: Useful to reduce sampling density while maintaining spread across the band.
+- Examples:
+  - `--betweenness-domain quantile:0.2-0.8:step:2`
+
+### Layer Quantile by Metric
+
+- Syntax: `layer_quantile:<metric>:<q1-q2>`
+- Metrics:
+  - `width`: nodes per layer.
+  - `outdeg`: average out‑degree per layer.
+  - `indeg`: average in‑degree per layer.
+  - `outdeg_median`: median of node out‑degrees per layer.
+  - `indeg_median`: median of node in‑degrees per layer.
+- Meaning: Compute the chosen metric for each layer, rank layers, and select those falling into the `[q1..q2]` quantile band (inclusive).
+- Requirements: Layered hints available.
+- Behavior:
+  - When all layers have identical values for a metric (e.g., a fully bipartite DAG with uniform width), the band selection may include all or none depending on the band.
+  - Median variants provide robustness for skew or outliers in intra‑layer degree distributions.
+- Examples:
+  - `--betweenness-domain layer_quantile:outdeg:0.0-0.25` selects layers with the lowest quartile of average out‑degree.
+  - `--betweenness-domain layer_quantile:indeg_median:0.0-0.0` selects only layers achieving the minimum median in‑degree.
+
+### Layer Rank (Top/Bottom‑K)
+
+- Syntax: `layer_rank:<metric>:<top|bottom>:<k>`
+- Meaning: Sort layers by `<metric>` and take the top or bottom `k` layers.
+- Metrics: `width|outdeg|indeg|outdeg_median|indeg_median`.
+- Requirements: Layered hints available.
+- Tie handling: Stable selection by layer index when metric values tie.
+- Examples:
+  - `--betweenness-domain layer_rank:outdeg:top:2` selects the two layers with largest average out‑degree.
+  - `--betweenness-domain layer_rank:indeg_median:bottom:1` selects the layer with the lowest median in‑degree.
+
+## Normalization Scheme Reference
+
+This section summarizes how each normalization transforms scores, when to use it, and caveats.
+
+- `none`: Raw betweenness scores. Use for absolute comparisons within a fixed graph.
+- `directed`: Brandes directed normalization; scales relative to graph size and directed paths.
+- `max`: Divide by the maximum observed score across the computed set (maps max to 1.0).
+- `domain_avg`: Divide by average score of the selected domain pool to highlight relative influence.
+- `layer_max`: Divide by per‑layer maximum; emphasizes in‑layer prominence. Requires layered hints.
+- `zscore`: `(v - mean) / stddev` over the selected set; highlights deviations from the mean.
+- `domain_minmax`: `(v - min) / (max - min)` over the selected set; maps to `[0,1]`.
+- `minmax_layer`: Applies `domain_minmax` independently per layer; each layer maps to `[0,1]`. Requires layered hints.
+- `robust_zscore`: `(v - median) / (1.4826 * MAD)` over the selected set; resilient to outliers and skew.
+
+### Choosing a Scheme
+
+- Use `minmax_layer` when cross‑layer distributions differ substantially, but within‑layer comparisons matter.
+- Use `robust_zscore` for heavy‑tailed or skewed domains where outliers would dominate `zscore`.
+- Use `domain_minmax` or `max` when communicating normalized influence to UI elements that assume `[0,1]` ranges.
+
+## End‑to‑End Examples
+
+Compute betweenness over the middle band of layers with stride, robust normalization, and top‑k reporting:
+
+```bash
+./host/libgraph/build/k1_graph_bench 60 500 \
+  --betweenness-samples 32 \
+  --betweenness-domain quantile:0.25-0.75:step:2 \
+  --betweenness-normalize-scheme robust_zscore \
+  --betweenness-top-k 6 \
+  --json-out metrics/graph.metrics.json
+```
+
+Select top 2 layers by out‑degree and scale scores using `domain_minmax`:
+
+```bash
+./host/libgraph/build/k1_graph_bench 60 500 \
+  --betweenness-domain layer_rank:outdeg:top:2 \
+  --betweenness-normalize-scheme domain_minmax \
+  --betweenness-top-k 6 \
+  --json-out metrics/graph.metrics.json
+```
+
+Pick layers by the lowest quantile of median in‑degree and standardize using `zscore`:
+
+```bash
+./host/libgraph/build/k1_graph_bench 60 500 \
+  --betweenness-domain layer_quantile:indeg_median:0.0-0.25 \
+  --betweenness-normalize-scheme zscore \
+  --json-out metrics/graph.metrics.json
+```
+
+## Layer Hints and CLI Warnings
+
+Selectors that operate across layers (`quantile`, `layer_quantile`, `layer_rank`, `layer_max`, `minmax_layer`) require the bench to be generating a layered DAG (i.e., supplying `layers` and `width`). The CLI emits a warning if a layered selector is used without layer hints. When using custom graphs outside the bench’s generator, ensure equivalent layer metadata is available or avoid layer‑dependent selectors.
 
 ## Using the Library
 

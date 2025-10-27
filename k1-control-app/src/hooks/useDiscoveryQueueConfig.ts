@@ -66,8 +66,11 @@ export function useDiscoveryQueueConfig(): DiscoveryQueueConfigHook {
 /**
  * Hook for accessing discovery queue configuration with real-time updates
  * Use this version if you need live updates to method statistics
+ * @param refreshMs - Polling interval in milliseconds (minimum 1000ms, default 5000ms)
  */
 export function useDiscoveryQueueConfigLive(refreshMs: number = 5000): DiscoveryQueueConfigHook {
+  // Validate refresh interval (minimum 1000ms for config updates)
+  const validatedRefreshMs = Math.max(1000, refreshMs);
   const [data, setData] = useState<DiscoveryQueueConfigHook>({
     config: null,
     methodStats: null,
@@ -107,7 +110,7 @@ export function useDiscoveryQueueConfigLive(refreshMs: number = 5000): Discovery
     updateConfig();
 
     // Set up polling interval (less frequent than metrics)
-    intervalId = setInterval(updateConfig, refreshMs);
+    intervalId = setInterval(updateConfig, validatedRefreshMs);
 
     // Cleanup on unmount
     return () => {
@@ -115,7 +118,7 @@ export function useDiscoveryQueueConfigLive(refreshMs: number = 5000): Discovery
         clearInterval(intervalId);
       }
     };
-  }, [refreshMs]);
+  }, [validatedRefreshMs]);
 
   return data;
 }

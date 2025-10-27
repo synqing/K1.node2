@@ -131,7 +131,7 @@ CMAKE_PROJECT_DESCRIPTION:STATIC=
 CMAKE_PROJECT_HOMEPAGE_URL:STATIC=
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=k1_libgraph
+CMAKE_PROJECT_NAME:STATIC=k1_graph
 
 //Value Computed by CMake
 CMAKE_PROJECT_VERSION:STATIC=
@@ -212,6 +212,21 @@ CMAKE_TAPI:FILEPATH=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeD
 // during the make.  This is useful for debugging only. With Visual
 // Studio IDE projects all commands are done without /nologo.
 CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
+
+//Build k1_graph bench tools
+K1_GRAPH_BUILD_BENCH:BOOL=ON
+
+//Build k1_graph tests
+K1_GRAPH_BUILD_TESTS:BOOL=ON
+
+//Value Computed by CMake
+k1_graph_BINARY_DIR:STATIC=/Users/spectrasynq/Workspace_Management/Software/K1.reinvented/host/libgraph/build
+
+//Value Computed by CMake
+k1_graph_IS_TOP_LEVEL:STATIC=ON
+
+//Value Computed by CMake
+k1_graph_SOURCE_DIR:STATIC=/Users/spectrasynq/Workspace_Management/Software/K1.reinvented/host/libgraph
 
 //Value Computed by CMake
 k1_libgraph_BINARY_DIR:STATIC=/Users/spectrasynq/Workspace_Management/Software/K1.reinvented/host/libgraph/build

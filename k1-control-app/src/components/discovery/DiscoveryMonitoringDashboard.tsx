@@ -225,10 +225,11 @@ const MethodPerformancePanel: React.FC<MethodPerformancePanelProps> = ({ methodM
             <Bar dataKey="avgDuration" fill="#2196F3" name="Avg Duration (ms)" />
           </BarChart>
         </ResponsiveContainer>
+        </div>
       ) : (
         <div className="no-data">No method performance data available</div>
       )}
-    </div>
+    </section>
   );
 };
 

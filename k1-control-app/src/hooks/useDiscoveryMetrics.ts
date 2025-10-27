@@ -26,8 +26,11 @@ export interface DiscoveryMetricsHook {
 
 /**
  * Hook for accessing discovery metrics with real-time updates
+ * @param refreshMs - Polling interval in milliseconds (minimum 100ms, default 1000ms)
  */
 export function useDiscoveryMetrics(refreshMs: number = 1000): DiscoveryMetricsHook {
+  // Validate refresh interval (minimum 100ms to prevent performance issues)
+  const validatedRefreshMs = Math.max(100, refreshMs);
   const [data, setData] = useState<DiscoveryMetricsHook>({
     methodMetrics: new Map(),
     history: [],
@@ -80,7 +83,7 @@ export function useDiscoveryMetrics(refreshMs: number = 1000): DiscoveryMetricsH
     updateMetrics();
 
     // Set up polling interval
-    intervalId = setInterval(updateMetrics, refreshMs);
+    intervalId = setInterval(updateMetrics, validatedRefreshMs);
 
     // Cleanup on unmount
     return () => {
@@ -88,7 +91,7 @@ export function useDiscoveryMetrics(refreshMs: number = 1000): DiscoveryMetricsH
         clearInterval(intervalId);
       }
     };
-  }, [refreshMs]);
+  }, [validatedRefreshMs]);
 
   return data;
 }

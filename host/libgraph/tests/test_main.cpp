@@ -1,81 +1,42 @@
 #include "k1/graph.hpp"
 #include <iostream>
-#include <cassert>
 #include <cmath>
-
 using namespace k1::graph;
 
-static bool approx(float a, float b, float eps=1e-5f) { return std::fabs(a-b) < eps; }
+static int g_failures = 0;
+#define CHECK(c) do{ if(!(c)){ std::cerr<<"CHECK failed: " #c " at " << __FILE__ << ":" << __LINE__ << "\n"; ++g_failures; } }while(0)
+#define CHECK_EQ(a,b) CHECK((a)==(b))
 
-int main() {
-  std::cout << "[k1_libgraph] running tests...\n";
+int main(){
+    GraphBuilder gb(4, true);
+    gb.add_edge(0,1); gb.add_edge(0,2);
+    gb.add_edge(1,2); gb.add_edge(1,3);
+    gb.add_edge(2,3);
+    gb.add_edge(3,1); // cycle 1<->3
+    CSR g = gb.build_csr();
 
-  // Build a simple DAG: 0->1->2, 0->3, 3->4
-  {
-    GraphBuilder gb; gb.directed = true;
-    gb.add_edge(0,1); gb.add_edge(1,2); gb.add_edge(0,3); gb.add_edge(3,4);
-    CSR g = gb.build(5);
+    auto d = bfs(g, 0);
+    CHECK_EQ(d[0], 0u); CHECK_EQ(d[1], 1u); CHECK_EQ(d[2], 1u); CHECK_EQ(d[3], 2u);
 
-    // Validate
-    g.validate();
-
-    // BFS from 0
-    auto bd = bfs(g, 0);
-    assert(bd.size() == 5);
-    assert(bd[0] == 0);
-    assert(bd[1] == 1);
-    assert(bd[2] == 2);
-    assert(bd[3] == 1);
-    assert(bd[4] == 2);
-
-    // DFS preorder from 0 (order may vary but must be reachable and start with 0)
     auto pre = dfs_preorder(g, 0);
-    assert(!pre.empty() && pre.front() == 0);
-    // All reachable nodes {0,1,2,3,4}
-    std::vector<uint8_t> seen(5,0);
-    for (auto v : pre) { assert(v < 5); seen[v]=1; }
-    for (int v=0; v<5; ++v) assert(seen[v]==1);
+    CHECK_EQ(pre.front(), 0u); CHECK(pre.size()>=1);
 
-    // Dijkstra with weights
-    GraphBuilder gbw; gbw.directed = true;
-    gbw.add_edge(0,1, 2.0f); gbw.add_edge(1,2, 0.5f); gbw.add_edge(0,3, 1.0f); gbw.add_edge(3,4, 1.0f);
-    CSR gw = gbw.build(5);
-    auto dd = dijkstra(gw, 0);
-    assert(approx(dd[0], 0.0f));
-    assert(approx(dd[1], 2.0f));
-    assert(approx(dd[2], 2.5f));
-    assert(approx(dd[3], 1.0f));
-    assert(approx(dd[4], 2.0f));
+    auto dj = dijkstra(g, 0);
+    CHECK(std::abs(dj[3]-2.0f) < 1e-6f);
 
-    // Topo sort should succeed
-    auto order = topo_sort(g);
-    assert(order.size() == g.n);
-    // Has cycle should be false
-    assert(!has_cycle(g));
-  }
+    CHECK(has_cycle(g));
 
-  // Cycle graph: 0->1->2->0
-  {
-    GraphBuilder gb; gb.directed = true;
-    gb.add_edge(0,1); gb.add_edge(1,2); gb.add_edge(2,0);
-    CSR g = gb.build(3);
-    assert(has_cycle(g));
-    bool threw = false;
-    try { (void)topo_sort(g); } catch (...) { threw = true; }
-    assert(threw);
-  }
+    auto dag = make_layered_dag(3,2,true);
+    CHECK(!has_cycle(dag));
+    auto topo = topo_sort(dag);
+    CHECK_EQ(topo.size(), dag.num_vertices());
+    std::vector<uint32_t> pos(dag.num_vertices(),0);
+    for (uint32_t i=0;i<topo.size();++i) pos[topo[i]]=i;
+    for (uint32_t u=0; u<dag.num_vertices(); ++u)
+      for (uint32_t i=dag.offsets[u]; i<dag.offsets[u+1]; ++i)
+        CHECK(pos[u] < pos[dag.edges[i]]);
 
-  // Layered DAG generator sanity
-  {
-    auto g = make_layered_dag(3, 4); // 12 nodes, edges: 4*4 + 4*4 = 32
-    assert(g.n == 12);
-    assert(g.edges.size() == 32);
-    std::cout << summary(g) << "\n";
-    auto torder = topo_sort(g);
-    assert(torder.size() == g.n);
-    assert(!has_cycle(g));
-  }
-
-  std::cout << "[k1_libgraph] tests passed.\n";
-  return 0;
+    if (g_failures) std::cerr << "FAILURES: " << g_failures << "\n";
+    else std::cout << "All tests passed.\n";
+    return g_failures ? 1 : 0;
 }

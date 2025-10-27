@@ -38,3 +38,43 @@ Outputs CSR size summary and topo-sort timing. Adjust to fit your RAM.
 - `GraphBuilder` — build CSR from edges; optional weights
 - `make_layered_dag(layers,width)` — synthetic DAG for scale tests
 - `summary(const CSR&) -> std::string` — quick metadata string
+
+## Betweenness Quick‑Start
+
+Run the bench with sampling, domains, and normalization:
+
+```bash
+# Middle band of layers with stride and robust normalization
+./build/k1_graph_bench 60 500 \
+  --betweenness-samples 32 \
+  --betweenness-domain quantile:0.25-0.75:step:2 \
+  --betweenness-normalize-scheme robust_zscore \
+  --betweenness-top-k 6 \
+  --json-out metrics/graph.metrics.json
+
+# Top 2 layers by out-degree; map scores to [0,1]
+./build/k1_graph_bench 60 500 \
+  --betweenness-domain layer_rank:outdeg:top:2 \
+  --betweenness-normalize-scheme domain_minmax \
+  --betweenness-top-k 6 \
+  --json-out metrics/graph.metrics.json
+
+# Lowest quantile of median in-degree with z-score
+./build/k1_graph_bench 60 500 \
+  --betweenness-domain layer_quantile:indeg_median:0.0-0.25 \
+  --betweenness-normalize-scheme zscore \
+  --json-out metrics/graph.metrics.json
+```
+
+Supported `--betweenness-domain` selectors:
+
+- `all`, `layer0`, `layer:<L>`, `layers:<L1-L2>`, `even`, `odd`, `layers:<L1-L2>:step:<k>`, `middle`, `custom:<path>`
+- `quantile:<q1-q2>`, `quantile:<q1-q2>:step:<k>`
+- `layer_quantile:<width|outdeg|indeg|outdeg_median|indeg_median>:<q1-q2>`
+- `layer_rank:<metric>:<top|bottom>:<k>`
+
+Supported `--betweenness-normalize-scheme`:
+
+- `none`, `directed`, `max`, `domain_avg`, `layer_max`, `zscore`, `domain_minmax`, `minmax_layer`, `robust_zscore`
+
+Note: Layer‑dependent selectors and schemes require a layered DAG (i.e., `layers` and `width`). The bench emits warnings if such selectors are used without layer hints.

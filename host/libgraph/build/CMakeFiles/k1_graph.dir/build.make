@@ -86,17 +86,33 @@ CMakeFiles/k1_graph.dir/src/graph.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/k1_graph.dir/src/graph.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/spectrasynq/Workspace_Management/Software/K1.reinvented/host/libgraph/src/graph.cpp -o CMakeFiles/k1_graph.dir/src/graph.cpp.s
 
+CMakeFiles/k1_graph.dir/src/graph_io.cpp.o: CMakeFiles/k1_graph.dir/flags.make
+CMakeFiles/k1_graph.dir/src/graph_io.cpp.o: /Users/spectrasynq/Workspace_Management/Software/K1.reinvented/host/libgraph/src/graph_io.cpp
+CMakeFiles/k1_graph.dir/src/graph_io.cpp.o: CMakeFiles/k1_graph.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/spectrasynq/Workspace_Management/Software/K1.reinvented/host/libgraph/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/k1_graph.dir/src/graph_io.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/k1_graph.dir/src/graph_io.cpp.o -MF CMakeFiles/k1_graph.dir/src/graph_io.cpp.o.d -o CMakeFiles/k1_graph.dir/src/graph_io.cpp.o -c /Users/spectrasynq/Workspace_Management/Software/K1.reinvented/host/libgraph/src/graph_io.cpp
+
+CMakeFiles/k1_graph.dir/src/graph_io.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/k1_graph.dir/src/graph_io.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/spectrasynq/Workspace_Management/Software/K1.reinvented/host/libgraph/src/graph_io.cpp > CMakeFiles/k1_graph.dir/src/graph_io.cpp.i
+
+CMakeFiles/k1_graph.dir/src/graph_io.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/k1_graph.dir/src/graph_io.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/spectrasynq/Workspace_Management/Software/K1.reinvented/host/libgraph/src/graph_io.cpp -o CMakeFiles/k1_graph.dir/src/graph_io.cpp.s
+
 # Object files for target k1_graph
 k1_graph_OBJECTS = \
-"CMakeFiles/k1_graph.dir/src/graph.cpp.o"
+"CMakeFiles/k1_graph.dir/src/graph.cpp.o" \
+"CMakeFiles/k1_graph.dir/src/graph_io.cpp.o"
 
 # External object files for target k1_graph
 k1_graph_EXTERNAL_OBJECTS =
 
 libk1_graph.a: CMakeFiles/k1_graph.dir/src/graph.cpp.o
+libk1_graph.a: CMakeFiles/k1_graph.dir/src/graph_io.cpp.o
 libk1_graph.a: CMakeFiles/k1_graph.dir/build.make
 libk1_graph.a: CMakeFiles/k1_graph.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/spectrasynq/Workspace_Management/Software/K1.reinvented/host/libgraph/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX static library libk1_graph.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/spectrasynq/Workspace_Management/Software/K1.reinvented/host/libgraph/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX static library libk1_graph.a"
 	$(CMAKE_COMMAND) -P CMakeFiles/k1_graph.dir/cmake_clean_target.cmake
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/k1_graph.dir/link.txt --verbose=$(VERBOSE)
 

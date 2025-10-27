@@ -153,6 +153,45 @@ k1_graph_tests/fast:
 .PHONY : k1_graph_tests/fast
 
 #=============================================================================
+# Target rules for targets named k1_graph_json_test
+
+# Build rule for target.
+k1_graph_json_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 k1_graph_json_test
+.PHONY : k1_graph_json_test
+
+# fast build rule for target.
+k1_graph_json_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_json_test.dir/build.make CMakeFiles/k1_graph_json_test.dir/build
+.PHONY : k1_graph_json_test/fast
+
+#=============================================================================
+# Target rules for targets named k1_graph_betweenness_test
+
+# Build rule for target.
+k1_graph_betweenness_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 k1_graph_betweenness_test
+.PHONY : k1_graph_betweenness_test
+
+# fast build rule for target.
+k1_graph_betweenness_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_betweenness_test.dir/build.make CMakeFiles/k1_graph_betweenness_test.dir/build
+.PHONY : k1_graph_betweenness_test/fast
+
+#=============================================================================
+# Target rules for targets named k1_graph_bench_json_test
+
+# Build rule for target.
+k1_graph_bench_json_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 k1_graph_bench_json_test
+.PHONY : k1_graph_bench_json_test
+
+# fast build rule for target.
+k1_graph_bench_json_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_bench_json_test.dir/build.make CMakeFiles/k1_graph_bench_json_test.dir/build
+.PHONY : k1_graph_bench_json_test/fast
+
+#=============================================================================
 # Target rules for targets named k1_graph_bench
 
 # Build rule for target.
@@ -189,6 +228,30 @@ src/graph.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph.dir/build.make CMakeFiles/k1_graph.dir/src/graph.cpp.s
 .PHONY : src/graph.cpp.s
 
+src/graph_io.o: src/graph_io.cpp.o
+.PHONY : src/graph_io.o
+
+# target to build an object file
+src/graph_io.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph.dir/build.make CMakeFiles/k1_graph.dir/src/graph_io.cpp.o
+.PHONY : src/graph_io.cpp.o
+
+src/graph_io.i: src/graph_io.cpp.i
+.PHONY : src/graph_io.i
+
+# target to preprocess a source file
+src/graph_io.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph.dir/build.make CMakeFiles/k1_graph.dir/src/graph_io.cpp.i
+.PHONY : src/graph_io.cpp.i
+
+src/graph_io.s: src/graph_io.cpp.s
+.PHONY : src/graph_io.s
+
+# target to generate assembly for a file
+src/graph_io.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph.dir/build.make CMakeFiles/k1_graph.dir/src/graph_io.cpp.s
+.PHONY : src/graph_io.cpp.s
+
 tests/bench_large.o: tests/bench_large.cpp.o
 .PHONY : tests/bench_large.o
 
@@ -212,6 +275,78 @@ tests/bench_large.s: tests/bench_large.cpp.s
 tests/bench_large.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_bench.dir/build.make CMakeFiles/k1_graph_bench.dir/tests/bench_large.cpp.s
 .PHONY : tests/bench_large.cpp.s
+
+tests/test_bench_betw_json.o: tests/test_bench_betw_json.cpp.o
+.PHONY : tests/test_bench_betw_json.o
+
+# target to build an object file
+tests/test_bench_betw_json.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_bench_json_test.dir/build.make CMakeFiles/k1_graph_bench_json_test.dir/tests/test_bench_betw_json.cpp.o
+.PHONY : tests/test_bench_betw_json.cpp.o
+
+tests/test_bench_betw_json.i: tests/test_bench_betw_json.cpp.i
+.PHONY : tests/test_bench_betw_json.i
+
+# target to preprocess a source file
+tests/test_bench_betw_json.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_bench_json_test.dir/build.make CMakeFiles/k1_graph_bench_json_test.dir/tests/test_bench_betw_json.cpp.i
+.PHONY : tests/test_bench_betw_json.cpp.i
+
+tests/test_bench_betw_json.s: tests/test_bench_betw_json.cpp.s
+.PHONY : tests/test_bench_betw_json.s
+
+# target to generate assembly for a file
+tests/test_bench_betw_json.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_bench_json_test.dir/build.make CMakeFiles/k1_graph_bench_json_test.dir/tests/test_bench_betw_json.cpp.s
+.PHONY : tests/test_bench_betw_json.cpp.s
+
+tests/test_betweenness.o: tests/test_betweenness.cpp.o
+.PHONY : tests/test_betweenness.o
+
+# target to build an object file
+tests/test_betweenness.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_betweenness_test.dir/build.make CMakeFiles/k1_graph_betweenness_test.dir/tests/test_betweenness.cpp.o
+.PHONY : tests/test_betweenness.cpp.o
+
+tests/test_betweenness.i: tests/test_betweenness.cpp.i
+.PHONY : tests/test_betweenness.i
+
+# target to preprocess a source file
+tests/test_betweenness.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_betweenness_test.dir/build.make CMakeFiles/k1_graph_betweenness_test.dir/tests/test_betweenness.cpp.i
+.PHONY : tests/test_betweenness.cpp.i
+
+tests/test_betweenness.s: tests/test_betweenness.cpp.s
+.PHONY : tests/test_betweenness.s
+
+# target to generate assembly for a file
+tests/test_betweenness.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_betweenness_test.dir/build.make CMakeFiles/k1_graph_betweenness_test.dir/tests/test_betweenness.cpp.s
+.PHONY : tests/test_betweenness.cpp.s
+
+tests/test_json_loader.o: tests/test_json_loader.cpp.o
+.PHONY : tests/test_json_loader.o
+
+# target to build an object file
+tests/test_json_loader.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_json_test.dir/build.make CMakeFiles/k1_graph_json_test.dir/tests/test_json_loader.cpp.o
+.PHONY : tests/test_json_loader.cpp.o
+
+tests/test_json_loader.i: tests/test_json_loader.cpp.i
+.PHONY : tests/test_json_loader.i
+
+# target to preprocess a source file
+tests/test_json_loader.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_json_test.dir/build.make CMakeFiles/k1_graph_json_test.dir/tests/test_json_loader.cpp.i
+.PHONY : tests/test_json_loader.cpp.i
+
+tests/test_json_loader.s: tests/test_json_loader.cpp.s
+.PHONY : tests/test_json_loader.s
+
+# target to generate assembly for a file
+tests/test_json_loader.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/k1_graph_json_test.dir/build.make CMakeFiles/k1_graph_json_test.dir/tests/test_json_loader.cpp.s
+.PHONY : tests/test_json_loader.cpp.s
 
 tests/test_main.o: tests/test_main.cpp.o
 .PHONY : tests/test_main.o
@@ -248,13 +383,28 @@ help:
 	@echo "... test"
 	@echo "... k1_graph"
 	@echo "... k1_graph_bench"
+	@echo "... k1_graph_bench_json_test"
+	@echo "... k1_graph_betweenness_test"
+	@echo "... k1_graph_json_test"
 	@echo "... k1_graph_tests"
 	@echo "... src/graph.o"
 	@echo "... src/graph.i"
 	@echo "... src/graph.s"
+	@echo "... src/graph_io.o"
+	@echo "... src/graph_io.i"
+	@echo "... src/graph_io.s"
 	@echo "... tests/bench_large.o"
 	@echo "... tests/bench_large.i"
 	@echo "... tests/bench_large.s"
+	@echo "... tests/test_bench_betw_json.o"
+	@echo "... tests/test_bench_betw_json.i"
+	@echo "... tests/test_bench_betw_json.s"
+	@echo "... tests/test_betweenness.o"
+	@echo "... tests/test_betweenness.i"
+	@echo "... tests/test_betweenness.s"
+	@echo "... tests/test_json_loader.o"
+	@echo "... tests/test_json_loader.i"
+	@echo "... tests/test_json_loader.s"
 	@echo "... tests/test_main.o"
 	@echo "... tests/test_main.i"
 	@echo "... tests/test_main.s"

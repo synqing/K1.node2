@@ -16,6 +16,11 @@ struct MetricsOptions {
     bool betweenness_normalize = false;   // normalize scores into [0,1]
     bool use_random_sampling = false;     // choose random sources
     uint32_t betweenness_seed = 0;        // valid when use_random_sampling=true
+    // Layered DAG hints to enable explicit layer selection
+    uint32_t layer_width = 0;             // width of each layer (only for layered DAGs)
+    uint32_t layer_count = 0;             // number of layers (only for layered DAGs)
+    // Normalization scheme: "none", "directed", or "max"
+    std::string betweenness_norm_scheme = "none";
 };
 
 // Metrics for dashboards/control UI.
@@ -36,6 +41,7 @@ struct Metrics {
     bool betweenness_randomized = false;
     uint32_t betweenness_seed = 0; // valid if randomized
     long long betweenness_ms = 0; // wall-clock time to compute betweenness
+    std::string betweenness_normalization_scheme; // recorded scheme
     std::vector<std::pair<uint32_t,double>> betweenness_top_nodes; // sorted desc by score
 };
 

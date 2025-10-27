@@ -27,8 +27,11 @@ export interface CacheStatsHook {
 
 /**
  * Hook for accessing cache statistics with real-time updates
+ * @param refreshMs - Polling interval in milliseconds (minimum 100ms, default 1000ms)
  */
 export function useCacheStats(refreshMs: number = 1000): CacheStatsHook {
+  // Validate refresh interval (minimum 100ms to prevent performance issues)
+  const validatedRefreshMs = Math.max(100, refreshMs);
   const [data, setData] = useState<CacheStatsHook>({
     size: 0,
     maxSize: 0,
@@ -58,14 +61,14 @@ export function useCacheStats(refreshMs: number = 1000): CacheStatsHook {
         const cacheMetrics = discoveryMetrics.getCacheMetrics();
 
         setData({
-          size: cacheConfig.currentSize,
-          maxSize: cacheConfig.maxSize,
-          ttlMs: cacheConfig.ttlMs,
+          size: Math.max(0, cacheConfig.currentSize),
+          maxSize: Math.max(1, cacheConfig.maxSize), // Prevent division by zero
+          ttlMs: Math.max(0, cacheConfig.ttlMs),
           devices: cachedDevices,
-          hitRate: cacheMetrics.hitRate,
-          totalHits: cacheMetrics.totalHits,
-          totalMisses: cacheMetrics.totalMisses,
-          totalEvictions: cacheMetrics.totalEvictions,
+          hitRate: Math.max(0, Math.min(1, cacheMetrics.hitRate)), // Clamp to 0-1
+          totalHits: Math.max(0, cacheMetrics.totalHits),
+          totalMisses: Math.max(0, cacheMetrics.totalMisses),
+          totalEvictions: Math.max(0, cacheMetrics.totalEvictions),
           loading: false,
           error: null,
         });
@@ -83,7 +86,7 @@ export function useCacheStats(refreshMs: number = 1000): CacheStatsHook {
     updateCacheStats();
 
     // Set up polling interval
-    intervalId = setInterval(updateCacheStats, refreshMs);
+    intervalId = setInterval(updateCacheStats, validatedRefreshMs);
 
     // Cleanup on unmount
     return () => {
@@ -91,7 +94,7 @@ export function useCacheStats(refreshMs: number = 1000): CacheStatsHook {
         clearInterval(intervalId);
       }
     };
-  }, [refreshMs]);
+  }, [validatedRefreshMs]);
 
   return data;
 }

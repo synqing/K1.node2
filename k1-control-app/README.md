@@ -57,3 +57,11 @@ Press **Alt+Shift+D** in development mode to access the DevDebugPanel:
 See [DEVELOPMENT.md](./DEVELOPMENT.md) for detailed debugging guide.
 
 Default K1 device URL: `http://192.168.1.100`
+
+### Betweenness Controls (Integration)
+
+For generating and inspecting graph betweenness metrics used by debug tooling and future overlays, see:
+
+- Guide: [docs/betweenness-controls.md](./docs/betweenness-controls.md)
+- Library reference: `host/libgraph/User_Guide.md`
+- Quick reference: `docs/resources/BETWEENNESS_CONTROLS_QUICK_REFERENCE.md`
