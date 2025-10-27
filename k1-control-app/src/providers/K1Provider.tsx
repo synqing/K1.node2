@@ -5,38 +5,22 @@ import {
   K1ProviderActions,
   K1ConnectionState,
   K1Error,
-  K1ErrorType,
   K1Parameters,
   K1DeviceInfo,
-  K1Transport,
   K1TelemetryState,
-  K1TelemetryHook,
-  K1ErrorSurfaceConfig,
-  // K1EventMap, // TODO: Will be used for WebSocket events in subtask 2.5
   K1_DEFAULTS,
-  K1_STORAGE_KEYS,
-  K1RealtimeData,
-  K1AudioData,
-  K1PerformanceData,
 } from '../types/k1-types';
-import { K1Telemetry, telemetryManager } from '../utils/telemetry-manager';
+import { K1Telemetry } from '../utils/telemetry-manager';
 import { sessionRecorder } from '../utils/session-recorder';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import {
   savePatternParameters,
   loadPatternParameters,
   savePatternPalette,
-  loadPatternPalette,
   saveEndpoint,
-  loadEndpoint,
-  safeSetItem,
-  safeGetItem,
-  addStorageListener,
-  migrateStorage,
-  cleanupStorage,
-  StorageChangeHandler,
 } from '../utils/persistence';
-import { isAbortError, setAbortLoggingEnabled } from '../utils/error-utils';
+import { setAbortLoggingEnabled } from '../utils/error-utils';
+import HMRDelayOverlay from '../components/debug/HMRDelayOverlay';
 
 // ============================================================================
 // PROVIDER STATE MANAGEMENT
@@ -187,25 +171,29 @@ function k1Reducer(state: K1ProviderState, action: K1Action): K1ProviderState {
       // Handle nested telemetry structure
       if (metric.includes('.')) {
         const [category, subMetric] = metric.split('.');
-        return {
-          ...state,
-          telemetry: {
-            ...state.telemetry,
-            [category]: {
-              ...state.telemetry[category as keyof typeof state.telemetry],
-              [subMetric]: (state.telemetry[category as keyof typeof state.telemetry] as any)[subMetric] + value,
+        const categoryData = state.telemetry[category as keyof typeof state.telemetry];
+        if (categoryData && typeof categoryData === 'object') {
+          return {
+            ...state,
+            telemetry: {
+              ...state.telemetry,
+              [category]: {
+                ...categoryData,
+                [subMetric]: ((categoryData as any)[subMetric] || 0) + value,
+              },
             },
-          },
-        };
+          };
+        }
       } else {
         return {
           ...state,
           telemetry: {
             ...state.telemetry,
-            [metric]: (state.telemetry as any)[metric] + value,
+            [metric]: ((state.telemetry as any)[metric] || 0) + value,
           },
         };
       }
+      return state;
     
     case 'UPDATE_TELEMETRY':
       return {
@@ -255,7 +243,7 @@ interface K1ProviderProps {
 
 export function K1Provider({ 
   children, 
-  initialEndpoint = '192.168.1.100',
+  initialEndpoint = '192.168.1.103',
   initialFeatureFlags = {},
   hmrDelayMs,
   devConfig,
@@ -274,13 +262,33 @@ export function K1Provider({
   const envDebugAbortsRaw = (import.meta as any).env?.VITE_K1_DEBUG_ABORTS ?? (import.meta as any).env?.VITE_DEBUG_ABORTS;
   const envDebugAborts = typeof envDebugAbortsRaw === 'string' ? (envDebugAbortsRaw.toLowerCase() === 'true' || envDebugAbortsRaw === '1') : undefined;
 
+  // URL/localStorage toggles
+  const urlDebugAborts = (() => {
+    try {
+      const raw = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('debugAborts') : null;
+      if (!raw) return undefined;
+      const v = raw.toLowerCase();
+      return v === 'true' || v === '1' ? true : (v === 'false' || v === '0' ? false : undefined);
+    } catch { return undefined; }
+  })();
+  const lsDebugAborts = (() => {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('k1.debugAborts') : null;
+      if (!raw) return undefined;
+      const v = raw.toLowerCase();
+      return v === 'true' || v === '1' ? true : (v === 'false' || v === '0' ? false : undefined);
+    } catch { return undefined; }
+  })();
+
   const resolvedHmrDelayMs = typeof (devConfig?.hmrDelayMs ?? hmrDelayMs) === 'number'
     ? (devConfig?.hmrDelayMs ?? hmrDelayMs)
     : (Number.isFinite(envHmrDelay as number) ? envHmrDelay : undefined);
 
   const resolvedDebugAborts = typeof devConfig?.debugAborts === 'boolean'
     ? devConfig?.debugAborts
-    : (typeof envDebugAborts === 'boolean' ? envDebugAborts : undefined);
+    : (typeof urlDebugAborts === 'boolean' ? urlDebugAborts
+      : (typeof lsDebugAborts === 'boolean' ? lsDebugAborts
+        : (typeof envDebugAborts === 'boolean' ? envDebugAborts : undefined)));
 
   // Apply abort logging toggle centrally
   useEffect(() => {
@@ -289,6 +297,269 @@ export function K1Provider({
     }
   }, [resolvedDebugAborts]);
 
+  const k1ClientRef = useRef<K1Client | null>(null);
+  const { showError } = useErrorHandler();
+
+  // Initialize and auto-connect K1 client when endpoint changes
+  useEffect(() => {
+    if (!initialEndpoint) return;
+    const normalize = (ep: string) => ep.startsWith('http://') || ep.startsWith('https://') ? ep : `http://${ep}`;
+    const normalized = normalize(initialEndpoint);
+
+    // Update connection state and build client
+    dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connecting' });
+    const client = new K1Client(normalized);
+    client.setErrorHandler(showError);
+    k1ClientRef.current = client;
+
+    // Attempt connection and hydrate device info
+    client.connect(normalized)
+      .then((deviceInfo) => {
+        dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connected' });
+        dispatch({ type: 'SET_DEVICE_INFO', payload: deviceInfo });
+        saveEndpoint(normalized);
+      })
+      .catch((error) => {
+        dispatch({ type: 'SET_CONNECTION_STATE', payload: 'error' });
+        showError(error, { context: 'connection' });
+      });
+  }, [initialEndpoint, showError]);
+
+  // Actions implementation
+  const actions: K1ProviderActions = {
+    connect: useCallback(async (endpoint?: string) => {
+      try {
+        const targetEndpoint = endpoint || initialEndpoint;
+        if (!targetEndpoint) throw new Error('No endpoint provided');
+        const normalize = (ep: string) => ep.startsWith('http://') || ep.startsWith('https://') ? ep : `http://${ep}`;
+        const normalized = normalize(targetEndpoint);
+        
+        dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connecting' });
+        
+        const client = new K1Client(normalized);
+        client.setErrorHandler(showError);
+        k1ClientRef.current = client;
+        
+        const deviceInfo = await client.connect(normalized);
+        
+        dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connected' });
+        dispatch({ type: 'SET_DEVICE_INFO', payload: deviceInfo });
+        
+        // Save endpoint for persistence
+        saveEndpoint(normalized);
+        
+      } catch (error) {
+        dispatch({ type: 'SET_CONNECTION_STATE', payload: 'error' });
+        showError(error, { context: 'connection' });
+        throw error;
+      }
+    }, [showError]),
+
+    disconnect: useCallback(async () => {
+      try {
+        if (k1ClientRef.current) {
+          await k1ClientRef.current.disconnect();
+          k1ClientRef.current = null;
+        }
+        dispatch({ type: 'SET_CONNECTION_STATE', payload: 'disconnected' });
+        dispatch({ type: 'SET_DEVICE_INFO', payload: null });
+      } catch (error) {
+        showError(error, { context: 'disconnection' });
+      }
+    }, [showError]),
+
+    selectPattern: useCallback(async (patternId: string) => {
+      try {
+        if (!k1ClientRef.current) throw new Error('Not connected');
+        
+        await k1ClientRef.current.selectPattern(patternId);
+        dispatch({ type: 'SET_SELECTED_PATTERN', payload: patternId });
+        
+        // Load saved parameters for this pattern
+        const savedParams = loadPatternParameters(patternId);
+        if (savedParams) {
+          dispatch({ type: 'UPDATE_PARAMETERS', payload: savedParams });
+        }
+        
+      } catch (error) {
+        showError(error, { context: 'pattern-selection', patternId });
+        throw error;
+      }
+    }, [showError]),
+
+    updateParameters: useCallback(async (params: Partial<K1Parameters>) => {
+      try {
+        if (!k1ClientRef.current) throw new Error('Not connected');
+        
+        const result = await k1ClientRef.current.updateParameters(params);
+        dispatch({ type: 'UPDATE_PARAMETERS', payload: params });
+        
+        // Save parameters for current pattern
+        if (state.selectedPatternId) {
+          savePatternParameters(state.selectedPatternId, { ...state.parameters, ...params });
+        }
+        
+        return result;
+      } catch (error) {
+        showError(error, { context: 'parameter-update', params });
+        throw error;
+      }
+    }, [showError, state.selectedPatternId, state.parameters]),
+
+    setPalette: useCallback(async (paletteId: number) => {
+      try {
+        if (!k1ClientRef.current) throw new Error('Not connected');
+        
+        await k1ClientRef.current.setPalette(paletteId);
+        dispatch({ type: 'SET_PALETTE', payload: paletteId });
+        
+        // Save palette for current pattern
+        if (state.selectedPatternId) {
+          savePatternPalette(state.selectedPatternId, paletteId);
+        }
+        
+      } catch (error) {
+        showError(error, { context: 'palette-change', paletteId });
+        throw error;
+      }
+    }, [showError, state.selectedPatternId]),
+
+    clearError: useCallback(() => {
+      dispatch({ type: 'CLEAR_ERROR' });
+    }, []),
+
+    clearErrorHistory: useCallback(() => {
+      dispatch({ type: 'CLEAR_ERROR_HISTORY' });
+    }, []),
+
+    setFeatureFlag: useCallback((flag: keyof K1ProviderState['featureFlags'], value: boolean) => {
+      dispatch({ type: 'SET_FEATURE_FLAG', payload: { flag, value } });
+    }, []),
+
+    startReconnection: useCallback(() => {
+      dispatch({ type: 'SET_RECONNECT_STATE', payload: { isActive: true } });
+    }, []),
+
+    stopReconnection: useCallback(() => {
+      dispatch({ type: 'SET_RECONNECT_STATE', payload: { isActive: false } });
+    }, []),
+
+    setWebSocketEnabled: useCallback((enabled: boolean) => {
+      if (k1ClientRef.current) {
+        k1ClientRef.current.setWebSocketEnabled(enabled);
+      }
+      dispatch({ type: 'SET_TRANSPORT_FLAGS', payload: { wsDisabled: !enabled } });
+    }, []),
+
+    getTransportStatus: useCallback(() => {
+      if (k1ClientRef.current) {
+        return k1ClientRef.current.getTransportStatus();
+      }
+      return {
+        wsAvailable: false,
+        wsEnabled: true,
+        restAvailable: false,
+        activeTransport: 'rest' as const,
+        lastWSError: null,
+      };
+    }, []),
+
+    testTransportRouting: useCallback(async () => {
+      if (!k1ClientRef.current) throw new Error('Not connected');
+      return await k1ClientRef.current.updateParameters({});
+    }, []),
+
+    backupConfig: useCallback(async () => {
+      if (!k1ClientRef.current) throw new Error('Not connected');
+      return await k1ClientRef.current.backupConfig();
+    }, []),
+
+    restoreConfig: useCallback(async (config) => {
+      if (!k1ClientRef.current) throw new Error('Not connected');
+      return await k1ClientRef.current.restoreConfig(config);
+    }, []),
+
+    getStorageInfo: useCallback(() => {
+      // Mock implementation - in real app this would analyze localStorage
+      return {
+        totalKeys: 0,
+        k1Keys: 0,
+        totalSize: 0,
+        k1Size: 0,
+        metadata: {},
+        health: 'good' as const,
+        issues: [],
+      };
+    }, []),
+
+    cleanupStorage: useCallback((maxAge?: number) => {
+      // Mock implementation
+      return { removed: [], errors: [] };
+    }, []),
+
+    exportStorageData: useCallback(() => {
+      // Mock implementation
+      return { success: true, data: {} };
+    }, []),
+
+    importStorageData: useCallback((data: any) => {
+      // Mock implementation
+      return { success: true, imported: [], errors: [] };
+    }, []),
+
+    getTelemetryState: useCallback(() => {
+      return state.telemetry;
+    }, [state.telemetry]),
+
+    resetTelemetry: useCallback(() => {
+      dispatch({ type: 'UPDATE_TELEMETRY', payload: K1_DEFAULTS.TELEMETRY });
+    }, []),
+
+    registerTelemetryHook: useCallback((hook) => {
+      // Mock implementation - return unregister function
+      return () => {};
+    }, []),
+
+    setErrorSurfaceConfig: useCallback((config) => {
+      // Mock implementation
+    }, []),
+
+    getErrorSurfaceConfig: useCallback(() => {
+      // Mock implementation
+      return {} as any;
+    }, []),
+
+    subscribeRealtime: useCallback((handler) => {
+      // Mock implementation - return unsubscribe function
+      return () => {};
+    }, []),
+
+    subscribeAudio: useCallback((handler) => {
+      // Mock implementation - return unsubscribe function
+      return () => {};
+    }, []),
+
+    subscribePerformance: useCallback((handler) => {
+      // Mock implementation - return unsubscribe function
+      return () => {};
+    }, []),
+
+    startSessionRecording: useCallback(() => {
+      sessionRecorder.start();
+      dispatch({ type: 'SET_RECORDING', payload: true });
+    }, []),
+
+    stopSessionRecording: useCallback(() => {
+      sessionRecorder.stop();
+      dispatch({ type: 'SET_RECORDING', payload: false });
+    }, []),
+
+    exportSessionRecording: useCallback(() => {
+      // Mock implementation
+      return { success: true, data: {} };
+    }, []),
+  };
+
   const contextValue: K1ContextValue = {
     state,
     actions,
@@ -296,8 +567,11 @@ export function K1Provider({
   };
 
   return (
-    <K1Context.Provider value={contextValue}>
+    <K1Context.Provider value={{ state, actions, config: { hmrDelayMs: resolvedHmrDelayMs, debugAborts: resolvedDebugAborts } }}>
       {children}
+      { (import.meta as any).env?.DEV && (
+        <HMRDelayOverlay />
+      ) }
     </K1Context.Provider>
   );
 }

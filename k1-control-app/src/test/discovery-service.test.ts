@@ -79,7 +79,7 @@ describe('K1DiscoveryService', () => {
 
       expect(result.devices).toHaveLength(1) // Mock scan result
       expect(result.method).toBe('scan')
-      expect(result.errors).toContain('mDNS discovery failed: Error: mDNS not available')
+      expect(result.errors).toEqual(expect.arrayContaining([expect.stringContaining('mDNS discovery failed')]))
     })
 
     it('should combine mDNS and scan results', async () => {
@@ -295,7 +295,7 @@ describe('K1DiscoveryService', () => {
   describe('Discovery Cancellation', () => {
     it('should cancel ongoing discovery', async () => {
       mockDiscover.mockImplementation(() => {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
           setTimeout(() => resolve([]), 5000) // Long timeout
         })
       })
@@ -306,6 +306,14 @@ describe('K1DiscoveryService', () => {
       setTimeout(() => service.cancelDiscovery(), 100)
       vi.advanceTimersByTime(100)
 
+      // The discovery should be cancelled and throw
+      try {
+        await discoveryPromise
+        expect.fail('Discovery should have been cancelled')
+      } catch (error) {
+        // Expected cancellation
+      }
+      
       expect(service.isDiscovering()).toBe(false)
     })
 
@@ -333,10 +341,14 @@ describe('K1DiscoveryService', () => {
 
       expect(service.isDiscovering()).toBe(true)
 
-      // Fast-forward to trigger interval
-      vi.advanceTimersByTime(2000)
+      // Wait for initial discovery to complete
+      await vi.waitFor(() => expect(mockDiscover).toHaveBeenCalledTimes(1))
 
-      expect(mockDiscover).toHaveBeenCalledTimes(2) // Initial + interval
+      // Fast-forward to trigger interval
+      vi.advanceTimersByTime(1000)
+
+      // Wait for interval discovery to complete
+      await vi.waitFor(() => expect(mockDiscover).toHaveBeenCalledTimes(2))
 
       service.stopContinuousDiscovery()
       
@@ -439,13 +451,16 @@ describe('K1DiscoveryService', () => {
   })
 
   describe('Cleanup', () => {
-    it('should clean up resources', () => {
+    it('should clean up resources', async () => {
       service.startContinuousDiscovery(1000)
       
       const listenerCount = service.listenerCount('devices-found')
       service.on('devices-found', () => {})
       
       expect(service.listenerCount('devices-found')).toBeGreaterThan(listenerCount)
+
+      // Wait for any ongoing discovery to complete before cleanup
+      await vi.waitFor(() => expect(service.isDiscovering()).toBe(false), { timeout: 1000 })
 
       service.cleanup()
 

@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": "1",
+        "id": 1,
         "title": "Codebase audit and foundations confirmation",
         "description": "Explore repository to confirm React/TypeScript app foundation, K1Client (REST/WebSocket), existing Emotiscope components, and data definitions (K1_PATTERNS, K1_PALETTES).",
         "details": "- Inspect project structure (src, config), build tool (Vite/Webpack), and TypeScript strictness.\n- Locate K1Client implementation and confirm methods: selectPattern, updateParameters, WebSocket subscribe, discovery (if any).\n- Identify Emotiscope 2.0 components analogous to EffectSelector, EffectParameters, ColorManagement for reuse/refactor.\n- Determine global state pattern (Context, Zustand, Redux, Recoil) and app entry points (App.tsx, providers).\n- Note any API endpoints or WS URLs configured via env.\n- Outcome: a short architecture note to guide subsequent tasks.",
@@ -81,7 +81,7 @@
         "updatedAt": "2025-10-26T21:30:47.790Z"
       },
       {
-        "id": "2",
+        "id": 2,
         "title": "K1 connection state and provider",
         "description": "Create a centralized connection layer exposing device status, pattern, parameters, and palette with reconnection/backoff policies.",
         "details": "- Implement `K1Provider` + `useK1()` (or align with existing store) holding: connection state (connected, connecting, disconnected), device info, selected pattern, parameters, active palette, errors.\n- Encapsulate K1Client instance and methods: connect(auto), disconnect, selectPattern(id), updateParameters(partial), setPalette(paletteId).\n- Add exponential backoff reconnect strategy (0.5s → 1s → 2s → 4s → 8s, cap 30s) with jitter; reset on success.\n- Persist last good device endpoint and last known parameters/palette in localStorage.\n- Gracefully degrade when WS unavailable: flag and route updates via REST.",
@@ -202,7 +202,7 @@
         "expansionPrompt": "Create subtasks for: (1) define K1 domain types and events; (2) select state container aligned with repo; (3) implement K1Provider/useK1 with lifecycle; (4) reconnect/backoff with jitter (+ tests); (5) WS vs REST routing and feature flags; (6) persistence (endpoints, params, palette); (7) error surfaces and telemetry; (8) unit tests with fake timers and mocked K1Client."
       },
       {
-        "id": "3",
+        "id": 3,
         "title": "Device discovery and manual connection UI",
         "description": "Implement professional device management to discover K1 on LAN, allow manual IP entry, show status, and auto-reconnect.",
         "details": "- Component `DeviceManager` with sections: Discovery (list), Manual Connect (IP input), Status (connected device info, firmware, uptime).\n- Discovery: use K1Client.discover() if present; otherwise probe via mDNS or lightweight subnet scan utility with timeout; deduplicate and sort by last seen.\n- Manual fallback: validate IP/host, save to localStorage, invoke provider connect.\n- Visual indicators: Connected/Connecting/Disconnected; errors with retry action.\n- Hooks into backoff from provider; auto-connect to last known device on startup.",
@@ -307,7 +307,7 @@
         "expansionPrompt": "Split into: (1) discovery abstraction (prefer K1Client.discover or stub), (2) DeviceManager UI scaffolding, (3) manual IP validation and storage, (4) provider connect/autoreconnect wiring, (5) error/retry UX and statuses, (6) dedupe/sort by last seen, (7) tests for discovery states and recovery paths."
       },
       {
-        "id": "4",
+        "id": 4,
         "title": "PatternSelector grid (11 patterns)",
         "description": "Replace Emotiscope EffectSelector with K1 PatternSelector showing categories, icons, descriptions, and fast one-click activation.",
         "details": "- Use K1_PATTERNS: {id, name, category: Static|Audio-Reactive|Beat-Reactive, icon, description}.\n- Grid grouped by category with section headers; accessible keyboard navigation; tooltips.\n- On click: optimistic activate (UI highlight), call `K1Client.selectPattern(id)`, rollback on error; show inline loading for selected card.\n- Prevent duplicate requests while in-flight; ensure activation <2s end-to-end.\n- Style for professional look (consistent spacing, contrast, focus, hover states).",
@@ -397,7 +397,7 @@
         "expansionPrompt": "Plan: (1) pattern data model + grouping; (2) grid UI with a11y/keyboard; (3) optimistic select + in-flight guard; (4) service call + rollback on error; (5) professional styling and focus/hover; (6) component tests and error simulations."
       },
       {
-        "id": "5",
+        "id": 5,
         "title": "Real-time parameter controls (<100ms)",
         "description": "Implement six 0–100% sliders (brightness, speed, saturation, warmth, softness, background) with numeric readouts, debounce/coalescing, reset, and persistence.",
         "details": "- Slider component: high-perf (e.g., Radix Slider); step=1; value labels; keyboard accessible.\n- Debounce: leading-edge send immediately; trailing consolidation at ~80ms; coalesce rapid changes into a single payload `{brightness, speed, ...}`.\n- Transport: prefer WS parameter channel; fallback to REST `updateParameters`.\n- Persist per-pattern parameter values in localStorage; `Reset` button restores defaults for current pattern.\n- Pseudo:\n  const pending = useRef<Partial<Params>>({});\n  function onChange(key,v){ setUI(key,v); pending.current[key]=v; scheduleSend(); }\n  function scheduleSend(){ rafThrottle+setTimeout(send,80); }\n  async function send(){ if(!pending) return; const body={...current, ...pending}; pending={}; await K1Client.updateParameters(body); }",
@@ -519,7 +519,7 @@
         "expansionPrompt": "Define: (1) params schema/defaults; (2) perf slider components; (3) debounce/coalescing utilities with leading/trailing behavior; (4) WS/REST bridge; (5) per-pattern persistence and reset; (6) provider/store binding; (7) profiling hooks; (8) timer-based unit tests verifying call rate and latency."
       },
       {
-        "id": "6",
+        "id": 6,
         "title": "Palette selection (33 palettes) with search/filter",
         "description": "Expand ColorManagement to present a searchable, categorized grid of 33 palettes with gradient previews and instant LED updates via palette_id.",
         "details": "- Use K1_PALETTES: {id, name, category, swatches[]}.\n- Display cards with CSS linear-gradient preview; indicate selected palette.\n- Search input filters by name; category chips filter by warm/cool/vibrant/vintage/artistic.\n- On select: call parameter update with `{palette_id}`; update UI; fallback REST if WS absent.\n- Remember last palette per pattern; aria-live for selection confirmations.",
@@ -610,7 +610,7 @@
         "expansionPrompt": "Break into: (1) palette data/types/fixtures; (2) searchable/filterable grid with gradient previews; (3) selection and persistence per-pattern; (4) provider integration and WS/REST update; (5) a11y announcements; (6) tests for filter logic, DOM styles, and error rollback."
       },
       {
-        "id": "7",
+        "id": 7,
         "title": "Realtime LED visualization (virtual 180 LEDs)",
         "description": "Create a live preview with center-origin mirroring, fed by WebSocket LED data, with zoom/pan controls.",
         "details": "- WebSocket: subscribe via K1Client; define frame type: Uint8Array RGB or packed; handle backpressure (drop old frames if lagging).\n- Render: Canvas/WebGL loop using requestAnimationFrame; map 180 indices to mirrored positions around center; efficient batched draws.\n- Controls: wheel to zoom, drag to pan; pause/resume stream toggle; FPS monitor.\n- Fallback: simulated preview using last parameters at reduced FPS when WS unavailable.\n- Isolate rendering from React state to avoid re-renders.",
@@ -741,7 +741,7 @@
         "expansionPrompt": "Create: (1) frame protocol and WS subscription; (2) render engine (Canvas/WebGL) decoupled from React; (3) index↔position mapping with mirroring; (4) backpressure/drop strategy; (5) zoom/pan controls; (6) FPS/stats overlay; (7) simulated fallback renderer; (8) perf/memory guards; (9) unit tests for mapping and stream stability."
       },
       {
-        "id": "8",
+        "id": 8,
         "title": "Audio dashboard (spectrum, beat, VU, chromagram)",
         "description": "Add Web Audio-based visualization: 64-bin spectrum, beat indicators with tempo confidence, VU meters, mic gain control, and chromagram.",
         "details": "- Setup: getUserMedia(mic); AudioContext; AnalyserNode (fftSize 2048); smoothTimeConstant tuned for responsiveness.\n- Spectrum: aggregate frequency data to 64 bins; draw bars with Canvas; animate at rAF.\n- Beat detection: energy-based over sub-bass/bass bands with adaptive threshold; compute tempo estimate and confidence.\n- VU: compute RMS from time-domain; stereo if available; gain control via GainNode UI slider.\n- Chromagram: constant-Q approximation or tuned filterbank across 12 semitones x octaves; ensure CPU <20%; update ~30fps.\n- Graceful fallback if mic perm denied: show instructions and disable features.",
@@ -883,7 +883,7 @@
         "expansionPrompt": "Outline: (1) capture/permission module; (2) analyser + 64-bin aggregation; (3) Canvas renderer; (4) beat detection + tempo/confidence; (5) RMS/VU meters; (6) gain control UI; (7) chromagram computation optimized; (8) performance tuning/worklet option; (9) permission-denied UX; (10) DSP unit tests with fixtures."
       },
       {
-        "id": "9",
+        "id": 9,
         "title": "Robust error handling and performance hardening",
         "description": "Introduce error boundaries, retry/backoff wrappers, toast notifications, code-splitting, and enforce startup/memory budgets.",
         "details": "- Global ErrorBoundary and per-action try/catch with typed errors; user-friendly messages.\n- Toast/notification system for success/failure/information; consistent placement and timeouts.\n- Network resilience: `fetchWithRetry` in K1Client (if missing) with exponential backoff and jitter; unify error codes.\n- Performance: route-based code-splitting for advanced views; memoize heavy lists; avoid unnecessary state churn in render loops.\n- Runtime guards: coalesce param updates; drop WS frames when rendering stalls; measure startup and mem usage; log metrics.",
@@ -999,7 +999,7 @@
         "expansionPrompt": "Add: (1) global ErrorBoundary + typed errors; (2) toast/notification system; (3) retry/backoff fetch wrapper; (4) route-level code-splitting; (5) memoization/state churn audits; (6) runtime guards for WS/params; (7) startup/memory metrics; (8) failure simulations and perf checks."
       },
       {
-        "id": "10",
+        "id": 10,
         "title": "Documentation and test suite finalization",
         "description": "Document architecture and flows, add coverage for core logic, and provide user/developer guides aligned to success criteria.",
         "details": "- Update README: setup, run, device connection steps, latency guarantees, troubleshooting.\n- ADRs: state management choice, debouncing strategy, WS fallback, visualization architecture.\n- Expand unit/integration tests: selectors, reducers, K1Client mocks, UI interactions for pattern/params/palettes.\n- Add lightweight E2E smoke tests (Playwright/Cypress) for core flows.\n- Provide fixtures for patterns/palettes and sample WS frames for deterministic tests.",
@@ -1101,7 +1101,7 @@
         "expansionPrompt": "Split into: (1) README with setup/flows/latency/troubleshooting; (2) ADRs for state/transport/visualization; (3) unit tests for store/client utilities; (4) integration tests for UI flows; (5) E2E smoke tests with fixtures; (6) CI config and thresholds; (7) final release checklist mapped to PRD."
       },
       {
-        "id": "11",
+        "id": 11,
         "title": "Comprehensive Architecture Docs for K1 Control App",
         "description": "Author end-to-end documentation for the React/TypeScript + Vite K1 Control App, including project structure, build pipeline, component hierarchy, state management, data flows, Mermaid diagrams, developer workflows, and actionable quality recommendations.",
         "details": "Scope and deliverables\n- Create a new documentation section at `docs/architecture/control-app/` with the following files:\n  - `OVERVIEW.md`: High-level architecture, system context, and technology stack\n  - `PROJECT_STRUCTURE.md`: Complete directory map with roles and conventions\n  - `BUILD_PIPELINE.md`: Vite config, aliases, environment, build targets and outputs\n  - `STATE_AND_DATA_FLOW.md`: State model, connection lifecycle, param update flows, and reconnection/backoff\n  - `COMPONENT_HIERARCHY.md`: App → Views → Controls → UI atoms, with responsibilities and data boundaries\n  - `K1_INTEGRATION.md`: API surface, types, REST endpoints, WebSocket strategy, and mapping UI↔firmware params\n  - `DEVELOPMENT_WORKFLOWS.md`: Dev setup, scripts, branching, local testing, debugging, profiling\n  - `QUALITY_PLAYBOOK.md`: Testing, linting, code style, performance budgets, and CI recommendations\n  - `DIAGRAMS.md`: Mermaid diagrams (overview, component tree, param flow, connection state machine, build pipeline)\n  - Optional ADR: `docs/adr/ADR-0004-state-management-choice.md` (Context vs external store for K1 provider) to align with Task 2\n\nTechnology and code references to align docs with current implementation\n- Toolchain and runtime\n  - Vite config: `k1-control-app/vite.config.ts:1` (plugin `@vitejs/plugin-react-swc`, alias map including version-pinned libs, build target `esnext`, server port 3000, outDir `build`)\n  - Package scripts: `k1-control-app/package.json:1` (`dev`, `build`, `preview`, `type-check`)\n  - Styling: Tailwind v4 classes in `k1-control-app/src/index.css:1` and design tokens in `k1-control-app/src/styles/globals.css:1`\n- App entry and top-level composition\n  - Render root: `k1-control-app/src/main.tsx:1`\n  - App shell and connection state: `k1-control-app/src/App.tsx:13` (`useState` for `connectionStatus`, `connectionIP`, `K1Client` instantiation at `:20–:23`, connection test `:32–:43`)\n  - Views and major components: `TopNav` (`k1-control-app/src/components/TopNav.tsx:1`), `Sidebar` (`k1-control-app/src/components/Sidebar.tsx:1`), `ControlPanelView` (`k1-control-app/src/components/views/ControlPanelView.tsx:1`), `ProfilingView` (`k1-control-app/src/components/views/ProfilingView.tsx:1`), `TerminalView` (`k1-control-app/src/components/views/TerminalView.tsx:1`)\n- K1 device integration and types\n  - Types: `k1-control-app/src/types/k1-types.ts:1` (parameters, patterns, connection status, API response shapes)\n  - Client: `k1-control-app/src/api/k1-client.ts:18` class surface (REST: `testConnection :37`, `getPatterns :51`, `updateParameters :94`, conversion `firmwareToUI :238`; WS: `connectWebSocket :179` with exponential backoff at `:208–:214`)\n  - Static data: `k1-control-app/src/api/k1-data.ts:1` (pattern and 33 palette definitions)\n- UI atoms and libraries\n  - Shadcn/Radix-based components under `k1-control-app/src/components/ui/*` (sliders, selects, dialogs, menus, toasts, charts)\n\nContent outlines per file\n- OVERVIEW.md\n  - Purpose, scope, non-goals\n  - Stack summary: React 18, TypeScript 5, Vite 6 (SWC), Tailwind, Radix/shadcn, Recharts, Sonner\n  - System context: Browser → Control App → `K1Client` → K1 device (REST/WS)\n- PROJECT_STRUCTURE.md\n  - Full tree of `k1-control-app/` with brief purpose for each folder/file, cross-linking to existing docs: `k1-control-app/README.md:1`, `k1-control-app/DEVELOPMENT.md:1`, `k1-control-app/src/DESIGN_SPECS.md:1`\n  - Call out aliases (`@` → `src/`) and build output `build/`\n- BUILD_PIPELINE.md\n  - Vite plugin setup, hot reload, dev server settings, aliasing rationale, asset handling\n  - Build targets and bundling; suggestions for code-splitting by view to reduce TTI\n  - Environment strategy and how to parameterize device IP if needed\n- STATE_AND_DATA_FLOW.md\n  - Current state model (local `useState` in `App.tsx:13–:17`)\n  - Proposed central provider (Task 2): `K1Provider` + `useK1` managing: connection status, device info, selected pattern, params, palette, errors\n  - Connection lifecycle/state machine (connecting → connected → disconnected/error) and reconnection/backoff with jitter and caps\n  - Parameter update path: UI sliders → debounce/coalesce → `K1Client.updateParameters` → device; persistence recommendations per pattern\n- COMPONENT_HIERARCHY.md\n  - Tree and responsibilities:\n    - App shell → `TopNav`, `Sidebar`, `main` area\n    - Views: ControlPanel → EffectSelector, EffectParameters, ColorManagement, GlobalSettings, StatusBar\n    - Profiling: Filters, Charts, LiveStatistics\n    - Terminal: Output, Input, History\n  - Data boundaries: what props/state pass where; which pieces should move to provider/store\n- K1_INTEGRATION.md\n  - REST endpoints in use; UI↔firmware param mapping via `firmwareToUI` (`k1-control-app/src/api/k1-client.ts:238`)\n  - WebSocket plan: `connectWebSocket` (`:179`) with reconnection (`:208–:214`), recommendations for jitter, cap, and backpressure handling (drop old frames)\n  - Discovery: `discoverDevices()` stub and future mDNS plan\n- DEVELOPMENT_WORKFLOWS.md\n  - Onboarding: Node/npm versions, install, `npm run dev`, `npm run build`, `npm run preview`\n  - Live device testing workflow and troubleshooting (CORS, IP validation)\n  - Debugging tips: Network tab, React DevTools, console flags (as referenced in `k1-control-app/DEVELOPMENT.md`)\n- QUALITY_PLAYBOOK.md (actionable recommendations)\n  - TypeScript: Add `k1-control-app/tsconfig.json` with `\"strict\": true`, path alias for `@/*`\n  - Linting/formatting: add ESLint (`@typescript-eslint`), Prettier; scripts: `lint`, `lint:fix`, `format`\n  - Unit/integration testing: Vitest + Testing Library; MSW for API mocks; coverage via `c8`; suggested targets (>80% for store and utilities)\n  - E2E: Playwright or Cypress for core flows (connect, select pattern, adjust params, palette)\n  - Performance: code-splitting by route/view, memoization of heavy lists, isolate rAF loops from React state, drop-late WS frames, bundle size budget\n  - CI: node matrix, `type-check`, `lint`, `test`, `build`; pre-commit via Husky + lint-staged\n- DIAGRAMS.md (include Mermaid snippets)\n  - System overview\n    ```mermaid\n    flowchart LR\n      User --> UI[React App]\n      UI -->|REST| K1Client\n      UI -->|WS| K1Client\n      K1Client --> Device[K1 Device]\n    ```\n  - Component tree (simplified)\n    ```mermaid\n    graph TD\n      App --> TopNav\n      App --> Sidebar\n      App --> Main\n      Main --> ControlPanelView --> EffectSelector & EffectParameters & ColorManagement & GlobalSettings & StatusBar\n      Main --> ProfilingView --> ProfilingFilters & ProfilingCharts & LiveStatistics\n      Main --> TerminalView\n    ```\n  - Parameter update flow\n    ```mermaid\n    sequenceDiagram\n      participant UI as Slider/Controls\n      participant Provider as K1Provider (Task 2)\n      participant Client as K1Client\n      participant Dev as K1 Device\n      UI->>Provider: onChange (debounced/coalesced ~80–150ms)\n      Provider->>Client: updateParameters(partial)\n      Client->>Dev: POST /api/params\n      Dev-->>Client: 200 OK {params}\n      Client-->>Provider: normalized params\n      Provider-->>UI: state update (clamped?)\n    ```\n  - Connection state machine\n    ```mermaid\n    stateDiagram-v2\n      [*] --> Disconnected\n      Disconnected --> Connecting: connect()\n      Connecting --> Connected: testConnection ok\n      Connecting --> Error: network/api failure\n      Error --> Connecting: backoff+jitter\n      Connected --> Disconnected: disconnect() or WS close\n    ```\n  - Build pipeline\n    ```mermaid\n    flowchart LR\n      Dev[Developer] -->|npm run dev| Vite\n      Vite --> HMR[React SWC + HMR]\n      Dev -->|npm run build| Vite\n      Vite --> Bundle[esnext build -> build/]\n    ```\n\nCross-links to existing docs\n- Reference and link from new docs to:\n  - `k1-control-app/README.md:1`, `k1-control-app/DEVELOPMENT.md:1`, `k1-control-app/src/DESIGN_SPECS.md:1`\n  - Firmware API reference `docs/api/K1_FIRMWARE_API.md:1`\n\nEditorial and conventions\n- Use consistent headings, callouts for “Current” vs “Planned (Task 2/5/7/9/10)”\n- Include code references with clickable file paths and start lines as shown above\n- Prefer concise diagrams; keep each under ~30 nodes for readability\n\nAcceptance criteria\n- All files under `docs/architecture/control-app/` exist with the content outlined above\n- Each doc includes at least one relevant Mermaid diagram (renderable on GitHub)\n- All file references resolve within the repo\n- Recommendations in QUALITY_PLAYBOOK.md are concrete (packages, scripts, config snippets) and mapped to this codebase\n- Onboarding steps work against `k1-control-app/package.json` scripts and `vite.config.ts`\n",
@@ -1187,7 +1187,10 @@
       "completedCount": 1,
       "tags": [
         "master"
-      ]
+      ],
+      "created": "2025-10-27T01:48:04.300Z",
+      "description": "Tasks for master context",
+      "updated": "2025-10-27T01:48:04.300Z"
     }
   }
 }

@@ -15,36 +15,25 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 })
 
-// Mock DOM methods for telemetry manager
-const mockElement = {
-  id: '',
-  style: { cssText: '' },
-  innerHTML: '',
-  addEventListener: vi.fn(),
-  appendChild: vi.fn(),
-  remove: vi.fn(),
-}
+// Use jsdom's real Document. Avoid overriding global document to ensure
+// React DOM features (setAttribute, listeners, etc.) work in tests.
+// Individual tests can spy on document methods as needed.
 
-const mockDocument = {
-  getElementById: vi.fn(),
-  createElement: vi.fn(() => ({ ...mockElement })),
-  body: { appendChild: vi.fn() },
-  head: { appendChild: vi.fn() },
-}
-
-Object.defineProperty(global, 'document', {
-  value: mockDocument,
-  writable: true,
-})
 
 // Mock WebSocket
-global.WebSocket = vi.fn().mockImplementation(() => ({
+// Provide static readyState constants to match browser WebSocket API
+const WebSocketMock: any = vi.fn().mockImplementation(() => ({
   close: vi.fn(),
   send: vi.fn(),
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
-  readyState: WebSocket.CONNECTING,
+  readyState: 0, // CONNECTING
 }))
+WebSocketMock.CONNECTING = 0
+WebSocketMock.OPEN = 1
+WebSocketMock.CLOSING = 2
+WebSocketMock.CLOSED = 3
+global.WebSocket = WebSocketMock
 
 // Mock fetch
 global.fetch = vi.fn()

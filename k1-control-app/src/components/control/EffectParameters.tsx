@@ -144,10 +144,10 @@ export function EffectParameters({ selectedEffect, disabled }: EffectParametersP
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-[var(--k1-text)]">
-          {selectedEffect.charAt(0).toUpperCase() + selectedEffect.slice(1)} Parameters
-        </h2>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-[12px] uppercase tracking-wide text-[var(--k1-text-dim)]">
+           {selectedEffect.charAt(0).toUpperCase() + selectedEffect.slice(1)} Parameters
+        </h3>
         <div className="flex items-center gap-2">
           {syncStatus === 'syncing' && (
             <Badge variant="outline" className="text-[10px] text-[var(--k1-warning)]">
@@ -174,8 +174,8 @@ export function EffectParameters({ selectedEffect, disabled }: EffectParametersP
         </div>
       </div>
 
-      <Card className="p-4 bg-[var(--k1-panel)] border-[var(--k1-border)]">
-        <div className="space-y-6">
+      <Card className="p-3 bg-[var(--k1-panel)] border-[var(--k1-border)]">
+        <div className="space-y-4">
           {params.map((param) => (
             <div key={param.id} className="space-y-2">
               <div className="flex items-center justify-between">
@@ -183,7 +183,7 @@ export function EffectParameters({ selectedEffect, disabled }: EffectParametersP
                   {param.label}
                 </Label>
                 {param.type === 'slider' && (
-                  <span className="text-[var(--k1-text-dim)] font-[family-name:var(--k1-code-family)] px-2 py-0.5 bg-[var(--k1-bg)] rounded">
+                  <span className="text-[10px] text-[var(--k1-text-dim)] font-[family-name:var(--k1-code-family)] px-1.5 py-0.5 bg-[var(--k1-bg)] rounded">
                     {paramValues[param.id] || param.defaultValue}{param.unit || ''}
                   </span>
                 )}

@@ -13,8 +13,9 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
   const [brightness, setBrightness] = useState(90);
   const [softness, setSoftness] = useState(50);
   const [warmth, setWarmth] = useState(50);
+  const [background, setBackground] = useState(10);
 
-  const queue = useCoalescedParams();
+  const { queue } = useCoalescedParams();
 
   // Remove brightness dispatches to avoid duplicate control
   useEffect(() => {
@@ -23,7 +24,7 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
 
   return (
     <Card className="p-4 bg-[var(--k1-panel)] border-[var(--k1-border)]">
-      <h3 className="text-[var(--k1-text)] mb-4">Global Settings</h3>
+      <h3 className="text-[12px] uppercase tracking-wide text-[var(--k1-text-dim)] mb-4">Global Settings</h3>
 
       {/* Brightness moved */}
       <div className="space-y-2 opacity-70">
@@ -86,6 +87,30 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
             setWarmth(v);
             if (!disabled) {
               queue({ warmth: v });
+            }
+          }}
+          disabled={disabled}
+          className="w-full"
+        />
+      </div>
+
+      {/* Background */}
+      <div className="space-y-2 mt-4">
+        <div className="flex items-center justify-between">
+          <Label className="text-[var(--k1-text)]">Background</Label>
+          <span className="text-[var(--k1-text-dim)] font-[family-name:var(--k1-code-family)] text-[10px] px-2 py-0.5 bg-[var(--k1-bg)] rounded">
+            {background}%
+          </span>
+        </div>
+        <Slider
+          min={0}
+          max={100}
+          step={1}
+          value={[background]}
+          onValueChange={([v]: number[]) => {
+            setBackground(v);
+            if (!disabled) {
+              queue({ background: v });
             }
           }}
           disabled={disabled}

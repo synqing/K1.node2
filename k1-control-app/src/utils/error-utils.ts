@@ -3,7 +3,8 @@
 // Constants
 const DEFAULT_WINDOW_MS = 5000;
 const ABORT_ERROR_NAMES = ['AbortError', 'AbortErrorSignal', 'AbortController'] as const;
-const ABORT_MESSAGE_PATTERN = /abort/i;
+const ABORT_MESSAGE_PATTERN = /(abort|cancel)/i;
+const LS_DEBUG_ABORTS_KEY = 'k1.debugAborts';
 
 // Internal state - not exported to prevent external mutation
 interface AbortState {
@@ -29,6 +30,37 @@ export interface AbortStats {
   readonly windowMs: number;
 }
 
+function parseBool(val: unknown): boolean | undefined {
+  if (typeof val === 'string') {
+    const v = val.toLowerCase();
+    if (v === 'true' || v === '1') return true;
+    if (v === 'false' || v === '0') return false;
+  }
+  if (typeof val === 'boolean') return val;
+  return undefined;
+}
+
+function getUrlFlag(name: string): boolean | undefined {
+  try {
+    if (typeof window === 'undefined' || !window.location) return undefined;
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get(name);
+    return parseBool(raw);
+  } catch {
+    return undefined;
+  }
+}
+
+function getLocalStorageFlag(key: string): boolean | undefined {
+  try {
+    if (typeof localStorage === 'undefined') return undefined;
+    const raw = localStorage.getItem(key);
+    return parseBool(raw);
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Determines if abort logging should be enabled based on configuration and environment
  * @returns true if abort logging is enabled
@@ -41,12 +73,18 @@ function shouldLogAborts(): boolean {
   const isDev = (import.meta as any).env?.DEV;
   const envFlag = (import.meta as any).env?.VITE_K1_DEBUG_ABORTS ?? 
                   (import.meta as any).env?.VITE_DEBUG_ABORTS;
+  const envVal = parseBool(envFlag);
+
+  const urlVal = getUrlFlag('debugAborts');
+  const lsVal = getLocalStorageFlag(LS_DEBUG_ABORTS_KEY);
+
+  // Precedence: URL > localStorage > env; only active in dev
+  const resolved = typeof urlVal === 'boolean' ? urlVal
+                  : typeof lsVal === 'boolean' ? lsVal
+                  : typeof envVal === 'boolean' ? envVal
+                  : false;
   
-  const flag = typeof envFlag === 'string' ? 
-    (envFlag.toLowerCase() === 'true' || envFlag === '1') : 
-    false;
-    
-  state.loggingEnabled = !!(isDev && flag);
+  state.loggingEnabled = !!(isDev && resolved);
   return state.loggingEnabled;
 }
 
@@ -83,6 +121,11 @@ function bumpAbortCounters(): void {
  */
 export function setAbortLoggingEnabled(enabled: boolean): void {
   state.loggingEnabled = enabled;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(LS_DEBUG_ABORTS_KEY, enabled ? '1' : '0');
+    }
+  } catch {}
 }
 
 /**

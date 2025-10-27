@@ -178,16 +178,26 @@ export class K1TelemetryManager {
     // Check if toast container exists
     let container = document.getElementById('k1-toast-container');
     if (!container) {
-      container = document.createElement('div');
-      container.id = 'k1-toast-container';
-      container.style.cssText = `
+      // Guard document.body appendChild availability
+      if (!document.body || typeof (document.body as any).appendChild !== 'function') {
+        return;
+      }
+      const created = document.createElement('div');
+      created.id = 'k1-toast-container';
+      created.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
         z-index: 10000;
         pointer-events: none;
       `;
-      document.body.appendChild(container);
+      document.body.appendChild(created);
+      container = created;
+    }
+
+    // Guard container appendChild availability
+    if (!container || !("appendChild" in container)) {
+      return;
     }
 
     // Create toast element
@@ -210,19 +220,21 @@ export class K1TelemetryManager {
 
     // Add animation keyframes if not already added
     if (!document.getElementById('k1-toast-styles')) {
-      const style = document.createElement('style');
-      style.id = 'k1-toast-styles';
-      style.textContent = `
-        @keyframes k1ToastSlideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes k1ToastSlideOut {
-          from { transform: translateX(0); opacity: 1; }
-          to { transform: translateX(100%); opacity: 0; }
-        }
-      `;
-      document.head.appendChild(style);
+      if (document.head && typeof (document.head as any).appendChild === 'function') {
+        const style = document.createElement('style');
+        style.id = 'k1-toast-styles';
+        style.textContent = `
+          @keyframes k1ToastSlideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+          }
+          @keyframes k1ToastSlideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
     }
 
     // Set toast content
@@ -238,7 +250,7 @@ export class K1TelemetryManager {
       this.removeToast(toastId);
     });
 
-    container.appendChild(toast);
+    (container as HTMLElement).appendChild(toast);
   }
 
   /**

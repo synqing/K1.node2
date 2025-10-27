@@ -4,11 +4,7 @@ import { EffectParameters } from '../control/EffectParameters';
 import { ColorManagement } from '../control/ColorManagement';
 import { GlobalSettings } from '../control/GlobalSettings';
 import { StatusBar } from '../control/StatusBar';
-
-interface ControlPanelViewProps {
-  isConnected: boolean;
-  k1Client: any; // TODO: Type this properly
-}
+import { useK1Actions, useK1State } from '../../providers/K1Provider';
 
 export type EffectType = 
   | 'analog' 
@@ -21,8 +17,33 @@ export type EffectType =
   | 'pulse' 
   | 'sparkle';
 
-export function ControlPanelView({ isConnected, k1Client: _ }: ControlPanelViewProps) {
+export function ControlPanelView() {
   const [selectedEffect, setSelectedEffect] = useState<EffectType>('analog');
+  const actions = useK1Actions();
+  const state = useK1State();
+  const isConnected = state.connection === 'connected';
+
+  // Map UI effects to firmware pattern indices
+  const effectToPatternIndex: Record<EffectType, number> = {
+    analog: 5,        // Bloom (VU meter style)
+    spectrum: 3,      // Spectrum
+    octave: 4,        // Octave
+    metronome: 7,     // Temposcope
+    spectronome: 8,   // Beat Tunnel (hybrid)
+    hype: 1,          // Lava (intensity)
+    bloom: 5,         // Bloom
+    pulse: 6,         // Pulse
+    sparkle: 10       // Void Trail (sparkles)
+  };
+
+  const handleEffectChange = (effect: EffectType) => {
+    setSelectedEffect(effect);
+    const idx = effectToPatternIndex[effect];
+    if (isConnected && typeof idx === 'number') {
+      // Send selection to device; ignore errors in UI thread but surface via provider
+      actions.selectPattern(String(idx)).catch(() => {});
+    }
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -32,7 +53,7 @@ export function ControlPanelView({ isConnected, k1Client: _ }: ControlPanelViewP
           <div>
             <EffectSelector
               selectedEffect={selectedEffect}
-              onEffectChange={setSelectedEffect}
+              onEffectChange={handleEffectChange}
               disabled={!isConnected}
             />
           </div>
@@ -47,8 +68,8 @@ export function ControlPanelView({ isConnected, k1Client: _ }: ControlPanelViewP
 
           {/* Column 3: Color Management & Global Settings */}
           <div className="space-y-6">
-            <ColorManagement disabled={!isConnected} />
             <GlobalSettings disabled={!isConnected} />
+            <ColorManagement disabled={!isConnected} />
           </div>
         </div>
       </div>

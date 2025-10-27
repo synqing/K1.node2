@@ -20,6 +20,7 @@ import {
 import { K1DiscoveredDevice } from '../types/k1-types';
 import { useDeviceDiscovery } from '../services/discovery-service';
 import { useAutoDiscovery, saveLastConnectedDevice } from '../hooks/useAutoDiscovery';
+import { useK1State } from '../providers/K1Provider';
 
 interface DeviceDiscoveryModalProps {
   isOpen: boolean;
@@ -41,12 +42,14 @@ export function DeviceDiscoveryModal({
 }: DeviceDiscoveryModalProps) {
   const discovery = useDeviceDiscovery();
   const autoDiscovery = useAutoDiscovery();
+  const k1State = useK1State();
+  const providerIsConnected = k1State.connection === 'connected';
 
   const [discoveredDevices, setDiscoveredDevices] = useState<K1DiscoveredDevice[]>([]);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<K1DiscoveredDevice | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [manualIp, setManualIp] = useState('');
+  const [manualIp, setManualIp] = useState('192.168.1.103');
   const [manualPort, setManualPort] = useState('80');
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
@@ -54,10 +57,10 @@ export function DeviceDiscoveryModal({
 
   // Auto-discover on mount
   useEffect(() => {
-    if (isOpen && !isConnected) {
+    if ((isOpen && !providerIsConnected)) {
       runDiscovery();
     }
-  }, [isOpen, isConnected]);
+  }, [isOpen, providerIsConnected]);
 
   const runDiscovery = async () => {
     setIsDiscovering(true);
@@ -152,7 +155,7 @@ export function DeviceDiscoveryModal({
   };
 
   return (
-    <Dialog open={isOpen && !isConnected} onOpenChange={() => {}}>
+    <Dialog open={isOpen && !providerIsConnected} onOpenChange={() => {}}>
       <DialogContent className="max-w-2xl bg-[var(--k1-panel)] border-[var(--k1-border)]">
         <DialogHeader>
           <DialogTitle className="text-[var(--k1-text)] flex items-center gap-2">
@@ -260,7 +263,7 @@ export function DeviceDiscoveryModal({
                 <Input
                   id="manual-ip"
                   type="text"
-                  placeholder="192.168.1.100"
+                  placeholder="k1-reinvented.local or 192.168.1.103"
                   value={manualIp}
                   onChange={(e) => setManualIp(e.target.value)}
                   disabled={isConnecting}

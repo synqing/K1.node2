@@ -6,7 +6,7 @@ import { ProfilingView } from './components/views/ProfilingView';
 import { TerminalView } from './components/views/TerminalView';
 import { DebugView } from './components/views/DebugView';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { ErrorProvider } from './hooks/useErrorHandler';
+import { ErrorProvider } from './components/ErrorProvider';
 import { DeviceDiscoveryModal } from './components/DeviceDiscoveryModal';
 import { Toaster } from './components/ui/sonner';
 import { K1Client } from './api/k1-client';
@@ -21,14 +21,16 @@ type ViewType = 'control' | 'profiling' | 'terminal' | 'debug';
 export default function App() {
   const [activeView, setActiveView] = useState<ViewType>('control');
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
-  const [connectionIP, setConnectionIP] = useState('192.168.1.100');
+  const [connectionIP, setConnectionIP] = useState('192.168.1.103');
   const [k1Client, setK1Client] = useState<K1Client | null>(null);
   const [showDebugHUD, setShowDebugHUD] = useState(false);
   const [debugInitialTab, setDebugInitialTab] = useState<'performance' | 'parameters' | 'audio'>('performance');
 
   // Initialize K1 client when IP changes
   useEffect(() => {
-    const client = new K1Client(connectionIP);
+    // Ensure we have http:// prefix for the endpoint
+    const endpoint = connectionIP.startsWith('http') ? connectionIP : `http://${connectionIP}`;
+    const client = new K1Client(endpoint);
     setK1Client(client);
   }, [connectionIP]);
 
@@ -72,7 +74,7 @@ export default function App() {
   };
 
   const handleDiscoveryComplete = async (device: K1DiscoveredDevice) => {
-    setConnectionIP(`${device.ip}:${device.port}`);
+    setConnectionIP(device.ip);
     // Connection will be tested automatically by useEffect
   };
 
@@ -115,10 +117,7 @@ export default function App() {
             {/* Main View Area */}
             <main className="flex-1 overflow-hidden">
               {activeView === 'control' && (
-                <ControlPanelView
-                  isConnected={isConnected}
-                  k1Client={k1Client}
-                />
+                <ControlPanelView />
               )}
               {activeView === 'profiling' && (
                 <ProfilingView

@@ -46,4 +46,14 @@ Connects to K1.reinvented devices via REST API:
 
 The app automatically discovers K1 devices on the local network. For manual connection, enter the device IP address in the sidebar.
 
+### Debug Tools
+
+Press **Alt+Shift+D** in development mode to access the DevDebugPanel:
+- Real-time subscription metrics
+- Abort error tracking and logging
+- HMR performance monitoring
+- Interactive debug controls
+
+See [DEVELOPMENT.md](./DEVELOPMENT.md) for detailed debugging guide.
+
 Default K1 device URL: `http://192.168.1.100`

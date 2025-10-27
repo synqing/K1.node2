@@ -85,14 +85,14 @@ const effects: Array<{
 export function EffectSelector({ selectedEffect, onEffectChange, disabled }: EffectSelectorProps) {
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-[var(--k1-text)]">Effect Selection</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-[12px] uppercase tracking-wide text-[var(--k1-text-dim)]">Effect Selection</h3>
         <Badge variant="outline" className="text-[10px]">
           9 Effects
         </Badge>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {effects.map((effect) => {
           const Icon = effect.icon;
           const isSelected = selectedEffect === effect.id;
@@ -104,26 +104,26 @@ export function EffectSelector({ selectedEffect, onEffectChange, disabled }: Eff
                   <button
                     onClick={() => !disabled && onEffectChange(effect.id)}
                     disabled={disabled}
-                    className={`w-full p-3 rounded-lg border transition-all ${
+                    className={`w-full p-2.5 rounded-md border transition-all ${
                       isSelected
-                        ? 'bg-[var(--k1-panel)] border-[var(--k1-accent)] shadow-[0_0_12px_rgba(110,231,243,0.2)]'
+                        ? 'bg-[var(--k1-panel)] border-[var(--k1-accent)] shadow-sm'
                         : 'bg-[var(--k1-bg-elev)] border-[var(--k1-border)] hover:border-[var(--k1-text-dim)]'
                     } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center"
+                        className="w-6 h-6 rounded-md flex items-center justify-center"
                         style={{
                           backgroundColor: isSelected ? effect.color + '20' : 'var(--k1-bg)',
                         }}
                       >
                         <Icon
-                          className="w-4 h-4"
+                          className="w-3 h-3"
                           style={{ color: effect.color }}
                         />
                       </div>
                       <div className="flex-1 text-left">
-                        <div className="text-[var(--k1-text)]">
+                        <div className="text-[12px] font-medium text-[var(--k1-text)]">
                           {effect.name}
                         </div>
                         <div className="text-[10px] text-[var(--k1-text-dim)] leading-tight">

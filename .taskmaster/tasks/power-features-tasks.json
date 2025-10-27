@@ -1,0 +1,1261 @@
+{
+    "powerFeatures": {
+        "title": "K1 Control App: Power Features Implementation",
+        "description": "Comprehensive power features development following Option B strategy for maximum feature differentiation and revenue potential",
+        "timeline": "4-6 weeks intensive development",
+        "revenueTarget": "$655K over 3 years",
+        "qualityTarget": "90/100 → 95/100 (Professional-grade)",
+        "tasks": [
+            {
+                "id": "PF-1",
+                "title": "Mobile PWA Application",
+                "description": "Transform the K1 Control App into a Progressive Web App with mobile-optimized UI, offline functionality, and native-like experience targeting 40% market expansion",
+                "details": "Technical Implementation:\n- PWA Manifest: Create manifest.json with app metadata, icons (192x192, 512x512), display modes (standalone, fullscreen), theme colors, and start_url configuration\n- Service Worker: Implement caching strategies (CacheFirst for static assets, NetworkFirst for API calls), offline fallback pages, background sync queue for failed requests, and update notifications\n- Mobile UI Components: Redesign existing components with touch targets ≥44px, implement swipe gestures using Hammer.js or native touch events, add pull-to-refresh functionality\n- Responsive Breakpoints: Mobile-first design with breakpoints at 320px, 768px, 1024px; adaptive layouts for ColorManagement tabs, DeviceManager panels, and pattern grids\n- Camera Integration: Use getUserMedia() for camera access, integrate QR code scanner library (qr-scanner), implement device QR code generation with connection URLs\n- Push Notifications: Implement Web Push API with VAPID keys, notification permission flow, device status alerts, and pattern completion notifications\n- Haptic Feedback: Use Vibration API for tactile feedback on slider interactions, button presses, and connection events\n- Background Sync: Queue parameter updates, pattern changes, and device commands when offline; sync when connection restored\n- Performance Optimization: Implement virtual scrolling for large lists, lazy loading for images, and touch event optimization",
+                "testStrategy": "- Lighthouse PWA audit achieving score >90\n- Cross-device testing on iOS Safari, Chrome Mobile, Samsung Internet\n- Offline functionality testing with DevTools network throttling\n- Touch interaction testing with 300ms delay simulation\n- Performance testing on low-end devices (Android 6.0, 2GB RAM)\n- Camera permission and QR scanning accuracy validation\n- Push notification delivery and interaction testing",
+                "priority": "high",
+                "dependencies": [],
+                "status": "pending",
+                "complexity": 8,
+                "timeline": "2-3 weeks",
+                "revenueImpact": "$120K over 3 years",
+                "marketImpact": "40% user base expansion",
+                "recommendedSubtasks": 12,
+                "subtasks": [
+                    {
+                        "id": 1,
+                        "title": "PWA manifest configuration and app metadata",
+                        "description": "Create comprehensive PWA manifest with proper metadata, icons, and display configuration for app store compatibility",
+                        "dependencies": [],
+                        "details": "Create manifest.json with name, short_name, description, start_url (/), display (standalone), orientation (any), theme_color (#1a1a1a), background_color (#000000). Generate icon set: 72x72, 96x96, 128x128, 144x144, 152x152, 192x192, 384x384, 512x512 in PNG format. Configure scope and categories for app store listing.",
+                        "status": "pending",
+                        "testStrategy": "Validate manifest with Chrome DevTools Application tab, test icon display across devices, verify app store compatibility",
+                        "parentId": "PF-1"
+                    },
+                    {
+                        "id": 2,
+                        "title": "Service worker with caching strategies and offline support",
+                        "description": "Implement comprehensive service worker with intelligent caching, offline fallbacks, and background sync",
+                        "dependencies": [
+                            1
+                        ],
+                        "details": "Create service worker with Workbox: CacheFirst for static assets (JS, CSS, images), NetworkFirst for API calls with 5s timeout, StaleWhileRevalidate for HTML. Implement offline fallback page, cache versioning, and automatic cleanup. Add background sync for failed requests with exponential backoff.",
+                        "status": "pending",
+                        "testStrategy": "Test offline functionality with DevTools network tab, validate cache strategies, verify background sync with network interruption",
+                        "parentId": "PF-1"
+                    },
+                    {
+                        "id": 3,
+                        "title": "Mobile-first responsive breakpoint system",
+                        "description": "Implement comprehensive responsive design system with mobile-first approach and adaptive layouts",
+                        "dependencies": [],
+                        "details": "Define breakpoints: mobile (320px-767px), tablet (768px-1023px), desktop (1024px+). Redesign ColorManagement tabs for mobile stacking, DeviceManager single-column layout, pattern grid responsive columns (1-2-3-4). Use CSS Grid and Flexbox with container queries where supported.",
+                        "status": "pending",
+                        "testStrategy": "Test across device sizes using DevTools responsive mode, validate layout on real devices, ensure no horizontal scroll",
+                        "parentId": "PF-1"
+                    },
+                    {
+                        "id": 4,
+                        "title": "Touch-optimized UI components and gesture handling",
+                        "description": "Redesign all interactive components for touch with proper sizing, feedback, and gesture support",
+                        "dependencies": [
+                            3
+                        ],
+                        "details": "Increase touch targets to minimum 44px, add visual feedback (ripple effects, scale transforms). Implement swipe gestures for tab navigation, pull-to-refresh for device discovery, long-press for context menus. Use CSS touch-action and pointer events for optimal touch handling.",
+                        "status": "pending",
+                        "testStrategy": "Touch interaction testing on various devices, gesture recognition accuracy, accessibility testing with screen readers",
+                        "parentId": "PF-1"
+                    },
+                    {
+                        "id": 5,
+                        "title": "Mobile slider and control component optimization",
+                        "description": "Optimize parameter sliders and color controls for touch interaction with improved precision",
+                        "dependencies": [
+                            4
+                        ],
+                        "details": "Redesign sliders with larger thumb size (24px minimum), implement fine-tuning mode with long-press, add haptic feedback on value changes. Create touch-optimized color picker with larger color swatches and gesture-based hue selection.",
+                        "status": "pending",
+                        "testStrategy": "Slider precision testing on touch devices, haptic feedback validation, color picker usability testing",
+                        "parentId": "PF-1"
+                    },
+                    {
+                        "id": 6,
+                        "title": "Camera API integration and permission handling",
+                        "description": "Implement camera access with proper permission flow and error handling for QR code scanning",
+                        "dependencies": [
+                            3
+                        ],
+                        "details": "Use getUserMedia() with video constraints (facingMode: environment), implement permission request flow with clear messaging, handle permission denied gracefully. Add camera switching for devices with multiple cameras.",
+                        "status": "pending",
+                        "testStrategy": "Camera permission flow testing, cross-browser compatibility validation, error handling verification",
+                        "parentId": "PF-1"
+                    },
+                    {
+                        "id": 7,
+                        "title": "QR code scanning and generation system",
+                        "description": "Implement QR code scanning for device discovery and generation for device sharing",
+                        "dependencies": [
+                            6
+                        ],
+                        "details": "Integrate qr-scanner library for real-time QR code detection, implement QR code generation using qrcode library. Create QR code format: k1://device/{ip}:{port}?name={deviceName}&id={deviceId}. Add scanning UI with camera preview and detection feedback.",
+                        "status": "pending",
+                        "testStrategy": "QR code recognition accuracy testing, generation format validation, scanning UI usability testing",
+                        "parentId": "PF-1"
+                    },
+                    {
+                        "id": 8,
+                        "title": "Web Push API implementation and notification system",
+                        "description": "Implement push notifications for device status, pattern completion, and system alerts",
+                        "dependencies": [
+                            2
+                        ],
+                        "details": "Set up Web Push with VAPID keys, implement notification permission request, create notification types (device_connected, device_disconnected, pattern_complete, error_alert). Add notification preferences UI and opt-out functionality.",
+                        "status": "pending",
+                        "testStrategy": "Push notification delivery testing, permission flow validation, notification interaction testing",
+                        "parentId": "PF-1"
+                    },
+                    {
+                        "id": 9,
+                        "title": "Background sync and offline queue management",
+                        "description": "Implement background sync for offline operations with intelligent queuing and retry logic",
+                        "dependencies": [
+                            2
+                        ],
+                        "details": "Create background sync queue for parameter updates, pattern changes, device commands. Implement exponential backoff retry (1s, 2s, 4s, 8s, max 30s), queue persistence in IndexedDB, and conflict resolution for offline changes.",
+                        "status": "pending",
+                        "testStrategy": "Offline queue testing with network interruption, background sync validation, conflict resolution verification",
+                        "parentId": "PF-1"
+                    },
+                    {
+                        "id": 10,
+                        "title": "Haptic feedback integration and vibration patterns",
+                        "description": "Implement haptic feedback for enhanced touch interaction using Vibration API",
+                        "dependencies": [
+                            4,
+                            5
+                        ],
+                        "details": "Create vibration patterns: light tap (10ms), medium tap (25ms), strong tap (50ms), error buzz (100ms, 50ms, 100ms). Implement feedback for slider changes, button presses, connection events, and error states. Add user preference controls.",
+                        "status": "pending",
+                        "testStrategy": "Haptic feedback testing on supported devices, vibration pattern validation, user preference testing",
+                        "parentId": "PF-1"
+                    },
+                    {
+                        "id": 11,
+                        "title": "App installation prompts and update management",
+                        "description": "Implement smart app installation prompts and seamless update notifications",
+                        "dependencies": [
+                            1,
+                            2
+                        ],
+                        "details": "Create beforeinstallprompt handler with custom install UI, implement update available notifications, add app version display and manual update check. Handle app lifecycle events (install, update, uninstall).",
+                        "status": "pending",
+                        "testStrategy": "Installation prompt testing across browsers, update notification validation, app lifecycle event handling",
+                        "parentId": "PF-1"
+                    },
+                    {
+                        "id": 12,
+                        "title": "Mobile performance optimization and bundle splitting",
+                        "description": "Optimize app performance for mobile devices with code splitting and lazy loading",
+                        "dependencies": [
+                            3,
+                            4,
+                            5
+                        ],
+                        "details": "Implement route-based code splitting, lazy load heavy components (pattern editor, visualization), optimize bundle size with tree shaking. Add performance monitoring with Web Vitals, implement virtual scrolling for large lists.",
+                        "status": "pending",
+                        "testStrategy": "Performance testing on low-end devices, bundle size analysis, Web Vitals measurement, virtual scrolling validation",
+                        "parentId": "PF-1"
+                    }
+                ]
+            },
+            {
+                "id": "PF-2",
+                "title": "Advanced Pattern System",
+                "description": "Comprehensive pattern creation, editing, and marketplace ecosystem targeting $150K/year revenue through user-generated content and community engagement",
+                "details": "Technical Implementation:\n- Pattern Recording Engine: Capture parameter changes with microsecond timestamps, implement efficient binary format with LZ4 compression, support real-time recording with <10ms latency\n- Pattern Data Format: Binary format with header (version, duration, fps, metadata), keyframe data (timestamp, parameter_id, value, interpolation_type), and footer (checksum, compression_info)\n- Timeline Editor: Canvas-based timeline with zoom (1ms to 10min), keyframe manipulation, curve editing (linear, bezier, ease-in/out), multi-track support, and real-time preview\n- Pattern Marketplace: RESTful API with user authentication, pattern upload/download, rating system (1-5 stars), search/filter (tags, duration, popularity), and content moderation\n- Pattern Categories: Hierarchical tagging system (mood/energetic/calm, genre/electronic/ambient, event/party/meditation), auto-tagging with ML analysis\n- Pattern Remixing: Fork/clone patterns, version control with diff visualization, merge conflicts resolution, and attribution tracking\n- Pattern Scheduling: Cron-like scheduling syntax, event triggers (time, audio level, beat detection), conditional logic (if/then/else)\n- Pattern Layering: Multiple pattern tracks with blend modes (add, multiply, overlay, screen), opacity controls, and real-time composition\n- Pattern Analytics: Usage metrics (play count, duration, skip rate), popularity algorithms, A/B testing for recommendations\n- Performance Optimization: Pattern streaming for large files, predictive caching, and GPU-accelerated playback",
+                "testStrategy": "- Recording accuracy testing with known parameter sequences\n- Timeline editor precision validation with frame-perfect playback\n- Marketplace load testing with 10K+ patterns and concurrent users\n- Pattern layering performance testing with 8+ simultaneous tracks\n- Compression ratio testing achieving >70% size reduction\n- Real-time playback testing maintaining <50ms latency\n- Content moderation testing with automated flagging systems",
+                "priority": "high",
+                "dependencies": [],
+                "status": "pending",
+                "complexity": 9,
+                "timeline": "3-4 weeks",
+                "revenueImpact": "$150K/year by Year 3",
+                "marketImpact": "Content ecosystem and user engagement",
+                "recommendedSubtasks": 15,
+                "subtasks": [
+                    {
+                        "id": 1,
+                        "title": "Binary pattern data format specification and serialization",
+                        "description": "Design and implement efficient binary format for pattern data with compression and versioning",
+                        "dependencies": [],
+                        "details": "Create binary format: 32-byte header (magic number, version, duration_ms, fps, parameter_count, keyframe_count, compression_type, checksum), keyframe data (4-byte timestamp, 2-byte parameter_id, 4-byte float value, 1-byte interpolation), implement LZ4 compression achieving >70% reduction, add format versioning for backward compatibility.",
+                        "status": "pending",
+                        "testStrategy": "Binary format validation, compression ratio testing, serialization/deserialization performance benchmarks",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 2,
+                        "title": "Real-time parameter recording engine with microsecond precision",
+                        "description": "Implement high-precision recording system capturing parameter changes with minimal latency",
+                        "dependencies": [
+                            1
+                        ],
+                        "details": "Create recording engine using performance.now() for microsecond timestamps, implement circular buffer for real-time capture, add parameter change detection with configurable thresholds, support recording up to 1000 parameter changes per second with <10ms latency.",
+                        "status": "pending",
+                        "testStrategy": "Recording latency measurement, timestamp precision validation, high-frequency parameter change testing",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 3,
+                        "title": "Pattern playback engine with interpolation and timing accuracy",
+                        "description": "Implement precise pattern playback with smooth interpolation and frame-perfect timing",
+                        "dependencies": [
+                            1,
+                            2
+                        ],
+                        "details": "Create playback engine with requestAnimationFrame-based timing, implement interpolation algorithms (linear, cubic bezier, ease-in/out), add playback controls (play, pause, seek, loop), support variable playback speed (0.1x to 4x), maintain <50ms latency for parameter updates.",
+                        "status": "pending",
+                        "testStrategy": "Playback timing accuracy testing, interpolation smoothness validation, latency measurement under load",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 4,
+                        "title": "Canvas-based timeline editor with zoom and pan controls",
+                        "description": "Build interactive timeline editor using HTML5 Canvas with professional editing capabilities",
+                        "dependencies": [
+                            1,
+                            3
+                        ],
+                        "details": "Implement Canvas-based timeline with zoom levels (1ms to 10min), pan controls with momentum scrolling, keyframe visualization as diamonds/circles, drag-and-drop keyframe editing, selection tools (single, multi, range), grid snapping with configurable intervals.",
+                        "status": "pending",
+                        "testStrategy": "Timeline interaction testing, zoom/pan performance validation, keyframe manipulation accuracy",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 5,
+                        "title": "Keyframe editing and curve manipulation tools",
+                        "description": "Implement advanced keyframe editing with curve types and visual feedback",
+                        "dependencies": [
+                            4
+                        ],
+                        "details": "Add keyframe editing tools: create/delete keyframes, value editing with numeric input, curve type selection (linear, ease-in, ease-out, bezier), tangent handle manipulation for bezier curves, batch editing for multiple keyframes, curve preview with real-time updates.",
+                        "status": "pending",
+                        "testStrategy": "Keyframe editing precision testing, curve manipulation usability validation, batch operation verification",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 6,
+                        "title": "Multi-track pattern support and track management",
+                        "description": "Implement multi-track timeline supporting multiple parameter tracks with individual controls",
+                        "dependencies": [
+                            4,
+                            5
+                        ],
+                        "details": "Create track management system: add/remove tracks, track naming and color coding, track mute/solo controls, track height adjustment, parameter assignment per track, track grouping and folding, track reordering with drag-and-drop.",
+                        "status": "pending",
+                        "testStrategy": "Multi-track functionality testing, track management usability validation, performance testing with 20+ tracks",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 7,
+                        "title": "Pattern metadata and tagging system",
+                        "description": "Implement comprehensive metadata system with hierarchical tagging and search capabilities",
+                        "dependencies": [
+                            1
+                        ],
+                        "details": "Create metadata schema: name, description, author, creation_date, duration, bpm, key, mood tags (energetic, calm, dramatic), genre tags (electronic, ambient, rock), event tags (party, meditation, workout), custom user tags, auto-generated tags from audio analysis.",
+                        "status": "pending",
+                        "testStrategy": "Metadata validation, tagging system functionality, search performance with large tag datasets",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 8,
+                        "title": "Pattern marketplace backend API and database design",
+                        "description": "Design and implement scalable backend API for pattern marketplace with user management",
+                        "dependencies": [
+                            1,
+                            7
+                        ],
+                        "details": "Create RESTful API: user authentication (JWT), pattern CRUD operations, rating system (1-5 stars), search/filter endpoints, file upload with virus scanning, content moderation queue, analytics tracking, rate limiting (100 requests/minute per user).",
+                        "status": "pending",
+                        "testStrategy": "API load testing, authentication security validation, content moderation accuracy testing",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 9,
+                        "title": "Pattern marketplace frontend with search and discovery",
+                        "description": "Build user-friendly marketplace interface with advanced search and recommendation features",
+                        "dependencies": [
+                            8
+                        ],
+                        "details": "Create marketplace UI: pattern grid with thumbnails, advanced search with filters (tags, duration, rating, date), sorting options (popularity, newest, rating), pattern preview player, user profiles, rating and review system, recommendation engine based on user preferences.",
+                        "status": "pending",
+                        "testStrategy": "Marketplace UI usability testing, search performance validation, recommendation accuracy assessment",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 10,
+                        "title": "Pattern remixing and version control system",
+                        "description": "Implement pattern forking, versioning, and attribution tracking for collaborative creation",
+                        "dependencies": [
+                            1,
+                            8
+                        ],
+                        "details": "Create version control system: pattern forking with attribution, diff visualization showing parameter changes, merge conflict resolution, version history with branching, collaborative editing with real-time sync, attribution chain tracking for remixed patterns.",
+                        "status": "pending",
+                        "testStrategy": "Version control functionality testing, diff visualization accuracy, collaborative editing synchronization",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 11,
+                        "title": "Pattern scheduling and automation engine",
+                        "description": "Implement time-based pattern scheduling with event triggers and conditional logic",
+                        "dependencies": [
+                            3
+                        ],
+                        "details": "Create scheduling engine: cron-like syntax for time-based triggers, event triggers (audio level threshold, beat detection, user interaction), conditional logic (if/then/else statements), pattern queue management, schedule conflict resolution, timezone support.",
+                        "status": "pending",
+                        "testStrategy": "Scheduling accuracy testing, event trigger reliability validation, conditional logic execution verification",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 12,
+                        "title": "Pattern layering engine with blend modes and composition",
+                        "description": "Implement advanced pattern layering with real-time composition and blend modes",
+                        "dependencies": [
+                            3,
+                            6
+                        ],
+                        "details": "Create layering engine: multiple pattern tracks with individual opacity, blend modes (add, multiply, overlay, screen, difference), real-time composition with GPU acceleration, layer ordering and grouping, cross-fade transitions between patterns, performance optimization for 8+ simultaneous layers.",
+                        "status": "pending",
+                        "testStrategy": "Layering performance testing, blend mode accuracy validation, GPU acceleration verification",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 13,
+                        "title": "Pattern analytics and usage tracking system",
+                        "description": "Implement comprehensive analytics for pattern usage, popularity, and performance metrics",
+                        "dependencies": [
+                            8,
+                            9
+                        ],
+                        "details": "Create analytics system: play count tracking, duration analytics, skip rate measurement, user engagement metrics, popularity algorithms, A/B testing framework for recommendations, creator analytics dashboard, revenue tracking for paid patterns.",
+                        "status": "pending",
+                        "testStrategy": "Analytics accuracy validation, performance impact measurement, privacy compliance verification",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 14,
+                        "title": "Pattern streaming and predictive caching system",
+                        "description": "Implement efficient pattern streaming for large files with intelligent caching",
+                        "dependencies": [
+                            1,
+                            3
+                        ],
+                        "details": "Create streaming system: chunked pattern loading for large files (>10MB), predictive caching based on user behavior, progressive download with playback start, cache management with LRU eviction, offline pattern storage with quota management, bandwidth-adaptive streaming.",
+                        "status": "pending",
+                        "testStrategy": "Streaming performance testing, cache hit rate validation, offline functionality verification",
+                        "parentId": "PF-2"
+                    },
+                    {
+                        "id": 15,
+                        "title": "Pattern export and import with format compatibility",
+                        "description": "Implement pattern export/import supporting multiple formats and cross-platform compatibility",
+                        "dependencies": [
+                            1,
+                            7
+                        ],
+                        "details": "Create export/import system: native binary format, JSON format for interoperability, MIDI export for music software, CSV export for data analysis, import from popular lighting software formats, format validation and error handling, batch import/export operations.",
+                        "status": "pending",
+                        "testStrategy": "Format compatibility testing, import/export accuracy validation, batch operation performance testing",
+                        "parentId": "PF-2"
+                    }
+                ]
+            },
+            {
+                "id": "PF-3",
+                "title": "Professional Audio Integration",
+                "description": "Advanced audio analysis and professional hardware integration targeting $85K revenue through DJ/VJ market penetration",
+                "details": "Technical Implementation:\n- Web MIDI API Integration: Support for 200+ MIDI controllers with device-specific mappings, bidirectional communication, MIDI learn functionality, and custom control surfaces\n- OSC Protocol Implementation: Full OSC 1.0 specification support, UDP/TCP transport, TouchOSC compatibility, bidirectional parameter mapping, and custom OSC address patterns\n- Advanced Audio Analysis: 2048-point FFT with Hann windowing, beat detection using spectral flux and adaptive thresholding, tempo estimation with autocorrelation, key detection using Krumhansl-Schmuckler algorithm\n- Multi-Source Audio Input: Web Audio API with getUserMedia(), system audio capture via screen sharing, line input support, audio routing matrix, and input level monitoring\n- Beat Synchronization: Phase-locked loop for tempo sync, beat prediction with <5ms accuracy, quantization grid, and swing/shuffle support\n- Real-Time Audio Visualization: 64-band spectrum analyzer at 60fps, stereo waveform display, peak/RMS metering, and chromagram visualization\n- Audio Processing Presets: Genre-specific EQ curves, dynamic range settings, beat detection sensitivity, and frequency band weighting\n- Latency Compensation: Audio-to-visual latency measurement, automatic compensation up to 200ms, manual offset adjustment, and buffer size optimization\n- Professional Features: Audio recording/playback, loop detection, harmonic mixing, and BPM matching",
+                "testStrategy": "- MIDI controller testing with Pioneer DDJ, Novation Launchpad, Akai APC series\n- Audio analysis accuracy testing with 120-180 BPM test tracks\n- Latency measurement using audio loopback testing\n- OSC compatibility testing with TouchOSC, Lemur, and Resolume\n- Beat detection accuracy testing with complex polyrhythmic music\n- Professional workflow testing with live performance scenarios",
+                "priority": "high",
+                "dependencies": [],
+                "status": "pending",
+                "complexity": 8,
+                "timeline": "2-3 weeks",
+                "revenueImpact": "$85K projected revenue",
+                "marketImpact": "Professional DJ/VJ market penetration",
+                "recommendedSubtasks": 14,
+                "subtasks": [
+                    {
+                        "id": 1,
+                        "title": "Web MIDI API integration and device enumeration",
+                        "description": "Implement comprehensive MIDI device support with automatic detection and connection management",
+                        "dependencies": [],
+                        "details": "Integrate Web MIDI API with device enumeration, connection state monitoring, automatic reconnection on device disconnect, MIDI device capability detection (input/output channels, supported messages), and device-specific initialization sequences for popular controllers.",
+                        "status": "pending",
+                        "testStrategy": "MIDI device detection testing, connection stability validation, device capability enumeration accuracy",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 2,
+                        "title": "MIDI message processing and real-time handling",
+                        "description": "Implement low-latency MIDI message processing with comprehensive message type support",
+                        "dependencies": [
+                            1
+                        ],
+                        "details": "Create MIDI message parser supporting Note On/Off, Control Change, Program Change, Pitch Bend, System Exclusive messages, implement message queuing with <5ms latency, add MIDI clock synchronization, and support running status optimization.",
+                        "status": "pending",
+                        "testStrategy": "MIDI message latency testing, message parsing accuracy validation, clock synchronization precision testing",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 3,
+                        "title": "MIDI controller mapping system with learn functionality",
+                        "description": "Build flexible MIDI mapping system with visual editor and MIDI learn capabilities",
+                        "dependencies": [
+                            2
+                        ],
+                        "details": "Create mapping editor with drag-and-drop parameter assignment, MIDI learn mode for automatic mapping, controller templates for popular devices (Pioneer DDJ, Novation Launchpad, Akai APC), mapping presets, and bidirectional feedback for LED controllers.",
+                        "status": "pending",
+                        "testStrategy": "MIDI learn functionality testing, mapping accuracy validation, controller template verification",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 4,
+                        "title": "Advanced FFT audio analysis with windowing",
+                        "description": "Implement high-performance FFT analysis with proper windowing and frequency resolution",
+                        "dependencies": [],
+                        "details": "Create FFT analysis using 2048-point FFT with Hann windowing, implement overlap-add processing for smooth analysis, add frequency bin grouping for octave bands, implement peak detection with parabolic interpolation, and optimize for 60fps analysis rate.",
+                        "status": "pending",
+                        "testStrategy": "FFT accuracy testing with known frequency signals, windowing artifact validation, performance benchmarking",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 5,
+                        "title": "Beat detection with spectral flux and adaptive thresholding",
+                        "description": "Implement professional-grade beat detection using advanced signal processing techniques",
+                        "dependencies": [
+                            4
+                        ],
+                        "details": "Create beat detection using spectral flux calculation, implement adaptive thresholding with local mean and variance, add onset detection with peak picking, implement beat tracking with tempo consistency, and support complex time signatures.",
+                        "status": "pending",
+                        "testStrategy": "Beat detection accuracy testing with various music genres, tempo consistency validation, complex rhythm testing",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 6,
+                        "title": "Tempo estimation with autocorrelation and BPM tracking",
+                        "description": "Implement accurate tempo estimation and BPM tracking with tempo change adaptation",
+                        "dependencies": [
+                            5
+                        ],
+                        "details": "Create tempo estimation using autocorrelation of onset detection function, implement BPM tracking with Kalman filtering, add tempo change detection and adaptation, support BPM range 60-200, and provide tempo confidence scoring.",
+                        "status": "pending",
+                        "testStrategy": "Tempo estimation accuracy testing, BPM tracking stability validation, tempo change adaptation testing",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 7,
+                        "title": "Multi-source audio input management",
+                        "description": "Implement comprehensive audio input system supporting multiple sources and routing",
+                        "dependencies": [],
+                        "details": "Create audio input manager supporting microphone, line input via getUserMedia(), system audio via screen sharing, audio file playback, input level monitoring with peak/RMS metering, and audio routing matrix for source selection.",
+                        "status": "pending",
+                        "testStrategy": "Audio input source testing, level monitoring accuracy validation, routing matrix functionality testing",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 8,
+                        "title": "OSC protocol implementation with UDP/TCP transport",
+                        "description": "Implement full OSC 1.0 specification with network transport and message routing",
+                        "dependencies": [],
+                        "details": "Create OSC message parser/encoder supporting all OSC data types (int32, float32, string, blob, timetag), implement UDP and TCP transport layers, add OSC address pattern matching with wildcards, and create OSC bundle support for atomic operations.",
+                        "status": "pending",
+                        "testStrategy": "OSC protocol compliance testing, message parsing accuracy validation, network transport reliability testing",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 9,
+                        "title": "OSC mapping and TouchOSC compatibility",
+                        "description": "Build OSC parameter mapping system with TouchOSC template support",
+                        "dependencies": [
+                            8
+                        ],
+                        "details": "Create OSC mapping interface with address pattern editor, parameter binding with type conversion, TouchOSC template import/export, bidirectional parameter synchronization, and custom OSC control surface designer.",
+                        "status": "pending",
+                        "testStrategy": "OSC mapping functionality testing, TouchOSC compatibility validation, bidirectional sync testing",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 10,
+                        "title": "Beat synchronization with phase-locked loop",
+                        "description": "Implement precise beat synchronization for tempo-locked lighting effects",
+                        "dependencies": [
+                            6
+                        ],
+                        "details": "Create phase-locked loop for beat synchronization, implement beat prediction with <5ms accuracy, add quantization grid for parameter changes, support swing/shuffle timing, and provide manual beat tap override.",
+                        "status": "pending",
+                        "testStrategy": "Beat synchronization accuracy testing, phase lock stability validation, quantization precision testing",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 11,
+                        "title": "Real-time audio visualization with spectrum and waveform",
+                        "description": "Build high-performance audio visualization with multiple display modes",
+                        "dependencies": [
+                            4,
+                            7
+                        ],
+                        "details": "Create 64-band spectrum analyzer with logarithmic frequency scaling, implement stereo waveform display with zoom controls, add peak/RMS metering with ballistics, create chromagram visualization for harmonic content, and optimize for 60fps rendering.",
+                        "status": "pending",
+                        "testStrategy": "Visualization performance testing, frequency accuracy validation, rendering frame rate verification",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 12,
+                        "title": "Audio processing presets and genre-specific profiles",
+                        "description": "Implement audio processing presets optimized for different music genres and use cases",
+                        "dependencies": [
+                            4,
+                            5,
+                            6
+                        ],
+                        "details": "Create genre-specific presets (Electronic, Hip-Hop, Rock, Classical, Ambient) with optimized EQ curves, beat detection sensitivity, frequency band weighting, and dynamic range settings. Add custom preset creation and sharing.",
+                        "status": "pending",
+                        "testStrategy": "Preset effectiveness testing across genres, parameter optimization validation, custom preset functionality testing",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 13,
+                        "title": "Latency compensation and audio-visual synchronization",
+                        "description": "Implement comprehensive latency compensation for professional live performance",
+                        "dependencies": [
+                            10
+                        ],
+                        "details": "Create audio-to-visual latency measurement using cross-correlation, implement automatic compensation up to 200ms, add manual offset adjustment, optimize audio buffer sizes, and provide latency monitoring dashboard.",
+                        "status": "pending",
+                        "testStrategy": "Latency measurement accuracy testing, compensation effectiveness validation, live performance scenario testing",
+                        "parentId": "PF-3"
+                    },
+                    {
+                        "id": 14,
+                        "title": "Professional audio features and workflow integration",
+                        "description": "Add professional features for DJ/VJ workflow integration and performance enhancement",
+                        "dependencies": [
+                            3,
+                            9,
+                            13
+                        ],
+                        "details": "Implement audio recording/playback, loop detection and creation, harmonic mixing with key detection, BPM matching and pitch shifting, cue point management, and integration with popular DJ software via MIDI/OSC.",
+                        "status": "pending",
+                        "testStrategy": "Professional workflow testing, DJ software integration validation, performance feature accuracy testing",
+                        "parentId": "PF-3"
+                    }
+                ]
+            },
+            {
+                "id": "PF-4",
+                "title": "Multi-Device Orchestration",
+                "description": "Enterprise-grade multi-device management and synchronized lighting shows for commercial installations targeting $200K/year B2B revenue",
+                "details": "Technical Implementation:\n- Orchestration Architecture: Authoritative orchestrator maintaining canonical scene state with device membership; devices apply idempotent commands with optimistic UI and server reconciliation\n- Device Discovery: mDNS/Bonjour for LAN discovery (_k1._tcp service type), SSDP fallback, DeviceDescriptor registry tracking lastSeen, firmware, capabilities, and coordinate systems\n- Timebase Synchronization: TimebaseService backed by NTP/PTP with sub-ms sync capability, local monotonic time fallback with skew correction, SMPTE/MTC/Ableton Link/OSC clock support for music/show control\n- Messaging Layer: WebSocket for control frames (idempotent JSON commands), optional UDP multicast for bulk streaming with sACN (ANSI E1.31), MQTT consideration for cloud/fleet with retained scene topics and QoS 1\n- Reliability Patterns: Sequence numbers, acks/nacks, periodic heartbeats, coalesced/batched param updates within 16-33ms frames, exponential backoff with jitter, fast-path resume after heartbeat recovery\n- Data Contracts: CommandEnvelope {id, ts, seq, type, payload, groupId?, ttlMs}, StateFrame {ts, devices[], scene}, idempotent and versioned commands with capabilities for per-device feature gating\n- Performance Budgets: <50ms end-to-end for live control, <15ms for audio-reactive parameters, control frames <1-2KB, binary WS only if JSON bottleneck\n- Group Management: Logical groups/scenes with nested hierarchy, bulk operations, zone-based spatial awareness, master/slave configurations with failover\n- Network Topology: Visual device network mapping, health monitoring dashboard, connection state tracking, automatic device registration\n- Testing: Device simulator (WS server) for replay fixtures, group broadcast validation, fake clocks for timecode alignment, E2E smoke tests with synchronized color frames",
+                "testStrategy": "- Multi-device synchronization accuracy testing with <50ms latency\n- Network topology discovery and mapping validation\n- Failover scenario testing and recovery verification\n- Performance testing with large device networks (50+ devices)\n- Device simulator testing for group broadcasts and acks\n- Timecode alignment testing with fake clocks\n- E2E smoke tests: build scene, assign devices, start cue, verify sync",
+                "priority": "medium",
+                "dependencies": [
+                    "PF-1"
+                ],
+                "status": "pending",
+                "complexity": 8,
+                "timeline": "2-3 weeks",
+                "revenueImpact": "$200K/year B2B revenue",
+                "marketImpact": "Event planners, installations, venues",
+                "recommendedSubtasks": 12,
+                "subtasks": [
+                    {
+                        "id": 1,
+                        "title": "mDNS/Bonjour device discovery with SSDP fallback",
+                        "description": "Implement comprehensive LAN device discovery using mDNS/Bonjour with SSDP fallback for maximum compatibility",
+                        "dependencies": [],
+                        "details": "Create mDNS/Bonjour discovery service with _k1._tcp service type, implement SSDP fallback for non-Bonjour networks, add device deduplication logic, track discovery source (mDNS vs SSDP), implement continuous background scanning with configurable intervals, handle network changes and interface switching.",
+                        "status": "pending",
+                        "testStrategy": "mDNS discovery accuracy testing, SSDP fallback validation, deduplication verification, network change handling",
+                        "parentId": "PF-4"
+                    },
+                    {
+                        "id": 2,
+                        "title": "DeviceDescriptor registry and capability tracking",
+                        "description": "Build comprehensive device registry tracking metadata, capabilities, and health status",
+                        "dependencies": [
+                            1
+                        ],
+                        "details": "Create DeviceDescriptor schema: {id, host, name, caps:{leds, fps, protocols}, lastSeen, firmware, certFingerprint, coordinates}. Implement persistent storage with IndexedDB, automatic stale device cleanup, capability-based feature gating, firmware version tracking, and device metadata caching.",
+                        "status": "pending",
+                        "testStrategy": "Registry persistence testing, capability detection validation, stale device cleanup verification",
+                        "parentId": "PF-4"
+                    },
+                    {
+                        "id": 3,
+                        "title": "Authoritative orchestrator with state management",
+                        "description": "Implement central orchestrator maintaining canonical scene state and device membership",
+                        "dependencies": [
+                            2
+                        ],
+                        "details": "Create orchestrator service maintaining single source of truth for scene state, implement optimistic UI updates with server reconciliation, add conflict resolution for concurrent edits, support undo/redo with state snapshots, implement state versioning and migration, add state persistence and recovery.",
+                        "status": "pending",
+                        "testStrategy": "State consistency testing, conflict resolution validation, optimistic UI verification, undo/redo testing",
+                        "parentId": "PF-4"
+                    },
+                    {
+                        "id": 4,
+                        "title": "CommandEnvelope messaging protocol",
+                        "description": "Design and implement idempotent command protocol with versioning and TTL support",
+                        "dependencies": [
+                            3
+                        ],
+                        "details": "Create CommandEnvelope schema: {id, ts, seq, type, payload, groupId?, ttlMs}. Implement command types: SelectPattern, UpdateParams, SetPalette, PlayCue. Add command validation, idempotency guarantees, command versioning, TTL expiration, and command history tracking for audit.",
+                        "status": "pending",
+                        "testStrategy": "Command idempotency testing, TTL expiration validation, versioning compatibility verification",
+                        "parentId": "PF-4"
+                    },
+                    {
+                        "id": 5,
+                        "title": "TimebaseService with NTP/PTP synchronization",
+                        "description": "Implement precise time synchronization service for coordinated multi-device control",
+                        "dependencies": [],
+                        "details": "Create TimebaseService with NTP client for network time sync, PTP support for sub-ms precision where available, local monotonic time fallback with skew correction, SMPTE/MTC/Ableton Link/OSC clock integration for music sync, timecode reference system for cues, and sync quality monitoring.",
+                        "status": "pending",
+                        "testStrategy": "Time sync accuracy testing, skew correction validation, music sync protocol integration testing",
+                        "parentId": "PF-4"
+                    },
+                    {
+                        "id": 6,
+                        "title": "WebSocket messaging with sequence numbers and acks",
+                        "description": "Implement reliable WebSocket messaging with acknowledgments and sequence tracking",
+                        "dependencies": [
+                            4
+                        ],
+                        "details": "Create WebSocket message layer with sequence numbers, implement ack/nack protocol, add message queuing with priority, implement delivery confirmation tracking, add message coalescing within 16-33ms frames, drop stale frames when behind, and implement exponential backoff with jitter for retries.",
+                        "status": "pending",
+                        "testStrategy": "Message delivery testing, sequence number validation, ack/nack protocol verification, frame coalescing testing",
+                        "parentId": "PF-4"
+                    },
+                    {
+                        "id": 7,
+                        "title": "Heartbeat and connection health monitoring",
+                        "description": "Implement periodic heartbeat system for device health monitoring and connection management",
+                        "dependencies": [
+                            6
+                        ],
+                        "details": "Create heartbeat protocol: Heartbeat {ts, deviceId, rttMs, battery?, temp?}. Implement periodic heartbeat transmission (every 5s), RTT measurement, connection quality scoring, automatic reconnection on heartbeat timeout, fast-path resume after recovery, and health status dashboard.",
+                        "status": "pending",
+                        "testStrategy": "Heartbeat reliability testing, RTT measurement accuracy, reconnection logic validation, health dashboard verification",
+                        "parentId": "PF-4"
+                    },
+                    {
+                        "id": 8,
+                        "title": "Device grouping and hierarchical zone management",
+                        "description": "Build flexible device grouping system with nested hierarchies and zone-based organization",
+                        "dependencies": [
+                            2,
+                            3
+                        ],
+                        "details": "Create Group schema: {id, name, deviceIds[], policies?, tags?, parentGroupId?}. Implement drag-and-drop group assignment UI, nested group hierarchies with inheritance, zone-based spatial mapping, group templates, bulk group operations, and group-level policy enforcement.",
+                        "status": "pending",
+                        "testStrategy": "Group hierarchy testing, inheritance validation, spatial mapping accuracy, bulk operations verification",
+                        "parentId": "PF-4"
+                    },
+                    {
+                        "id": 9,
+                        "title": "Synchronized show coordination engine",
+                        "description": "Implement precise timing coordination for synchronized lighting shows across device network",
+                        "dependencies": [
+                            5,
+                            6,
+                            8
+                        ],
+                        "details": "Create synchronization engine using TimebaseService for timing, implement cue scheduling with timecode references, add network latency compensation, support complex choreographed sequences, implement real-time sync adjustments, add sync quality monitoring, and provide manual sync override controls.",
+                        "status": "pending",
+                        "testStrategy": "Synchronization accuracy testing (<50ms), latency compensation validation, choreography playback verification",
+                        "parentId": "PF-4"
+                    },
+                    {
+                        "id": 10,
+                        "title": "Network topology visualization and mapping",
+                        "description": "Build interactive network topology view with real-time device status and health monitoring",
+                        "dependencies": [
+                            2,
+                            7
+                        ],
+                        "details": "Create visual network map using force-directed graph layout, implement real-time status updates, add connection quality visualization, show device capabilities and metadata, implement interactive device selection, add topology export/import, and provide network health analytics.",
+                        "status": "pending",
+                        "testStrategy": "Topology visualization testing, real-time update verification, interaction usability validation",
+                        "parentId": "PF-4"
+                    },
+                    {
+                        "id": 11,
+                        "title": "Failover and redundancy management system",
+                        "description": "Implement automatic failover detection and redundancy protocols for mission-critical installations",
+                        "dependencies": [
+                            7,
+                            9
+                        ],
+                        "details": "Create failover detection using heartbeat monitoring, implement automatic backup device switching, add redundancy protocols with primary/secondary designation, support hot-swapping without interruption, implement graceful degradation strategies, provide manual override controls, and add failover event logging.",
+                        "status": "pending",
+                        "testStrategy": "Failover scenario testing, redundancy validation, hot-swap verification, graceful degradation testing",
+                        "parentId": "PF-4"
+                    },
+                    {
+                        "id": 12,
+                        "title": "Device simulator and E2E testing framework",
+                        "description": "Build comprehensive device simulator for testing multi-device orchestration scenarios",
+                        "dependencies": [
+                            4,
+                            6,
+                            9
+                        ],
+                        "details": "Create WebSocket device simulator supporting CommandEnvelope protocol, implement fixture replay capabilities, add configurable network conditions (latency, packet loss), support multiple simulated devices, implement fake clock for timecode testing, add E2E test scenarios: group broadcasts, synchronized cues, failover recovery.",
+                        "status": "pending",
+                        "testStrategy": "Simulator accuracy validation, E2E scenario testing, network condition simulation verification",
+                        "parentId": "PF-4"
+                    }
+                ]
+            },
+            {
+                "id": "PF-5",
+                "title": "AI-Powered Creative Features",
+                "description": "Machine learning and AI-powered features for intelligent pattern generation and creative assistance targeting $100K/year premium revenue",
+                "details": "Technical Implementation:\n- Inference Architecture: Local/browser inference using ONNX Runtime Web (WASM/WebGPU) or TensorFlow.js for low latency and privacy; microservice over WebSocket with short-lived JWT for heavier models (CLIP); always provide heuristic fallbacks\n- Palette Extraction: Median-cut or K-means clustering with CIEDE2000 distance for perceptually accurate color extraction from images/video\n- Audio Analysis: Beat/onset detection via spectral flux and adaptive thresholds using Meyda or Essentia.js (WASM); tempo smoothing with Viterbi/HMM; BPM, onsets, energy bands mapping\n- Text-to-Scene: Compact ruleset backed by embeddings for deterministic text-to-parameter mapping; avoid large LLMs for predictable behavior\n- Real-Time Audio: AudioWorklet for low-latency DSP, MessagePort for UI store communication, ring buffers and typed arrays to avoid GC, 60Hz feature downsampling\n- Safety Bounds: Always constrain outputs by device limits (max brightness, thermal); reproducible outputs with seeds; snapshot creative presets for recall; confidence indicators\n- Pattern Generation: ML-generated patterns from music analysis, style transfer, user preference learning, intelligent transitions with context-aware easing\n- Mood Detection: Audio/visual content analysis for automatic lighting adaptation, genre recognition, energy level tracking\n- Natural Language: Voice and text command processing, intent recognition, parameter extraction, conversational interface\n- Testing: Golden-file tests for palette extraction and audio features with recorded clips, deterministic tests with fixed seeds, contract tests for remote inference with pinned model versions",
+                "testStrategy": "- AI model accuracy testing with diverse input datasets\n- Real-time inference performance validation (<100ms target)\n- Golden-file tests for palette extraction and audio features\n- Deterministic testing with fixed random seeds\n- User experience testing for AI-generated content quality\n- Privacy and data handling validation\n- Confidence threshold testing for model outputs\n- Fallback behavior verification when models fail",
+                "priority": "medium",
+                "dependencies": [
+                    "PF-2",
+                    "PF-3"
+                ],
+                "status": "pending",
+                "complexity": 9,
+                "timeline": "3-4 weeks",
+                "revenueImpact": "$100K/year premium features",
+                "marketImpact": "Cutting-edge differentiation",
+                "recommendedSubtasks": 11,
+                "subtasks": [
+                    {
+                        "id": 1,
+                        "title": "ONNX Runtime Web integration for browser inference",
+                        "description": "Set up local AI inference infrastructure using ONNX Runtime Web with WASM/WebGPU acceleration",
+                        "dependencies": [],
+                        "details": "Integrate ONNX Runtime Web library, configure WASM and WebGPU execution providers, implement model loading and caching, add model versioning system, create inference queue with priority handling, implement fallback to CPU when GPU unavailable, add performance monitoring and profiling.",
+                        "status": "pending",
+                        "testStrategy": "Inference performance benchmarking, WebGPU acceleration validation, fallback behavior testing, model loading verification",
+                        "parentId": "PF-5"
+                    },
+                    {
+                        "id": 2,
+                        "title": "Image palette extraction with K-means and CIEDE2000",
+                        "description": "Implement perceptually accurate color palette extraction from images and video",
+                        "dependencies": [
+                            1
+                        ],
+                        "details": "Implement K-means clustering in LAB color space, use CIEDE2000 distance metric for perceptual accuracy, add median-cut algorithm as alternative, support image and video frame extraction, implement dominant color detection, add palette size configuration (3-12 colors), create color harmony analysis, support real-time video palette extraction.",
+                        "status": "pending",
+                        "testStrategy": "Palette extraction accuracy testing with known images, CIEDE2000 distance validation, real-time video performance testing",
+                        "parentId": "PF-5"
+                    },
+                    {
+                        "id": 3,
+                        "title": "AudioWorklet-based real-time audio analysis",
+                        "description": "Implement low-latency audio analysis using AudioWorklet for DSP processing",
+                        "dependencies": [],
+                        "details": "Create AudioWorklet processor for real-time DSP, implement ring buffers with typed arrays for zero-copy, add MessagePort communication to UI store, integrate Meyda or Essentia.js for audio features, implement 60Hz feature downsampling to match render loop, add audio input source management, support multiple analysis modes (spectral, temporal, harmonic).",
+                        "status": "pending",
+                        "testStrategy": "Audio processing latency measurement (<10ms target), feature extraction accuracy validation, GC impact testing",
+                        "parentId": "PF-5"
+                    },
+                    {
+                        "id": 4,
+                        "title": "Beat and onset detection with spectral flux",
+                        "description": "Implement professional-grade beat detection using spectral flux and adaptive thresholding",
+                        "dependencies": [
+                            3
+                        ],
+                        "details": "Implement spectral flux calculation for onset detection, add adaptive thresholding with local mean and variance, create peak picking algorithm, implement beat tracking with tempo consistency, add onset strength calculation, support complex time signatures, integrate with Meyda or Essentia.js WASM, provide beat confidence scoring.",
+                        "status": "pending",
+                        "testStrategy": "Beat detection accuracy testing across genres, onset timing precision validation, tempo consistency verification",
+                        "parentId": "PF-5"
+                    },
+                    {
+                        "id": 5,
+                        "title": "Tempo estimation with Viterbi/HMM smoothing",
+                        "description": "Implement robust tempo estimation with statistical smoothing for stable BPM tracking",
+                        "dependencies": [
+                            4
+                        ],
+                        "details": "Create tempo estimation using autocorrelation of onset function, implement Viterbi algorithm for tempo path selection, add Hidden Markov Model for tempo smoothing, support BPM range 60-200, implement tempo change detection, add tempo confidence scoring, provide manual tempo override, support fractional BPM values.",
+                        "status": "pending",
+                        "testStrategy": "Tempo estimation accuracy testing, smoothing effectiveness validation, tempo change detection verification",
+                        "parentId": "PF-5"
+                    },
+                    {
+                        "id": 6,
+                        "title": "Audio-reactive parameter mapping engine",
+                        "description": "Map audio features to lighting parameters with intelligent scaling and smoothing",
+                        "dependencies": [
+                            4,
+                            5
+                        ],
+                        "details": "Create parameter mapping system for BPM, onsets, energy bands, spectral centroid, RMS energy. Implement intelligent scaling with configurable ranges, add smoothing filters (exponential, moving average), support custom mapping curves, implement beat-synchronized parameter changes, add energy band weighting, provide mapping presets per genre.",
+                        "status": "pending",
+                        "testStrategy": "Mapping accuracy testing, smoothing effectiveness validation, beat synchronization verification, genre preset testing",
+                        "parentId": "PF-5"
+                    },
+                    {
+                        "id": 7,
+                        "title": "Text-to-scene with embedding-backed rulesets",
+                        "description": "Implement natural language to lighting parameter conversion using compact embeddings",
+                        "dependencies": [
+                            1
+                        ],
+                        "details": "Create text embedding system using compact models (MiniLM, DistilBERT), implement ruleset for style terms to parameter mapping (warm/cool, energetic/calm, bright/dim), add semantic similarity matching, support multi-word phrases, implement parameter interpolation for blended styles, add style intensity scaling, provide deterministic outputs with seeds.",
+                        "status": "pending",
+                        "testStrategy": "Text-to-parameter accuracy testing, semantic similarity validation, deterministic output verification, style blending testing",
+                        "parentId": "PF-5"
+                    },
+                    {
+                        "id": 8,
+                        "title": "Mood detection and genre classification",
+                        "description": "Implement audio content analysis for automatic mood and genre detection",
+                        "dependencies": [
+                            3,
+                            5
+                        ],
+                        "details": "Create mood classification model (energetic, calm, dramatic, happy, sad, tense), implement genre detection (electronic, rock, classical, jazz, ambient), use audio features (tempo, spectral features, rhythm patterns), add confidence scoring, implement real-time classification with smoothing, support custom mood/genre definitions, provide classification history tracking.",
+                        "status": "pending",
+                        "testStrategy": "Mood classification accuracy testing, genre detection validation, real-time performance verification, confidence scoring accuracy",
+                        "parentId": "PF-5"
+                    },
+                    {
+                        "id": 9,
+                        "title": "AI pattern generation with style transfer",
+                        "description": "Generate lighting patterns using ML models trained on music and style characteristics",
+                        "dependencies": [
+                            1,
+                            6,
+                            8
+                        ],
+                        "details": "Create pattern generation model using sequence-to-sequence architecture, train on existing pattern library with music features, implement style transfer between pattern types, add user preference learning, support pattern variation generation, implement reproducible generation with seeds, add pattern quality scoring, provide generation parameter controls.",
+                        "status": "pending",
+                        "testStrategy": "Pattern generation quality assessment, style transfer accuracy validation, reproducibility verification, user preference learning testing",
+                        "parentId": "PF-5"
+                    },
+                    {
+                        "id": 10,
+                        "title": "Safety bounds and device constraint enforcement",
+                        "description": "Ensure AI-generated outputs respect device limits and safety constraints",
+                        "dependencies": [
+                            2,
+                            6,
+                            9
+                        ],
+                        "details": "Implement output clamping to device capabilities (max brightness, color gamut, refresh rate), add thermal limit awareness, implement gradual parameter changes to avoid jarring transitions, add safety override controls, provide constraint violation warnings, implement emergency stop functionality, add output validation and sanitization.",
+                        "status": "pending",
+                        "testStrategy": "Constraint enforcement testing, thermal limit validation, safety override verification, output validation accuracy",
+                        "parentId": "PF-5"
+                    },
+                    {
+                        "id": 11,
+                        "title": "Creative preset system with snapshot and recall",
+                        "description": "Save and recall AI-generated creative presets with full reproducibility",
+                        "dependencies": [
+                            7,
+                            9,
+                            10
+                        ],
+                        "details": "Create preset schema capturing all AI parameters (seeds, model versions, input features, mappings), implement preset save/load with versioning, add preset library with categorization, support preset sharing and import/export, implement preset preview and comparison, add preset evolution tracking, provide preset recommendation based on usage.",
+                        "status": "pending",
+                        "testStrategy": "Preset reproducibility testing, save/load accuracy validation, versioning compatibility verification, recommendation quality assessment",
+                        "parentId": "PF-5"
+                    }
+                ]
+            },
+            {
+                "id": "PF-6",
+                "title": "Advanced Visualization and AR/VR",
+                "description": "Cutting-edge visualization technologies including 3D preview, augmented reality, and virtual reality support targeting $75K/year premium revenue",
+                "details": "Technical Implementation:\n- Digital Twin: Three.js for 3D fixture layout with GPU-instanced meshes for LEDs using InstancedBufferAttribute; VisualizerStore ingesting StateFrame data decimated to 60fps\n- Rendering Pipeline: Linear-space rendering with sRGB conversion, tone mapping for HDR looks, OffscreenCanvas/Web Worker offloading for UI responsiveness, frame-time budgets with dynamic decimation\n- 3D Scene: Room modeling with customizable dimensions, fixture positioning with coordinate system, realistic lighting simulation with shadows and reflections, material property support (diffuse, specular, roughness)\n- AR Calibration: WebXR or AR.js with ArUco/AprilTag markers for world-to-device transform, per-installation calibration storage, depth API for occlusion handling where available\n- VR Planning: WebXR VR scene for spatial show composition, timeline scrubbing and transition preview, shared scene graph between preview and VR to avoid drift, hand tracking for interaction\n- Interaction Safety: Ray-picking for fixture selection/inspection, selection bounds and collision layers, preview-only mode preventing unsafe live commands, manual/automatic mode switching\n- Performance: Headless WebGL snapshot tests for shader pipeline, fixture coordinate transform round-trip tests, AR calibration with synthetic marker poses\n- Camera System: Multiple camera views (top, side, perspective, first-person), camera animation and path recording, viewport management for multi-view layouts\n- Export: Video recording of visualizations, screenshot capture, scene export for sharing, animation timeline export",
+                "testStrategy": "- 3D rendering performance testing (60fps target)\n- GPU instancing efficiency validation\n- AR tracking accuracy testing with marker-based calibration\n- VR experience usability and comfort testing\n- Cross-platform compatibility verification (desktop, mobile, VR headsets)\n- Headless WebGL snapshot tests for shader accuracy\n- Coordinate transform round-trip validation\n- Frame-time budget adherence testing under load",
+                "priority": "low",
+                "dependencies": [
+                    "PF-1",
+                    "PF-2"
+                ],
+                "status": "pending",
+                "complexity": 9,
+                "timeline": "3-4 weeks",
+                "revenueImpact": "$75K/year premium visualization",
+                "marketImpact": "Designers, visualizers, planners",
+                "recommendedSubtasks": 10,
+                "subtasks": [
+                    {
+                        "id": 1,
+                        "title": "Three.js scene setup and GPU-instanced LED rendering",
+                        "description": "Build high-performance 3D scene with GPU instancing for efficient LED visualization",
+                        "dependencies": [],
+                        "details": "Set up Three.js scene with WebGL2/WebGPU renderer, implement GPU-instanced meshes for LEDs using InstancedBufferGeometry and InstancedBufferAttribute, create per-instance color updates, add fixture geometry library (strips, matrices, rings), implement LOD system for distant fixtures, optimize draw calls with instancing.",
+                        "status": "pending",
+                        "testStrategy": "GPU instancing performance testing, draw call optimization validation, LOD system effectiveness testing, rendering frame rate verification",
+                        "parentId": "PF-6"
+                    },
+                    {
+                        "id": 2,
+                        "title": "VisualizerStore and StateFrame integration",
+                        "description": "Create visualization data store synchronized with device state at 60fps",
+                        "dependencies": [
+                            1
+                        ],
+                        "details": "Implement VisualizerStore consuming StateFrame data from orchestrator, add 60fps decimation for smooth visualization, implement state interpolation for missing frames, add visualization mode switching (live, playback, preview), support multiple device visualization, implement state history for scrubbing.",
+                        "status": "pending",
+                        "testStrategy": "State synchronization accuracy testing, frame decimation validation, interpolation smoothness verification, mode switching testing",
+                        "parentId": "PF-6"
+                    },
+                    {
+                        "id": 3,
+                        "title": "Linear-space rendering with sRGB and tone mapping",
+                        "description": "Implement physically accurate rendering pipeline with proper color space handling",
+                        "dependencies": [
+                            1
+                        ],
+                        "details": "Configure linear color space rendering with sRGB texture encoding, implement tone mapping operators (ACES, Reinhard, Uncharted 2), add exposure controls, implement bloom and glow effects for LEDs, add color grading support, ensure correct gamma correction throughout pipeline.",
+                        "status": "pending",
+                        "testStrategy": "Color space accuracy validation, tone mapping quality assessment, gamma correction verification, visual comparison testing",
+                        "parentId": "PF-6"
+                    },
+                    {
+                        "id": 4,
+                        "title": "Room modeling and environment system",
+                        "description": "Build customizable 3D room environment with realistic materials and lighting",
+                        "dependencies": [
+                            1,
+                            3
+                        ],
+                        "details": "Create room geometry builder with customizable dimensions, implement wall/floor/ceiling materials with PBR properties (diffuse, specular, roughness, metalness), add furniture and object placement, implement environment lighting (ambient, directional, point lights), support room templates and presets, add texture mapping and UV controls.",
+                        "status": "pending",
+                        "testStrategy": "Room modeling accuracy testing, material property validation, lighting interaction verification, template system testing",
+                        "parentId": "PF-6"
+                    },
+                    {
+                        "id": 5,
+                        "title": "Fixture positioning and coordinate system",
+                        "description": "Implement precise fixture placement with coordinate system and spatial tools",
+                        "dependencies": [
+                            1,
+                            4
+                        ],
+                        "details": "Create fixture positioning system with 3D coordinates, implement drag-and-drop placement in 3D space, add snap-to-grid and alignment tools, support fixture rotation and orientation, implement coordinate system visualization (axes, grid), add measurement tools (distance, angle), support fixture grouping and hierarchies.",
+                        "status": "pending",
+                        "testStrategy": "Positioning accuracy testing, snap-to-grid validation, coordinate transform verification, measurement tool accuracy",
+                        "parentId": "PF-6"
+                    },
+                    {
+                        "id": 6,
+                        "title": "WebXR AR integration with marker-based calibration",
+                        "description": "Implement augmented reality preview using WebXR with ArUco marker calibration",
+                        "dependencies": [
+                            1,
+                            2,
+                            5
+                        ],
+                        "details": "Integrate WebXR Device API for AR support, implement ArUco/AprilTag marker detection using AR.js or js-aruco, create world-to-device coordinate transform solver, implement per-installation calibration storage, add depth API integration for occlusion, support marker-less tracking where available, implement AR session management.",
+                        "status": "pending",
+                        "testStrategy": "AR tracking accuracy testing, marker detection validation, calibration precision verification, occlusion handling testing",
+                        "parentId": "PF-6"
+                    },
+                    {
+                        "id": 7,
+                        "title": "WebXR VR scene with hand tracking",
+                        "description": "Create immersive VR experience for spatial lighting design and show composition",
+                        "dependencies": [
+                            1,
+                            2,
+                            5
+                        ],
+                        "details": "Implement WebXR VR session with stereoscopic rendering, add hand tracking using WebXR Hand Input, create VR-optimized UI with ray-casting interaction, implement timeline scrubbing in VR, add transition preview controls, support teleportation and smooth locomotion, implement comfort mode options (vignetting, snap turns), share scene graph with desktop preview.",
+                        "status": "pending",
+                        "testStrategy": "VR experience usability testing, hand tracking accuracy validation, comfort mode effectiveness testing, performance optimization verification",
+                        "parentId": "PF-6"
+                    },
+                    {
+                        "id": 8,
+                        "title": "Ray-picking and interaction safety system",
+                        "description": "Implement safe interaction system with preview-only mode and bounds enforcement",
+                        "dependencies": [
+                            5,
+                            6,
+                            7
+                        ],
+                        "details": "Create ray-casting system for fixture selection using Three.js Raycaster, implement selection bounds and collision layers, add preview-only mode preventing live device commands, implement manual/automatic mode switching with confirmation, add visual feedback for selection and interaction, implement undo/redo for scene changes, add interaction history logging.",
+                        "status": "pending",
+                        "testStrategy": "Ray-picking accuracy testing, safety mode enforcement validation, mode switching verification, interaction logging accuracy",
+                        "parentId": "PF-6"
+                    },
+                    {
+                        "id": 9,
+                        "title": "OffscreenCanvas and Web Worker optimization",
+                        "description": "Offload heavy rendering work to Web Workers for UI responsiveness",
+                        "dependencies": [
+                            1,
+                            3
+                        ],
+                        "details": "Implement OffscreenCanvas for worker-based rendering where supported, create Web Worker for heavy computations (physics, particle systems), implement frame-time budgets with dynamic quality adjustment, add performance monitoring and profiling, implement adaptive decimation when CPU/GPU saturated, optimize garbage collection with object pooling.",
+                        "status": "pending",
+                        "testStrategy": "Worker performance testing, frame-time budget validation, adaptive quality testing, GC impact measurement",
+                        "parentId": "PF-6"
+                    },
+                    {
+                        "id": 10,
+                        "title": "Camera system and video export",
+                        "description": "Implement flexible camera system with recording and export capabilities",
+                        "dependencies": [
+                            1,
+                            4,
+                            9
+                        ],
+                        "details": "Create camera system with multiple views (perspective, orthographic, first-person), implement camera animation with keyframes and paths, add viewport management for multi-view layouts, implement video recording using MediaRecorder API, add screenshot capture with high-resolution rendering, support scene export (glTF, USD), implement animation timeline export.",
+                        "status": "pending",
+                        "testStrategy": "Camera system functionality testing, video recording quality validation, export format compatibility verification, multi-view performance testing",
+                        "parentId": "PF-6"
+                    }
+                ]
+            },
+            {
+                "id": "PF-7",
+                "title": "Enterprise Management and Security",
+                "description": "Enterprise-grade management, security, and compliance features for commercial deployments targeting $300K/year enterprise revenue",
+                "details": "Technical Implementation:\n- Identity and Access: OIDC/SAML SSO support, RBAC with roles (Viewer, Operator, Designer, Admin), optional ABAC for site/room constraints, SCIM for user/group provisioning, MFA and session policies\n- Device Security: Unique X.509 certs per device, mTLS for controller-device communication, periodic cert rotation, signed firmware with TUF/Uptane patterns, HSM/KMS for secrets\n- Transport Security: TLS 1.2+ with modern ciphers, short-lived JWT access tokens with refresh, sender-constrained tokens (DPoP/mTLS-bound), WebSocket origin/subprotocol validation, periodic re-auth\n- Policy and Audit: Org policies (max brightness, quiet hours, change approvals), structured audit logs for auth/scene changes/device actions with who/what/where/when, SIEM integration via syslog/HTTPS\n- Compliance: Strong CSP, SRI for static assets, dependency scanning, data-at-rest encryption, PII minimization, backup/restore with drills, tamper-evident logs for SOC 2/ISO 27001\n- Observability: OpenTelemetry for traces/metrics (latency, WS reconnects, frame drops), SLOs (p95 control latency <50ms, reconnect <5s), error budget tracking\n- Multi-Tenancy: Organization accounts with data isolation, tenant-specific configurations, resource quotas, cross-tenant security boundaries\n- Asset Management: Device inventory with lifecycle tracking, firmware version management, warranty and maintenance tracking, asset tagging and categorization",
+                "testStrategy": "- Security penetration testing and vulnerability assessment\n- Compliance audit and certification validation (SOC 2, ISO 27001)\n- Enterprise SSO integration testing (Okta, Azure AD, Google Workspace)\n- Performance testing with large-scale deployments (1000+ users, 500+ devices)\n- mTLS certificate rotation testing\n- Audit log integrity and tamper-evidence validation\n- Multi-tenant isolation verification\n- SCIM provisioning accuracy testing\n- Policy enforcement validation across tenants",
+                "priority": "low",
+                "dependencies": [
+                    "PF-4"
+                ],
+                "status": "pending",
+                "complexity": 8,
+                "timeline": "3-4 weeks",
+                "revenueImpact": "$300K/year enterprise revenue",
+                "marketImpact": "Enterprise customers, large installations",
+                "recommendedSubtasks": 12,
+                "subtasks": [
+                    {
+                        "id": 1,
+                        "title": "RBAC system with role definitions and permissions",
+                        "description": "Implement comprehensive role-based access control with granular permissions",
+                        "dependencies": [],
+                        "details": "Define roles: Viewer (read-only), Operator (control devices), Designer (create/edit patterns), Admin (full access). Create permission system with granular controls (device.read, device.write, pattern.create, user.manage, org.admin). Implement permission checking middleware, role inheritance, custom role creation, permission auditing.",
+                        "status": "pending",
+                        "testStrategy": "RBAC functionality testing, permission enforcement validation, role inheritance verification, custom role testing",
+                        "parentId": "PF-7"
+                    },
+                    {
+                        "id": 2,
+                        "title": "User provisioning and lifecycle management",
+                        "description": "Build user management system with provisioning, deprovisioning, and lifecycle tracking",
+                        "dependencies": [
+                            1
+                        ],
+                        "details": "Create user CRUD operations with role assignment, implement user invitation system with email verification, add user deactivation and deletion with data retention policies, implement user profile management, add user activity tracking, support bulk user operations, implement user search and filtering.",
+                        "status": "pending",
+                        "testStrategy": "User lifecycle testing, provisioning accuracy validation, deactivation behavior verification, bulk operations testing",
+                        "parentId": "PF-7"
+                    },
+                    {
+                        "id": 3,
+                        "title": "OIDC/SAML SSO integration",
+                        "description": "Implement single sign-on with enterprise identity providers using OIDC and SAML",
+                        "dependencies": [
+                            1,
+                            2
+                        ],
+                        "details": "Integrate openid-client for OIDC support (Okta, Azure AD, Google Workspace), implement SAML 2.0 support for enterprise IdPs, add identity provider configuration UI, implement just-in-time (JIT) user provisioning, add attribute mapping for user metadata, support multiple IdP configurations per organization, implement SSO session management.",
+                        "status": "pending",
+                        "testStrategy": "SSO integration testing with major providers, SAML assertion validation, JIT provisioning accuracy, attribute mapping verification",
+                        "parentId": "PF-7"
+                    },
+                    {
+                        "id": 4,
+                        "title": "SCIM user and group provisioning",
+                        "description": "Implement SCIM 2.0 protocol for automated user and group provisioning",
+                        "dependencies": [
+                            2,
+                            3
+                        ],
+                        "details": "Implement SCIM 2.0 server endpoints (/Users, /Groups), support SCIM operations (Create, Read, Update, Delete, Search), add SCIM schema support for user and group resources, implement filtering and pagination, add webhook notifications for provisioning events, support bulk operations, implement SCIM authentication with OAuth 2.0.",
+                        "status": "pending",
+                        "testStrategy": "SCIM protocol compliance testing, provisioning operation validation, bulk operation testing, webhook delivery verification",
+                        "parentId": "PF-7"
+                    },
+                    {
+                        "id": 5,
+                        "title": "MFA and session management",
+                        "description": "Implement multi-factor authentication and secure session management",
+                        "dependencies": [
+                            3
+                        ],
+                        "details": "Add TOTP-based MFA using authenticator apps, implement SMS-based MFA as fallback, add WebAuthn/FIDO2 support for hardware keys, implement session management with configurable timeouts, add concurrent session limits, implement session revocation, add remember device functionality, support MFA enforcement policies per organization.",
+                        "status": "pending",
+                        "testStrategy": "MFA enrollment and verification testing, session timeout validation, concurrent session handling, WebAuthn compatibility testing",
+                        "parentId": "PF-7"
+                    },
+                    {
+                        "id": 6,
+                        "title": "Device certificate management and mTLS",
+                        "description": "Implement X.509 certificate provisioning and mutual TLS for device security",
+                        "dependencies": [],
+                        "details": "Create certificate authority (CA) for device cert issuance, implement device cert provisioning workflow, add mTLS support for controller-device communication, implement automatic cert rotation (90-day lifecycle), add cert revocation list (CRL) and OCSP support, implement cert fingerprint tracking in DeviceDescriptor, add HSM/KMS integration for CA key storage.",
+                        "status": "pending",
+                        "testStrategy": "Certificate issuance testing, mTLS handshake validation, cert rotation verification, revocation testing, HSM integration validation",
+                        "parentId": "PF-7"
+                    },
+                    {
+                        "id": 7,
+                        "title": "JWT token management with refresh and DPoP",
+                        "description": "Implement secure token system with short-lived access tokens and sender-constrained tokens",
+                        "dependencies": [
+                            3,
+                            5
+                        ],
+                        "details": "Implement JWT access tokens with 15-minute expiration, add refresh token system with rotation, implement DPoP (Demonstrating Proof-of-Possession) for sender-constrained tokens, add token revocation support, implement token introspection endpoint, add token claims for permissions and roles, support mTLS-bound tokens for high-security operations.",
+                        "status": "pending",
+                        "testStrategy": "Token lifecycle testing, refresh token rotation validation, DPoP implementation verification, token revocation testing",
+                        "parentId": "PF-7"
+                    },
+                    {
+                        "id": 8,
+                        "title": "Structured audit logging and SIEM integration",
+                        "description": "Implement comprehensive audit logging with SIEM integration for compliance",
+                        "dependencies": [
+                            1,
+                            2
+                        ],
+                        "details": "Create structured audit log format with who/what/where/when/why fields, implement audit events for auth (login, logout, MFA), scene changes, device actions, user management, policy changes. Add tamper-evident logging with cryptographic signatures, implement log retention policies, add SIEM integration via syslog and HTTPS drain, support log export in multiple formats (JSON, CEF, LEEF).",
+                        "status": "pending",
+                        "testStrategy": "Audit log completeness testing, tamper-evidence validation, SIEM integration verification, log retention policy testing",
+                        "parentId": "PF-7"
+                    },
+                    {
+                        "id": 9,
+                        "title": "Organization policies and enforcement",
+                        "description": "Implement centralized policy management with automated enforcement",
+                        "dependencies": [
+                            1
+                        ],
+                        "details": "Create policy schema for org-level constraints (max brightness, quiet hours, change approval workflows, allowed device types), implement policy evaluation engine, add policy inheritance from org to groups to devices, implement policy violation detection and alerts, add policy override controls for admins, support policy templates and presets, implement policy audit trail.",
+                        "status": "pending",
+                        "testStrategy": "Policy enforcement testing, inheritance validation, violation detection accuracy, override control verification",
+                        "parentId": "PF-7"
+                    },
+                    {
+                        "id": 10,
+                        "title": "Multi-tenant organization system",
+                        "description": "Implement multi-tenant architecture with data isolation and tenant management",
+                        "dependencies": [
+                            1,
+                            2,
+                            9
+                        ],
+                        "details": "Create organization entity with tenant isolation, implement tenant-specific databases or schemas, add cross-tenant security boundaries, implement resource quotas per tenant (users, devices, storage), add tenant configuration management, support tenant branding and customization, implement tenant billing and usage tracking, add tenant admin portal.",
+                        "status": "pending",
+                        "testStrategy": "Tenant isolation validation, cross-tenant security testing, resource quota enforcement, billing accuracy verification",
+                        "parentId": "PF-7"
+                    },
+                    {
+                        "id": 11,
+                        "title": "Security hardening and compliance controls",
+                        "description": "Implement security best practices and compliance controls for SOC 2/ISO 27001",
+                        "dependencies": [
+                            6,
+                            7,
+                            8
+                        ],
+                        "details": "Implement strong Content Security Policy (CSP), add Subresource Integrity (SRI) for static assets, implement dependency scanning with Snyk or Dependabot, add data-at-rest encryption for sensitive data, implement PII minimization and data classification, add backup/restore with regular drills, implement security headers (HSTS, X-Frame-Options, etc.), add rate limiting and DDoS protection.",
+                        "status": "pending",
+                        "testStrategy": "Security penetration testing, CSP effectiveness validation, encryption verification, backup/restore testing, compliance audit preparation",
+                        "parentId": "PF-7"
+                    },
+                    {
+                        "id": 12,
+                        "title": "OpenTelemetry observability and SLO tracking",
+                        "description": "Implement comprehensive observability with metrics, traces, and SLO monitoring",
+                        "dependencies": [
+                            8
+                        ],
+                        "details": "Integrate OpenTelemetry SDK for traces and metrics, implement distributed tracing for request flows, add metrics for latency (p50, p95, p99), WebSocket reconnects, frame drops, device health. Define SLOs: p95 control latency <50ms, reconnect <5s, uptime >99.9%. Implement error budget tracking, add alerting for SLO violations, create observability dashboards, support export to Prometheus, Grafana, Datadog.",
+                        "status": "pending",
+                        "testStrategy": "Observability data accuracy testing, SLO calculation validation, alerting functionality verification, dashboard usability testing",
+                        "parentId": "PF-7"
+                    }
+                ]
+            }
+        ],
+        "implementation": {
+            "phase1": {
+                "title": "Core Power Features (Weeks 1-2)",
+                "tasks": [
+                    "PF-1",
+                    "PF-2",
+                    "PF-3"
+                ],
+                "focus": "Maximum revenue impact and market differentiation",
+                "deliverables": [
+                    "Mobile PWA with offline functionality",
+                    "Pattern recording and basic marketplace",
+                    "MIDI controller support and audio analysis"
+                ]
+            },
+            "phase2": {
+                "title": "Professional Features (Weeks 3-4)",
+                "tasks": [
+                    "PF-4",
+                    "PF-5"
+                ],
+                "focus": "Professional market penetration and AI differentiation",
+                "deliverables": [
+                    "Multi-device orchestration system",
+                    "AI-powered pattern generation and smart suggestions"
+                ]
+            },
+            "phase3": {
+                "title": "Advanced Capabilities (Weeks 5-6)",
+                "tasks": [
+                    "PF-6",
+                    "PF-7"
+                ],
+                "focus": "Cutting-edge technology and enterprise features",
+                "deliverables": [
+                    "AR/VR visualization capabilities",
+                    "Enterprise management and security features"
+                ]
+            }
+        },
+        "metrics": {
+            "revenueProjection": {
+                "year1": "$205K",
+                "year2": "$455K",
+                "year3": "$655K",
+                "total3Year": "$1.315M"
+            },
+            "qualityTargets": {
+                "current": "90/100",
+                "target": "95/100",
+                "categories": {
+                    "functionality": "95/100",
+                    "performance": "92/100",
+                    "security": "90/100",
+                    "usability": "96/100",
+                    "scalability": "88/100"
+                }
+            },
+            "marketImpact": {
+                "userBaseExpansion": "60%",
+                "professionalMarketPenetration": "25%",
+                "enterpriseCustomerAcquisition": "15%",
+                "competitiveDifferentiation": "High"
+            }
+        }
+    }
+}

@@ -133,7 +133,7 @@ export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectio
                 id="ip-input"
                 value={connectionIP}
                 onChange={(e) => handleIPChange(e.target.value)}
-                placeholder="192.168.1.100"
+                placeholder="k1-reinvented.local or 192.168.1.103"
                 className={`font-[family-name:var(--k1-code-family)] ${
                   !ipValid ? 'border-[var(--k1-error)]' : ''
                 }`}
@@ -150,7 +150,8 @@ export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectio
             )}
           </div>
 
-          {/* Serial Port Selector */}
+          {/* Serial Port Selector - Hidden as K1 uses WiFi/HTTP connection */}
+          {false && (
           <div className="space-y-1.5">
             <Label htmlFor="serial-select" className="text-[var(--k1-text-dim)]">
               Serial Port
@@ -167,6 +168,7 @@ export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectio
               </SelectContent>
             </Select>
           </div>
+          )}
 
           {/* Connect Button */}
           <Button

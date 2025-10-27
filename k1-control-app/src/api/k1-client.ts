@@ -60,14 +60,14 @@ export class K1Client {
 
   async testConnection(): Promise<boolean> {
     try {
-      // Simulate a connection test with a small delay
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // For now, always return true for testing
-      // In a real implementation, this would make an HTTP request to test connectivity
-      return true
+      const response = await fetch(`${this._endpoint}/api/patterns`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(3000),
+        headers: { 'Accept': 'application/json' }
+      })
+      return response.ok
     } catch (error) {
-      console.error('Connection test failed:', error)
+      console.warn('[K1Client] Connection test failed:', error)
       return false
     }
   }
@@ -77,8 +77,8 @@ export class K1Client {
       try {
         this._endpoint = endpoint
         
-        // Test connection first
-        const response = await fetch(`${endpoint}/api/device-info`, {
+        // Test connection first - try patterns endpoint since device-info doesn't exist
+        const response = await fetch(`${endpoint}/api/patterns`, {
           method: 'GET',
           signal: AbortSignal.timeout(5000),
           headers: { 'Accept': 'application/json' }
@@ -94,8 +94,19 @@ export class K1Client {
           )
         }
         
-        const deviceInfo = await response.json()
+        const patternsData = await response.json()
         this._isConnected = true
+        
+        // Create mock device info from patterns response
+        const deviceInfo: K1DeviceInfo = {
+          device: 'K1.reinvented',
+          firmware: '1.0.0',
+          uptime: Date.now(),
+          ip: endpoint.replace('http://', '').split(':')[0],
+          mac: 'unknown',
+          lastSeen: new Date(),
+          latency: 50,
+        }
         
         this.emit('open', { endpoint, deviceInfo })
         return deviceInfo
@@ -333,63 +344,108 @@ export class K1Client {
   }
 
   async selectPattern(patternId: string): Promise<K1ApiResponse<{ pattern: K1Pattern }>> {
-    const patterns = await this.getPatterns()
-    const pattern = patterns.patterns.find(p => p.id === patternId)
-
-    if (!pattern) {
-      return {
-        success: false,
-        error: { error: 'Pattern not found' },
-      }
+    const response = await fetch(`${this._endpoint}/api/select`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ index: parseInt(patternId) })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to select pattern: ${response.statusText}`)
     }
-
+    
+    const data = await response.json()
     return {
       success: true,
-      data: { pattern },
+      data: {
+        pattern: {
+          index: data.current_pattern,
+          id: data.id,
+          name: data.name,
+          description: '',
+          is_audio_reactive: false
+        }
+      }
     }
   }
 
   async updateParameters(params: Partial<K1Parameters>): Promise<K1ApiResponse<{ params: K1Parameters }>> {
-    const fullParams: K1Parameters = {
-      brightness: 80,
-      softness: 50,
-      color: 50,
-      color_range: 50,
-      saturation: 75,
-      warmth: 50,
-      background: 10,
-      speed: 50,
-      palette_id: 0,
-      custom_param_1: 0,
-      custom_param_2: 0,
-      custom_param_3: 0,
-      ...params,
+    // Convert UI 0–100% values to firmware 0.0–1.0 floats
+    const scaleKeys: (keyof K1Parameters)[] = [
+      'brightness', 'softness', 'color', 'color_range', 'saturation',
+      'warmth', 'background', 'speed', 'custom_param_1', 'custom_param_2', 'custom_param_3'
+    ];
+
+    const body: Record<string, number> = {};
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined || value === null) continue;
+      if (key === 'palette_id') {
+        body[key] = Number(value);
+      } else if (scaleKeys.includes(key as keyof K1Parameters)) {
+        body[key] = Number(value) / 100;
+      } else {
+        body[key] = Number(value);
+      }
     }
 
+    const response = await fetch(`${this._endpoint}/api/params`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to update parameters: ${response.statusText}`)
+    }
+    
+    const updatedParams = await this.getParameters()
+    
     return {
       success: true,
-      data: { params: fullParams },
+      data: {
+        params: updatedParams
+      }
     }
   }
 
   async getParameters(): Promise<K1Parameters> {
+    const response = await fetch(`${this._endpoint}/api/params`)
+    if (!response.ok) {
+      throw new Error(`Failed to get parameters: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    
+    // Convert firmware floats (0.0–1.0) to UI percentages (0–100)
+    const toPercent = (v: any) => Math.round((Number(v ?? 0)) * 100)
+    
     return {
-      brightness: 80,
-      softness: 50,
-      color: 50,
-      color_range: 50,
-      saturation: 75,
-      warmth: 50,
-      background: 10,
-      speed: 50,
-      palette_id: 0,
-      custom_param_1: 0,
-      custom_param_2: 0,
-      custom_param_3: 0,
+      brightness: toPercent(data.brightness),
+      speed: toPercent(data.speed),
+      saturation: toPercent(data.saturation),
+      warmth: toPercent(data.warmth),
+      softness: toPercent(data.softness),
+      color: toPercent(data.color),
+      color_range: toPercent(data.color_range),
+      background: toPercent(data.background),
+      palette_id: Number(data.palette_id ?? 0),
+      custom_param_1: toPercent(data.custom_param_1),
+      custom_param_2: toPercent(data.custom_param_2),
+      custom_param_3: toPercent(data.custom_param_3),
     }
   }
 
   async setPalette(paletteId: number): Promise<K1ApiResponse<{ palette_id: number }>> {
+    const response = await fetch(`${this._endpoint}/api/params`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ palette_id: paletteId })
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to set palette: ${response.statusText}`)
+    }
+
     return {
       success: true,
       data: { palette_id: paletteId },

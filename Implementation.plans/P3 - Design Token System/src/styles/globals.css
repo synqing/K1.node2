@@ -1,0 +1,566 @@
+/**
+ * K1 Control Dashboard - Design Token System v2.0
+ * Quality Target: 99/100
+ * 
+ * Complete design token system with web and iOS platform variants
+ * Includes: Colors, Typography, Spacing, Shadows, Animation, and iOS-specific tokens
+ */
+
+/* ========================================
+   FONT IMPORTS
+   ======================================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ========================================
+   K1 DESIGN TOKENS - ROOT VARIABLES
+   ======================================== */
+:root {
+  /* ========================================
+     FONT FAMILIES
+     ======================================== */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Monaco", "Menlo", monospace;
+
+  /* ========================================
+     K1 COLOR TOKENS - PRIMARY ACCENTS
+     ======================================== */
+  --k1-accent: #6EE7F3;
+  --k1-accent-hover: #5BC9D1;
+  --k1-accent-pressed: #4AAAB0;
+  --k1-accent-focus-ring: rgba(110, 231, 243, 0.2);
+  --k1-accent-disabled: rgba(110, 231, 243, 0.3);
+  --k1-accent-light-bg: rgba(110, 231, 243, 0.1);
+
+  --k1-accent-2: #A78BFA;
+  --k1-accent-2-hover: #9370E8;
+  --k1-accent-2-pressed: #8156D6;
+  --k1-accent-2-focus-ring: rgba(167, 139, 250, 0.15);
+  --k1-accent-2-disabled: rgba(167, 139, 250, 0.3);
+
+  --k1-accent-warm: #FF8844;
+  --k1-accent-warm-hover: #E67030;
+  --k1-accent-warm-pressed: #CC5C1F;
+  --k1-accent-warm-focus-ring: rgba(255, 136, 68, 0.15);
+  --k1-accent-warm-disabled: rgba(255, 136, 68, 0.3);
+
+  /* ========================================
+     K1 BACKGROUND & SURFACE COLORS
+     ======================================== */
+  --k1-bg: #0F1115;
+  --k1-surface: #1A1F2B;
+  --k1-surface-raised: #242C40;
+  --k1-surface-sunken: #151923;
+  --k1-border: rgba(42, 50, 66, 0.2);
+
+  /* ========================================
+     K1 TEXT COLORS
+     ======================================== */
+  --k1-text: #E6E9EF;
+  --k1-text-secondary: #B5BDCA;
+  --k1-text-disabled: #7A8194;
+  --k1-text-inverse: #0F1115;
+
+  /* ========================================
+     K1 STATUS & SEMANTIC COLORS
+     ======================================== */
+  --k1-success: #22DD88;
+  --k1-success-bg: rgba(34, 221, 136, 0.1);
+  --k1-success-border: rgba(34, 221, 136, 0.2);
+  
+  --k1-warning: #F59E0B;
+  --k1-warning-bg: rgba(245, 158, 11, 0.1);
+  --k1-warning-border: rgba(245, 158, 11, 0.2);
+  
+  --k1-error: #EF4444;
+  --k1-error-bg: rgba(239, 68, 68, 0.1);
+  --k1-error-border: rgba(239, 68, 68, 0.2);
+  
+  --k1-info: #6EE7F3;
+  --k1-info-bg: rgba(110, 231, 243, 0.1);
+  --k1-info-border: rgba(110, 231, 243, 0.2);
+
+  /* ========================================
+     K1 PORT/WIRE TYPE COLORS
+     ======================================== */
+  --port-scalar: #F59E0B;
+  --port-field: #22D3EE;
+  --port-color: #F472B6;
+  --port-output: #34D399;
+
+  /* ========================================
+     K1 INTERACTIVE STATE COLORS
+     ======================================== */
+  /* Button Primary States */
+  --button-primary-default: var(--k1-accent);
+  --button-primary-hover: var(--k1-accent-hover);
+  --button-primary-active: var(--k1-accent-pressed);
+  --button-primary-disabled: var(--k1-accent-disabled);
+  --button-primary-text: var(--k1-text-inverse);
+
+  /* Button Secondary States */
+  --button-secondary-default: var(--k1-surface-raised);
+  --button-secondary-hover: var(--k1-surface-raised);
+  --button-secondary-active: var(--k1-surface);
+  --button-secondary-disabled: var(--k1-surface);
+  --button-secondary-text: var(--k1-text);
+
+  /* Button Tertiary States */
+  --button-tertiary-default: transparent;
+  --button-tertiary-hover: rgba(110, 231, 243, 0.1);
+  --button-tertiary-active: rgba(110, 231, 243, 0.2);
+  --button-tertiary-disabled: transparent;
+  --button-tertiary-text: var(--k1-accent);
+
+  /* ========================================
+     FOCUS & ACCESSIBILITY COLORS
+     ======================================== */
+  --focus-ring-color: var(--k1-accent);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-error-color: var(--k1-error);
+
+  /* ========================================
+     TYPOGRAPHY SCALE - WEB
+     ======================================== */
+  --text-display: 48px;
+  --text-h1: 32px;
+  --text-h2: 24px;
+  --text-h3: 20px;
+  --text-h4: 16px;
+  --text-lg: 16px;
+  --text-base: 14px;
+  --text-sm: 12px;
+  --text-xs: 10px;
+
+  /* Line Heights */
+  --leading-display: 1.1;
+  --leading-h1: 1.2;
+  --leading-h2: 1.3;
+  --leading-h3: 1.4;
+  --leading-h4: 1.4;
+  --leading-lg: 1.6;
+  --leading-base: 1.5;
+  --leading-sm: 1.4;
+  --leading-xs: 1.2;
+
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Letter Spacing */
+  --tracking-display: -0.02em;
+  --tracking-h1: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+
+  /* ========================================
+     SPACING SCALE
+     ======================================== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+
+  /* ========================================
+     COMPONENT SIZING - WEB
+     ======================================== */
+  --button-height: 40px;
+  --input-height: 40px;
+  --toggle-height: 24px;
+  --nav-bar-desktop: 56px;
+  --nav-bar-mobile: 48px;
+  --touch-target-min: 44px;
+  --touch-spacing-min: 8px;
+
+  /* ========================================
+     BORDER RADIUS
+     ======================================== */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* Component-specific radius */
+  --radius-button: var(--radius-md);
+  --radius-input: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --radius-modal: var(--radius-lg);
+  --radius-dialog: var(--radius-lg);
+  --radius-badge: var(--radius-sm);
+  --radius-avatar: var(--radius-full);
+  --radius-toggle: var(--radius-md);
+
+  /* ========================================
+     SHADOWS & ELEVATION
+     ======================================== */
+  --elevation-0: none;
+  --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --elevation-2: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --elevation-3: 0 8px 16px rgba(0, 0, 0, 0.20);
+  --elevation-4: 0 12px 24px rgba(0, 0, 0, 0.25);
+  --elevation-5: 0 16px 32px rgba(0, 0, 0, 0.30);
+
+  /* Glow Effects */
+  --glow-accent: 0 0 20px rgba(110, 231, 243, 0.3);
+  --glow-accent-2: 0 0 16px rgba(167, 139, 250, 0.2);
+  --glow-success: 0 0 16px rgba(34, 221, 136, 0.2);
+  --glow-error: 0 0 16px rgba(239, 68, 68, 0.2);
+
+  /* ========================================
+     ANIMATION & MOTION
+     ======================================== */
+  --duration-fast: 120ms;
+  --duration-normal: 180ms;
+  --duration-slow: 300ms;
+
+  --ease-linear: linear;
+  --ease-in: cubic-bezier(0.4, 0.0, 1.0, 1.0);
+  --ease-out: cubic-bezier(0.0, 0.0, 0.2, 1.0);
+  --ease-in-out: cubic-bezier(0.4, 0.0, 0.2, 1.0);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1.0);
+
+  /* ========================================
+     ICON SYSTEM
+     ======================================== */
+  --icon-xs: 16px;
+  --icon-sm: 24px;
+  --icon-md: 32px;
+  --icon-lg: 48px;
+  --icon-xl: 80px;
+  --icon-stroke-width: 2px;
+
+  /* ========================================
+     iOS SAFE AREA TOKENS (for web iOS rendering)
+     ======================================== */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+
+  /* iOS Safe Padding */
+  --ios-safe-padding-top: max(16px, env(safe-area-inset-top, 0px));
+  --ios-safe-padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  --ios-safe-padding-horizontal: max(12px, env(safe-area-inset-left, 0px));
+
+  /* ========================================
+     LEGACY SHADCN COMPATIBILITY
+     ======================================== */
+  --font-size: 16px;
+  --background: var(--k1-bg);
+  --foreground: var(--k1-text);
+  --card: var(--k1-surface);
+  --card-foreground: var(--k1-text);
+  --popover: var(--k1-surface-raised);
+  --popover-foreground: var(--k1-text);
+  --primary: var(--k1-accent);
+  --primary-foreground: var(--k1-text-inverse);
+  --secondary: var(--k1-surface-raised);
+  --secondary-foreground: var(--k1-text);
+  --muted: var(--k1-surface-sunken);
+  --muted-foreground: var(--k1-text-secondary);
+  --accent: var(--k1-accent-light-bg);
+  --accent-foreground: var(--k1-text);
+  --destructive: var(--k1-error);
+  --destructive-foreground: var(--k1-text);
+  --border: var(--k1-border);
+  --input: var(--k1-border);
+  --input-background: var(--k1-surface-sunken);
+  --ring: var(--k1-accent);
+  --radius: var(--radius-md);
+  
+  /* Chart Colors */
+  --chart-1: var(--k1-accent);
+  --chart-2: var(--k1-accent-2);
+  --chart-3: var(--k1-accent-warm);
+  --chart-4: var(--k1-success);
+  --chart-5: var(--port-color);
+  
+  /* Sidebar */
+  --sidebar: var(--k1-surface);
+  --sidebar-foreground: var(--k1-text);
+  --sidebar-primary: var(--k1-accent);
+  --sidebar-primary-foreground: var(--k1-text-inverse);
+  --sidebar-accent: var(--k1-surface-raised);
+  --sidebar-accent-foreground: var(--k1-text);
+  --sidebar-border: var(--k1-border);
+  --sidebar-ring: var(--k1-accent);
+}
+
+/* ========================================
+   iOS LIGHT MODE VARIANTS
+   ======================================== */
+@media (prefers-color-scheme: light) {
+  :root.ios-native {
+    --k1-bg: #F9F9FB;
+    --k1-surface: #F2F2F7;
+    --k1-surface-raised: #FFFFFF;
+    --k1-surface-sunken: #E5E5EA;
+    --k1-border: rgba(0, 0, 0, 0.1);
+    
+    --k1-text: #000000;
+    --k1-text-secondary: #666666;
+    --k1-text-disabled: #A0A0A0;
+    --k1-text-inverse: #FFFFFF;
+    
+    --k1-accent: #0084FF;
+    --k1-accent-hover: #0066CC;
+    --k1-accent-pressed: #0052A3;
+    
+    --k1-accent-2: #7C3AED;
+    --k1-accent-warm: #FF9500;
+    --k1-success: #34C759;
+    --k1-warning: #FF9500;
+    --k1-error: #FF3B30;
+    --k1-info: #0084FF;
+  }
+}
+
+/* ========================================
+   RESPONSIVE TYPOGRAPHY - MOBILE
+   ======================================== */
+@media (max-width: 767px) {
+  :root {
+    --text-h1: 24px;
+    --text-h2: 20px;
+    --nav-bar-desktop: var(--nav-bar-mobile);
+  }
+}
+
+/* ========================================
+   RESPONSIVE TYPOGRAPHY - TABLET
+   ======================================== */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --text-h1: 28px;
+    --text-h2: 22px;
+  }
+}
+
+/* ========================================
+   iOS-SPECIFIC COMPONENT SIZING
+   ======================================== */
+@supports (-webkit-touch-callout: none) {
+  :root {
+    --button-height: 44px;
+    --input-height: 44px;
+    --toggle-height: 31px;
+    --nav-bar-mobile: 44px;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY - HIGH CONTRAST MODE
+   ======================================== */
+@media (prefers-contrast: more) {
+  :root {
+    --k1-border: rgba(42, 50, 66, 0.4);
+    --focus-ring-width: 3px;
+    --k1-text-secondary: #D0D5DD;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY - REDUCED MOTION
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-slow: 0ms;
+  }
+  
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ========================================
+   TAILWIND THEME INTEGRATION
+   ======================================== */
+@theme inline {
+  /* Colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-ring: var(--ring);
+  
+  /* K1 Color Extensions */
+  --color-k1-accent: var(--k1-accent);
+  --color-k1-accent-2: var(--k1-accent-2);
+  --color-k1-accent-warm: var(--k1-accent-warm);
+  --color-k1-surface: var(--k1-surface);
+  --color-k1-surface-raised: var(--k1-surface-raised);
+  --color-k1-text-secondary: var(--k1-text-secondary);
+  --color-k1-success: var(--k1-success);
+  --color-k1-warning: var(--k1-warning);
+  --color-k1-error: var(--k1-error);
+  
+  /* Charts */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ========================================
+   BASE LAYER STYLES
+   ======================================== */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+}
+
+/**
+ * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
+ */
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-size: var(--text-h1);
+      font-weight: var(--font-weight-bold);
+      line-height: var(--leading-h1);
+      letter-spacing: var(--tracking-h1);
+    }
+
+    h2 {
+      font-size: var(--text-h2);
+      font-weight: var(--font-weight-semibold);
+      line-height: var(--leading-h2);
+    }
+
+    h3 {
+      font-size: var(--text-h3);
+      font-weight: var(--font-weight-semibold);
+      line-height: var(--leading-h3);
+    }
+
+    h4 {
+      font-size: var(--text-h4);
+      font-weight: var(--font-weight-semibold);
+      line-height: var(--leading-h4);
+    }
+
+    p {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: var(--leading-base);
+    }
+
+    label {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: var(--leading-base);
+    }
+
+    button {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-semibold);
+      line-height: var(--leading-base);
+    }
+
+    input {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: var(--leading-base);
+    }
+    
+    code {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-normal);
+      line-height: var(--leading-sm);
+    }
+  }
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+@layer utilities {
+  .focus-ring {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+  
+  .focus-ring-error {
+    outline: var(--focus-ring-width) solid var(--focus-ring-error-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+  
+  .glow-accent {
+    box-shadow: var(--glow-accent);
+  }
+  
+  .glow-success {
+    box-shadow: var(--glow-success);
+  }
+  
+  .glow-error {
+    box-shadow: var(--glow-error);
+  }
+  
+  .ios-safe-top {
+    padding-top: var(--ios-safe-padding-top);
+  }
+  
+  .ios-safe-bottom {
+    padding-bottom: var(--ios-safe-padding-bottom);
+  }
+  
+  .ios-safe-horizontal {
+    padding-left: var(--ios-safe-padding-horizontal);
+    padding-right: var(--ios-safe-padding-horizontal);
+  }
+}
+
+html {
+  font-size: var(--font-size);
+}
