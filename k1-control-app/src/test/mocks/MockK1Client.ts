@@ -109,6 +109,11 @@ export class MockK1Client extends EventEmitter {
     return this._isConnected
   }
 
+  // Provide error handler registration to match client interface
+  setErrorHandler(handler: (error: unknown) => void): void {
+    this.on('error', ({ error }) => handler(error))
+  }
+
   getEndpoint(): string {
     return this._endpoint
   }

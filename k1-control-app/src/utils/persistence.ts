@@ -344,6 +344,18 @@ export function triggerStorageEvent(key: string, newValue: string | null, oldVal
   });
   
   window.dispatchEvent(event);
+
+  // Fallback: also emit custom events for same-tab listeners
+  try {
+    // Generic storage change hook for K1 flags
+    window.dispatchEvent(new CustomEvent('k1:storageChange', { detail: { key, newValue, oldValue } }));
+
+    // Specific signal for HMR overlay toggle
+    if (key === 'k1.hmrOverlay') {
+      const enabled = newValue === 'true' || newValue === '1';
+      window.dispatchEvent(new CustomEvent('k1:hmrOverlayChange', { detail: { enabled } }));
+    }
+  } catch {}
 }
 
 // ============================================================================

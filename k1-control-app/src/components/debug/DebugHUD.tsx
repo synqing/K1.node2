@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { K1Client } from '../../api/k1-client';
 import { useK1Actions, useK1State } from '../../providers/K1Provider';
 import { useK1Realtime } from '../../hooks/useK1Realtime';
+import { isAbortLoggingEnabled, setAbortLoggingEnabled } from '../../utils/error-utils';
+import { triggerStorageEvent } from '../../utils/persistence';
+import { isActivationKey } from '../../utils/accessibility';
 
 interface DebugHUDProps {
   k1Client: K1Client | null;
@@ -24,7 +27,22 @@ interface AudioMetrics {
 export function DebugHUD({ k1Client, isConnected, onClose }: DebugHUDProps) {
   const [perf, setPerf] = useState<PerfMetrics | null>(null);
   const [audio, setAudio] = useState<AudioMetrics | null>(null);
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState<boolean>(() => {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('k1.debugHUDVisible') : null;
+      if (raw === null) return true;
+      const v = raw.toLowerCase();
+      return v === '1' || v === 'true';
+    } catch { return true; }
+  });
+  const [abortOn, setAbortOn] = useState<boolean>(isAbortLoggingEnabled());
+  const [overlayOn, setOverlayOn] = useState<boolean>(() => {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('k1.hmrOverlay') : null;
+      return raw === '1' || raw === 'true';
+    } catch { return true; }
+  });
+  const [lastTransportEvt, setLastTransportEvt] = useState<{ preferredTransport: 'ws' | 'rest'; wsEnabled: boolean; ts: number } | null>(null);
 
   const isLive = useMemo(() => isConnected && !!k1Client, [isConnected, k1Client]);
   const k1Actions = useK1Actions();
@@ -100,9 +118,91 @@ export function DebugHUD({ k1Client, isConnected, onClose }: DebugHUDProps) {
     return () => clearInterval(interval);
   }, [k1Client, transport]);
 
+  // Listen for transport change events to update the lastTransportEvt state
+  useEffect(() => {
+    const onTransport = (event: Event) => {
+      try {
+        const ce = event as CustomEvent<{ preferredTransport?: 'ws' | 'rest'; wsEnabled?: boolean }>
+        const preferredTransport = (ce.detail?.preferredTransport === 'ws' || ce.detail?.preferredTransport === 'rest') ? ce.detail.preferredTransport : undefined
+        if (preferredTransport) {
+          setLastTransportEvt({ preferredTransport, wsEnabled: !!ce.detail?.wsEnabled, ts: Date.now() })
+        }
+      } catch {}
+    }
+    window.addEventListener('k1:transportChange', onTransport as EventListener)
+    return () => {
+      window.removeEventListener('k1:transportChange', onTransport as EventListener)
+    }
+  }, [])
+
+  // Sync toggle states with storage and custom events
+  useEffect(() => {
+    const onHmr = (event: Event) => {
+      try {
+        const ce = event as CustomEvent<{ enabled?: boolean }>;
+        if (typeof ce.detail?.enabled === 'boolean') {
+          setOverlayOn(!!ce.detail.enabled);
+        }
+      } catch {}
+    };
+    const onStorage = (e: StorageEvent) => {
+      try {
+        if (e.key === 'k1.hmrOverlay') {
+          setOverlayOn(e.newValue === '1' || e.newValue === 'true');
+        }
+        if (e.key === 'k1.debugAborts') {
+          setAbortOn(e.newValue === '1' || e.newValue === 'true');
+        }
+        if (e.key === 'k1.debugHUDVisible') {
+          setVisible(e.newValue === '1' || e.newValue === 'true');
+        }
+      } catch {}
+    };
+    const onGeneric = (event: Event) => {
+      try {
+        const ce = event as CustomEvent<{ key: string; newValue: string | null }>;
+        if (ce.detail?.key === 'k1.debugAborts') {
+          setAbortOn(ce.detail.newValue === '1' || ce.detail.newValue === 'true');
+        }
+        if (ce.detail?.key === 'k1.debugHUDVisible') {
+          setVisible(ce.detail.newValue === '1' || ce.detail.newValue === 'true');
+        }
+      } catch {}
+    };
+    window.addEventListener('k1:hmrOverlayChange', onHmr as EventListener);
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('k1:storageChange', onGeneric as EventListener);
+    return () => {
+      window.removeEventListener('k1:hmrOverlayChange', onHmr as EventListener);
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('k1:storageChange', onGeneric as EventListener);
+    };
+  }, []);
+
   const handleTransportToggle = () => {
     const isCurrentlyWS = transport.activeTransport === 'ws' && transport.wsAvailable;
     k1Actions.setWebSocketEnabled(!isCurrentlyWS);
+  };
+
+  const toggleAbortLogging = () => {
+    const next = !isAbortLoggingEnabled();
+    setAbortLoggingEnabled(next);
+    setAbortOn(next);
+  };
+
+  const toggleHmrOverlay = () => {
+    try {
+      const current = localStorage.getItem('k1.hmrOverlay');
+      const next = current === '1' || current === 'true' ? '0' : '1';
+      localStorage.setItem('k1.hmrOverlay', next);
+      setOverlayOn(next === '1');
+      triggerStorageEvent('k1.hmrOverlay', next, current);
+    } catch {
+      // Fallback: still dispatch the event without storage
+      const next = '1';
+      setOverlayOn(true);
+      triggerStorageEvent('k1.hmrOverlay', next, null);
+    }
   };
 
   return (
@@ -123,6 +223,11 @@ export function DebugHUD({ k1Client, isConnected, onClose }: DebugHUDProps) {
             <button
               className="text-gray-300 hover:text-white text-xs"
               onClick={() => {
+                try {
+                  const prev = typeof localStorage !== 'undefined' ? localStorage.getItem('k1.debugHUDVisible') : null;
+                  localStorage.setItem('k1.debugHUDVisible', '0');
+                  triggerStorageEvent('k1.debugHUDVisible', '0', prev);
+                } catch {}
                 setVisible(false);
                 onClose?.();
               }}
@@ -199,12 +304,41 @@ export function DebugHUD({ k1Client, isConnected, onClose }: DebugHUDProps) {
               <div className="text-sm font-mono">{rateLimiterInfo?.minIntervalMs ? `≥ ${rateLimiterInfo.minIntervalMs} ms` : '—'}</div>
             </div>
           </div>
+          {lastTransportEvt && (
+            <div className="mt-2 text-[11px] text-gray-300">
+              <span className="opacity-80">Last Transport Change:</span>{' '}
+              <span className="font-mono">{lastTransportEvt.preferredTransport}</span>{' '}
+              <span className="opacity-70">(ws {lastTransportEvt.wsEnabled ? 'enabled' : 'disabled'})</span>{' '}
+              <span className="opacity-60">@ {new Date(lastTransportEvt.ts).toLocaleTimeString()}</span>
+            </div>
+          )}
         </div>
         
         <div className="px-3 py-2 border-t border-gray-700 text-[11px] text-gray-300">
           <div className="flex items-center justify-between">
             <span>Tips: Alt+D toggles HUD</span>
             <span>Alt+Shift+P opens Performance</span>
+          </div>
+        </div>
+        <div className="mt-3 pt-2 border-t border-white/10">
+          <div className="font-semibold text-[12px] opacity-80 mb-1.5">Dev Toggles</div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={toggleAbortLogging}
+              onKeyDown={(e) => { if (isActivationKey(e)) { e.preventDefault(); toggleAbortLogging(); } }}
+              aria-pressed={abortOn}
+              className="px-2.5 py-1 rounded border border-gray-700 bg-[var(--k1-surface)] text-[var(--k1-text-dim)] hover:bg-[var(--k1-panel)] hover:text-[var(--k1-text)] transition-colors text-[11px]"
+            >
+              {abortOn ? 'Abort Logging: On' : 'Abort Logging: Off'}
+            </button>
+            <button
+              onClick={toggleHmrOverlay}
+              onKeyDown={(e) => { if (isActivationKey(e)) { e.preventDefault(); toggleHmrOverlay(); } }}
+              aria-pressed={overlayOn}
+              className="px-2.5 py-1 rounded border border-gray-700 bg-[var(--k1-surface)] text-[var(--k1-text-dim)] hover:bg-[var(--k1-panel)] hover:text-[var(--k1-text)] transition-colors text-[11px]"
+            >
+              {overlayOn ? 'HMR Overlay: On' : 'HMR Overlay: Off'}
+            </button>
           </div>
         </div>
       </div>

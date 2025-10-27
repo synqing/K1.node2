@@ -6,6 +6,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { Toggle } from './ui/toggle'
 import { useEffect, useState } from 'react'
 import { useK1Actions, useK1State } from '../providers/K1Provider'
+import { isAbortLoggingEnabled, setAbortLoggingEnabled } from '../utils/error-utils'
+import { triggerStorageEvent } from '../utils/persistence'
+import { isActivationKey } from '../utils/accessibility'
 
  type ViewType = 'control' | 'profiling' | 'terminal' | 'debug';
  
@@ -23,6 +26,8 @@ import { useK1Actions, useK1State } from '../providers/K1Provider'
    const [sensDebugOn, setSensDebugOn] = useState<boolean>(typeof localStorage !== 'undefined' && localStorage.getItem('k1.debug.sensitivity') === '1')
    const k1Actions = useK1Actions()
    const k1State = useK1State()
+   const [abortOn, setAbortOn] = useState<boolean>(isAbortLoggingEnabled())
+   const [overlayOn, setOverlayOn] = useState<boolean>(typeof localStorage !== 'undefined' && ((localStorage.getItem('k1.hmrOverlay') === '1') || (localStorage.getItem('k1.hmrOverlay') === 'true')))
    useEffect(() => {
      const updateFromStorage = () => {
        try {
@@ -36,6 +41,66 @@ import { useK1Actions, useK1State } from '../providers/K1Provider'
        window.removeEventListener('storage', updateFromStorage)
      }
    }, [])
+   // Sync abort logging and HMR overlay states
+   useEffect(() => {
+     const onStorage = (e: StorageEvent) => {
+       try {
+         if (e.key === 'k1.debugAborts') {
+           setAbortOn(e.newValue === '1' || e.newValue === 'true')
+         }
+         if (e.key === 'k1.hmrOverlay') {
+           setOverlayOn(e.newValue === '1' || e.newValue === 'true')
+         }
+       } catch {}
+     }
+     const onGeneric = (event: Event) => {
+       try {
+         const ce = event as CustomEvent<{ key: string; newValue: string | null }>
+         if (ce.detail?.key === 'k1.debugAborts') {
+           setAbortOn(ce.detail.newValue === '1' || ce.detail.newValue === 'true')
+         }
+       } catch {}
+     }
+     const onHmr = (event: Event) => {
+       try {
+         const ce = event as CustomEvent<{ enabled?: boolean }>
+         if (typeof ce.detail?.enabled === 'boolean') {
+           setOverlayOn(!!ce.detail.enabled)
+         }
+       } catch {}
+     }
+     window.addEventListener('storage', onStorage)
+     window.addEventListener('k1:storageChange', onGeneric as EventListener)
+     window.addEventListener('k1:hmrOverlayChange', onHmr as EventListener)
+     return () => {
+       window.removeEventListener('storage', onStorage)
+       window.removeEventListener('k1:storageChange', onGeneric as EventListener)
+       window.removeEventListener('k1:hmrOverlayChange', onHmr as EventListener)
+     }
+   }, [])
+   
+   // Handlers
+   const toggleAbort = () => {
+     const next = !abortOn
+     setAbortLoggingEnabled(next)
+     setAbortOn(next)
+     try {
+       localStorage.setItem('k1.debugAborts', next ? '1' : '0')
+       triggerStorageEvent('k1.debugAborts', next ? '1' : '0', abortOn ? '1' : '0')
+     } catch {}
+   }
+   const toggleOverlay = () => {
+     try {
+       const current = localStorage.getItem('k1.hmrOverlay')
+       const next = current === '1' || current === 'true' ? '0' : '1'
+       localStorage.setItem('k1.hmrOverlay', next)
+       setOverlayOn(next === '1')
+       triggerStorageEvent('k1.hmrOverlay', next, current)
+     } catch {
+       setOverlayOn(true)
+       triggerStorageEvent('k1.hmrOverlay', '1', null)
+     }
+   }
    return (
      <header 
        className="h-[var(--toolbar-h)] bg-[var(--k1-bg-elev)] border-b border-[var(--k1-border)] flex items-center px-6 gap-8"
@@ -122,7 +187,17 @@ import { useK1Actions, useK1State } from '../providers/K1Provider'
          {/* HUD toggle */}
          {onToggleHUD && (
            <button
-             onClick={onToggleHUD}
+             onClick={() => {
+               const next = !hudOn;
+               try {
+                 const prev = typeof localStorage !== 'undefined' ? localStorage.getItem('k1.debugHUDVisible') : null;
+                 localStorage.setItem('k1.debugHUDVisible', next ? '1' : '0');
+                 triggerStorageEvent('k1.debugHUDVisible', next ? '1' : '0', prev);
+               } catch {}
+               onToggleHUD();
+             }}
+             onKeyDown={(e) => { if (isActivationKey(e)) { e.preventDefault(); const next = !hudOn; try { const prev = typeof localStorage !== 'undefined' ? localStorage.getItem('k1.debugHUDVisible') : null; localStorage.setItem('k1.debugHUDVisible', next ? '1' : '0'); triggerStorageEvent('k1.debugHUDVisible', next ? '1' : '0', prev); } catch {} onToggleHUD(); } }}
+             aria-pressed={!!hudOn}
              className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 ${hudOn ? 'bg-[var(--k1-panel)] text-[var(--k1-text)]' : 'text-[var(--k1-text-dim)] hover:text-[var(--k1-text)] hover:bg-[var(--k1-panel)]/50'}`}
              title="Toggle Debug HUD (Alt+D)"
            >
@@ -183,6 +258,29 @@ import { useK1Actions, useK1State } from '../providers/K1Provider'
              </div>
            )}
          </div>
+
+         {(import.meta as any).env?.DEV && (
+           <div className="flex items-center gap-2">
+             <button
+               onClick={toggleAbort}
+               onKeyDown={(e) => { if (isActivationKey(e)) { e.preventDefault(); toggleAbort(); } }}
+               aria-pressed={abortOn}
+               className={`px-3 py-1.5 rounded-lg transition-colors ${abortOn ? 'bg-[var(--k1-panel)] text-[var(--k1-text)]' : 'text-[var(--k1-text-dim)] hover:text-[var(--k1-text)] hover:bg-[var(--k1-panel)]/50'}`}
+               title="Toggle Abort Logging"
+             >
+               Abort Logging: {abortOn ? 'On' : 'Off'}
+             </button>
+             <button
+               onClick={toggleOverlay}
+               onKeyDown={(e) => { if (isActivationKey(e)) { e.preventDefault(); toggleOverlay(); } }}
+               aria-pressed={overlayOn}
+               className={`px-3 py-1.5 rounded-lg transition-colors ${overlayOn ? 'bg-[var(--k1-panel)] text-[var(--k1-text)]' : 'text-[var(--k1-text-dim)] hover:text-[var(--k1-text)] hover:bg-[var(--k1-panel)]/50'}`}
+               title="Toggle HMR Overlay"
+             >
+               HMR Overlay: {overlayOn ? 'On' : 'Off'}
+             </button>
+           </div>
+         )}
 
          {(import.meta as any).env?.DEV && (
            <TooltipProvider>

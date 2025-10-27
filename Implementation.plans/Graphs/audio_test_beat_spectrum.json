@@ -20,9 +20,9 @@
     {
       "id": "beat_pulse",
       "type": "beat",
-      "description": "Beat detection on tempo bin 0",
+      "description": "Auto-detect strongest beat for optimal responsiveness",
       "parameters": {
-        "tempo_bin": 0
+        "tempo_bin": -1
       }
     },
     {

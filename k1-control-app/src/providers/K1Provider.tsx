@@ -476,6 +476,12 @@ export function K1Provider({
       // Persist transport preference
       const autoReconnect = state.featureFlags.autoReconnect;
       saveTransportPrefs({ wsEnabled: enabled, preferredTransport: enabled ? 'ws' : 'rest', autoReconnect });
+      // Broadcast transport change for observability
+      try {
+        window.dispatchEvent(new CustomEvent('k1:transportChange', {
+          detail: { preferredTransport: enabled ? 'ws' : 'rest', wsEnabled: enabled }
+        }));
+      } catch {}
     }, [state.featureFlags]),
 
     getTransportStatus: useCallback(() => {

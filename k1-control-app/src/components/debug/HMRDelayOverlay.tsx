@@ -69,9 +69,19 @@ export default function HMRDelayOverlay() {
         if (v === 'false' || v === '0') setOverlayEnabled(false);
       }
     };
+    const onCustom = (event: Event) => {
+      try {
+        const ce = event as CustomEvent<{ enabled?: boolean }>;
+        if (typeof ce.detail?.enabled === 'boolean') {
+          setOverlayEnabled(!!ce.detail.enabled);
+        }
+      } catch {}
+    };
     window.addEventListener('storage', onStorage);
+    window.addEventListener('k1:hmrOverlayChange', onCustom as EventListener);
     return () => {
       window.removeEventListener('storage', onStorage);
+      window.removeEventListener('k1:hmrOverlayChange', onCustom as EventListener);
     };
   }, []);
 

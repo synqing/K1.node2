@@ -19,7 +19,7 @@
     {
       "id": "position",
       "type": "position_gradient",
-      "description": "LED position 0-1"
+      "description": "CENTER-ORIGIN: Distance from center (0.0 at center → 1.0 at edges) for radial aurora with bass modulation"
     },
     {
       "id": "time_node",
@@ -35,8 +35,8 @@
     {
       "id": "bass",
       "type": "spectrum_range",
-      "parameters": { "start_bin": 0, "end_bin": 8 },
-      "description": "Bass energy (55-175 Hz)"
+      "parameters": { "band": "low" },
+      "description": "Bass energy controlled by params.spectrum_low for runtime adjustment"
     },
     {
       "id": "bass_scaled",

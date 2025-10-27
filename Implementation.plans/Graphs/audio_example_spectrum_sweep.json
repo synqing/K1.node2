@@ -10,7 +10,7 @@
   ],
   "nodes": [
     { "id": "sweep", "type": "spectrum_interpolate", "parameters": { "start_bin": 0, "end_bin": 63 } },
-    { "id": "beat", "type": "beat", "parameters": { "tempo_bin": 0 } },
+    { "id": "beat", "type": "beat", "parameters": { "tempo_bin": -1 }, "description": "Auto-detect strongest beat for optimal responsiveness" },
     { "id": "mod", "type": "multiply", "inputs": ["sweep", "beat"] },
     { "id": "out", "type": "palette_interpolate", "inputs": ["mod"] }
   ],

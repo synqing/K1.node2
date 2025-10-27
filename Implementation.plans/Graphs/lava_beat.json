@@ -20,7 +20,7 @@
     {
       "id": "position",
       "type": "position_gradient",
-      "description": "LED position 0-1 gradient"
+      "description": "CENTER-ORIGIN: Distance from center (0.0 at center → 1.0 at edges) modulated by beat intensity"
     },
     {
       "id": "beat",

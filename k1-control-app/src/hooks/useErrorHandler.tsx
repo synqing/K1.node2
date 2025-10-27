@@ -28,7 +28,7 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
     const k1Error = K1Error.fromUnknown(error, context);
 
     // Log to telemetry
-    telemetryManager.recordError(k1Error, context);
+    telemetryManager.handleError(k1Error, context);
 
     // Add to error list (avoid exact duplicates)
     setErrors((prev) => {

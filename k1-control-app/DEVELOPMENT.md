@@ -242,6 +242,31 @@ import { getRealtimeMetrics } from './utils/realtime-metrics';
 const metrics = getRealtimeMetrics();
 ```
 
+### Debug HUD Toggles
+
+The Debug HUD (Alt+D) exposes quick dev-only toggles:
+- Abort logging: enables detailed abort/HMR suppression logging in the console and telemetry.
+- HMR overlay: shows a compact overlay indicating HMR delay and last hot-update.
+
+Behavior and persistence:
+- Keys: `localStorage['k1.debugAborts']`, `localStorage['k1.hmrOverlay']` store choices.
+- Reactivity: HUD writes both storage and emits a custom event `k1:hmrOverlayChange` so the overlay updates instantly in the same tab.
+- URL and env: URL flags `?debugAborts=true` and `?hmrOverlay=false`, plus env `VITE_K1_HMR_DELAY_MS` and `VITE_K1_DEBUG_ABORTS`, can seed defaults in dev.
+
+Programmatic control:
+```ts
+import { setAbortLoggingEnabled } from './src/utils/error-utils';
+setAbortLoggingEnabled(true);
+
+// Toggle HMR overlay from code
+localStorage.setItem('k1.hmrOverlay', 'false');
+window.dispatchEvent(new CustomEvent('k1:hmrOverlayChange', { detail: { enabled: false } }));
+```
+
+Transport toggle UX:
+- The HUD WS/REST toggle is disabled when WebSocket is currently unavailable to avoid futile switches.
+- Title clarifies state: "WebSocket not available; will enable when available".
+
 ### Browser DevTools
 1. **Console**: Check for JavaScript errors
 2. **Network**: Monitor API requests/responses

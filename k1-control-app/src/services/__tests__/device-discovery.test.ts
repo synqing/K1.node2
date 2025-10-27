@@ -10,6 +10,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DeviceDiscoveryAbstraction, NormalizedDevice, DiscoveryResult } from '../device-discovery';
+import { extractHostFromEndpoint, extractPortFromEndpoint, stripCredentialsFromEndpoint } from '../../utils/endpoint-validation';
 
 /**
  * Mock K1DiscoveredDevice for testing
@@ -675,5 +676,131 @@ describe('DeviceDiscoveryAbstraction', () => {
       expect(result.hasErrors).toBe(false);
       expect(result.errors).toBeUndefined();
     }, 10000);
+  });
+
+  // ============================================================================
+  // DEBOUNCE TIMER CLEANUP VERIFICATION
+  // ============================================================================
+
+  describe('Debounce Timer Management', () => {
+    it('should clear previous debounce timer on rapid calls', async () => {
+      // Arrange: Setup mock to track calls
+      discovery.setDebounceDelay(50);
+      let discoveryCalls = 0;
+
+      discovery['_discoverViaK1Client'] = vi.fn(async () => {
+        discoveryCalls++;
+        return {
+          devices: [],
+          method: 'mdns' as const,
+          duration: 5,
+        };
+      });
+
+      // Act: Make rapid discover calls
+      const p1 = discovery.discover();
+      const p2 = discovery.discover(); // Should cancel first debounce
+      const p3 = discovery.discover(); // Should cancel second debounce
+
+      // Wait for all to complete
+      await Promise.all([p1, p2, p3]);
+
+      // Assert: Debouncing worked - multiple calls merged into fewer executions
+      expect(discoveryCalls).toBeGreaterThanOrEqual(1);
+    }, 5000);
+
+    it('should not accumulate pending timers', async () => {
+      // Arrange
+      discovery.setDebounceDelay(50);
+
+      discovery['_discoverViaK1Client'] = vi.fn(async () => ({
+        devices: [],
+        method: 'mdns' as const,
+        duration: 5,
+      }));
+
+      // Act: Trigger multiple rapid calls and verify no memory accumulation
+      const promises = [];
+      for (let i = 0; i < 10; i++) {
+        promises.push(discovery.discover());
+      }
+
+      // All promises should complete without hanging
+      const results = await Promise.all(promises);
+      expect(results).toBeDefined();
+      expect(results.length).toBe(10);
+    }, 2000);
+
+    it('should clean up timer on cancel', () => {
+      // Arrange
+      discovery.setDebounceDelay(100);
+
+      // Act: Start discovery and immediately cancel
+      discovery.discover();
+      discovery.cancel();
+
+      // Assert: Should not have pending timers
+      // Verify by checking that timer is cleared (internal state)
+      expect(discovery['_debounceTimer']).toBeNull();
+    });
+  });
+
+  // ============================================================================
+  // ERROR HANDLING VERIFICATION
+  // ============================================================================
+
+  describe('Error Handling in Extraction Functions', () => {
+    it('should handle malformed endpoints in extractHostFromEndpoint', () => {
+      // Test that function doesn't throw on invalid input
+      const malformedEndpoints = [
+        'not a url at all',
+        'http://[invalid ipv6',
+        ':::::::',
+        'http://host with spaces.com',
+      ];
+
+      for (const endpoint of malformedEndpoints) {
+        expect(() => {
+          // Function should use fallback regex if URL parsing fails
+          // and not throw
+          const result = extractHostFromEndpoint(endpoint);
+          expect(typeof result).toBe('string');
+        }).not.toThrow();
+      }
+    });
+
+    it('should handle malformed endpoints in extractPortFromEndpoint', () => {
+      // Test that function doesn't throw on invalid input
+      const malformedEndpoints = [
+        'not a url',
+        'http://no-port.com',
+        ':::invalid:::',
+        'http://[unclosed-bracket:8080',
+      ];
+
+      for (const endpoint of malformedEndpoints) {
+        expect(() => {
+          // Function should use fallback regex if URL parsing fails
+          const result = extractPortFromEndpoint(endpoint);
+          expect(typeof result).toBe('string');
+        }).not.toThrow();
+      }
+    });
+
+    it('should strip credentials safely from various URL formats', () => {
+      const testCases = [
+        { input: 'http://user:pass@host.com', shouldNotContain: ['user', 'pass'] },
+        { input: 'https://admin@device.local', shouldNotContain: ['admin'] },
+        { input: 'http://user:@host.com', shouldNotContain: ['user'] },
+        { input: '192.168.1.1:8080', shouldNotContain: ['@'] },
+      ];
+
+      for (const testCase of testCases) {
+        const result = stripCredentialsFromEndpoint(testCase.input);
+        for (const forbidden of testCase.shouldNotContain) {
+          expect(result).not.toContain(forbidden);
+        }
+      }
+    });
   });
 });

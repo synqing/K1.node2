@@ -5,7 +5,7 @@
     {
       "id": "position",
       "type": "position_gradient",
-      "description": "Maps LED position to 0-1 range"
+      "description": "CENTER-ORIGIN: Distance from center (0.0 at center → 1.0 at edges) for radial aurora effect"
     },
     {
       "id": "time_node",

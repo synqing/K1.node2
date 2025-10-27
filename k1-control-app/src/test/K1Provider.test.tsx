@@ -5,16 +5,25 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act, waitFor } from '@testing-library/react'
-import { userEvent } from '@testing-library/user-event'
-import { K1Provider, useK1State, useK1Actions } from '../providers/K1Provider'
+import userEvent from '@testing-library/user-event'
 import { MockK1Client, createMockK1Client } from './mocks/MockK1Client'
 import { setMockRandom } from './setup'
 import { K1_DEFAULTS } from '../types/k1-types'
+import * as ClientModule from '../api/k1-client'
+import { ErrorProvider } from '../hooks/useErrorHandler'
 
 // Mock the K1Client module
-vi.mock('../api/k1-client', () => ({
-  K1Client: vi.fn().mockImplementation(() => createMockK1Client()),
-}))
+vi.mock('../api/k1-client', () => {
+  // Constructor-compatible mock so `new K1Client()` works
+  const K1ClientMock = vi.fn(function K1ClientMock(this: any) {
+    return createMockK1Client()
+  })
+  return { K1Client: K1ClientMock }
+})
+
+vi.mock('../components/debug/HMRDelayOverlay', () => ({ default: () => null }))
+
+import { K1Provider, useK1State, useK1Actions } from '../providers/K1Provider'
 
 // Test component to access provider state and actions
 function TestComponent() {
@@ -77,24 +86,26 @@ function TestComponent() {
   )
 }
 
-function renderWithProvider(initialEndpoint?: string) {
+function renderWithProvider(initialEndpoint: string = '') {
   return render(
-    <K1Provider initialEndpoint={initialEndpoint}>
-      <TestComponent />
-    </K1Provider>
+    <ErrorProvider>
+      <K1Provider initialEndpoint={initialEndpoint}>
+        <TestComponent />
+      </K1Provider>
+    </ErrorProvider>
   )
 }
 
 describe('K1Provider', () => {
   let mockClient: MockK1Client
+  let user: ReturnType<typeof userEvent.setup>
 
   beforeEach(() => {
     vi.useFakeTimers()
     mockClient = createMockK1Client()
-    
-    // Mock the K1Client constructor to return our mock
-    const { K1Client } = require('../api/k1-client')
-    K1Client.mockImplementation(() => mockClient)
+    user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    // Ensure the mock returns our per-test client
+    ClientModule.K1Client.mockImplementation(function () { return mockClient })
   })
 
   afterEach(() => {
@@ -581,6 +592,7 @@ describe('K1Provider', () => {
     it('should handle multiple rapid connection attempts', async () => {
       renderWithProvider()
       
+      screen.debug()
       const connectBtn = screen.getByTestId('connect-btn')
       
       // Rapid fire connection attempts

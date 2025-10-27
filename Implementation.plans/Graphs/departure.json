@@ -20,7 +20,7 @@
     {
       "id": "position",
       "type": "position_gradient",
-      "description": "Maps LED position (0 to 1) across the strip"
+      "description": "CENTER-ORIGIN: Distance from center (0.0 at center → 1.0 at edges) for radial journey effect"
     },
     {
       "id": "palette",
