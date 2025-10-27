@@ -2,6 +2,7 @@
 // EMOTISCOPE HELPER FUNCTIONS - Implementation
 // ============================================================================
 
+#include "led_driver.h"  // For NUM_LEDS and CRGBF definition
 #include "emotiscope_helpers.h"
 
 extern CRGBF leds[NUM_LEDS];

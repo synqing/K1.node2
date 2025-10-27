@@ -466,6 +466,22 @@ void loop() {
     // Send to LEDs (includes status LED)
     transmit_leds();
 
+    // Debug output every second showing UART sync status
+    static uint32_t last_debug = 0;
+    uint32_t now = millis();
+    if (now - last_debug > 1000) {
+        const char* state_name =
+            status_state == STATUS_SYNCED ? "SYNCED(GREEN)" :
+            status_state == STATUS_TIMEOUT ? "TIMEOUT(YELLOW)" :
+            status_state == STATUS_LISTENING ? "LISTENING(BLUE)" :
+            status_state == STATUS_ERROR ? "ERROR(RED)" :
+            "BOOTING(CYAN)";
+
+        Serial.printf("UART: RX=%lu packets, Invalid=%lu, State=%s, sync_valid=%d\n",
+            packets_received, packets_invalid, state_name, sync_valid);
+        last_debug = now;
+    }
+
     // Handle OTA updates if enabled
     #ifdef ENABLE_OTA
     ArduinoOTA.handle();

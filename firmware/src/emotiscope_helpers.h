@@ -47,8 +47,12 @@ CRGBF hsv_enhanced(float h, float s, float v);
 
 /**
  * Clamp float value to 0.0-1.0 range
- * Replaces Emotiscope's clip_float() function
+ * Note: Also defined in goertzel.h
+ * Using #ifndef to avoid duplicate definition errors
  */
+#ifndef CLIP_FLOAT_DEFINED
+#define CLIP_FLOAT_DEFINED
 inline float clip_float(float value) {
     return fmaxf(0.0f, fminf(1.0f, value));
 }
+#endif

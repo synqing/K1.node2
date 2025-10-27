@@ -1,0 +1,26 @@
+.pio/build/esp32-s3-zero/liba6a/FastLED/third_party/espressif/led_strip/src/led_strip_rmt_encoder.c.o: \
+ .pio/libdeps/esp32-s3-zero/FastLED/src/third_party/espressif/led_strip/src/led_strip_rmt_encoder.c \
+ .pio/libdeps/esp32-s3-zero/FastLED/src/third_party/espressif/led_strip/src/enabled.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/dio_qspi/include/sdkconfig.h \
+ .pio/libdeps/esp32-s3-zero/FastLED/src/platforms/esp/esp_version.h \
+ .pio/libdeps/esp32-s3-zero/FastLED/src/fl/has_include.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/esp_common/include/esp_idf_version.h \
+ .pio/libdeps/esp32-s3-zero/FastLED/src/fl/unused.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/esp_common/include/esp_check.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/esp_common/include/esp_err.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/esp_common/include/esp_compiler.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/log/include/esp_log.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/esp_rom/include/esp_rom_sys.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/soc/esp32s3/include/soc/reset_reasons.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/log/include/esp_log_internal.h \
+ .pio/libdeps/esp32-s3-zero/FastLED/src/third_party/espressif/led_strip/src/led_strip_rmt_encoder.h \
+ .pio/libdeps/esp32-s3-zero/FastLED/src/fl/stdint.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/driver/rmt/include/driver/rmt_encoder.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/hal/include/hal/rmt_types.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/soc/esp32s3/include/soc/clk_tree_defs.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/soc/esp32s3/include/soc/soc_caps.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/soc/esp32s3/include/soc/mpu_caps.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/driver/rmt/include/driver/rmt_types.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/hal/include/hal/gpio_types.h \
+ /Users/spectrasynq/.platformio/packages/framework-arduinoespressif32-libs/esp32s3/include/esp_common/include/esp_bit_defs.h \
+ .pio/libdeps/esp32-s3-zero/FastLED/src/third_party/espressif/led_strip/src/led_strip_types.h

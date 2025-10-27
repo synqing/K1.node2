@@ -114,9 +114,9 @@ export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectio
   };
 
   return (
-    <aside className="w-[var(--lib-w)] bg-[var(--k1-bg-elev)] border-r border-[var(--k1-border)] p-4 flex flex-col gap-4 overflow-auto">
+    <aside className="w-[var(--lib-w)] bg-[var(--k1-bg-elev)] border-r border-[var(--k1-border)] p-6 flex flex-col gap-6 overflow-auto">
       {/* Device Connection Card */}
-      <Card className="p-4 bg-[var(--k1-panel)] border-[var(--k1-border)]">
+      <Card className="p-6 bg-[var(--k1-panel)] border-[var(--k1-border)]">
         <div className="flex items-center gap-2 mb-4">
           <Wifi className="w-4 h-4 text-[var(--k1-accent)]" />
           <h3 className="text-[var(--k1-text)]">Device Connection</h3>
@@ -150,8 +150,7 @@ export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectio
             )}
           </div>
 
-          {/* Serial Port Selector - Hidden as K1 uses WiFi/HTTP connection */}
-          {false && (
+          {/* Serial Port Selector */}
           <div className="space-y-1.5">
             <Label htmlFor="serial-select" className="text-[var(--k1-text-dim)]">
               Serial Port
@@ -168,7 +167,6 @@ export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectio
               </SelectContent>
             </Select>
           </div>
-          )}
 
           {/* Connect Button */}
           <Button
@@ -219,52 +217,50 @@ export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectio
       </Card>
 
       {/* Quick Actions */}
-      <div className="space-y-2">
-        <h3 className="text-[var(--k1-text-dim)] text-[10px] uppercase tracking-wide px-2">
-          Quick Actions
-        </h3>
+      <Card className="p-6 bg-[var(--k1-panel)] border-[var(--k1-border)]">
+        <h3 className="text-[var(--k1-text)] mb-4">Quick Actions</h3>
         
-        {/* TODO: Backup/restore file input will be added in future subtasks */}
-        
-        <Button
-          variant="ghost"
-          className="w-full justify-start"
-          disabled={!isConnected}
-          onClick={() => toast.success('Device data refreshed')}
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh Data
-        </Button>
+        <div className="space-y-2">
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            disabled={!isConnected}
+            onClick={() => toast.success('Device data refreshed')}
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh Data
+          </Button>
 
-        <Button
-          variant="ghost"
-          className="w-full justify-start"
-          disabled={!isConnected}
-          onClick={handleBackup}
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Backup Config
-        </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            disabled={!isConnected}
+            onClick={handleBackup}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Backup Config
+          </Button>
 
-        <Button
-          variant="ghost"
-          className="w-full justify-start"
-          disabled={!isConnected}
-          onClick={openRestorePicker}
-        >
-          <Settings className="w-4 h-4 mr-2" />
-          Restore Config
-        </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            disabled={!isConnected}
+            onClick={openRestorePicker}
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Restore Config
+          </Button>
 
-        <Button
-          variant="ghost"
-          className="w-full justify-start"
-          disabled={!isConnected}
-        >
-          <Settings className="w-4 h-4 mr-2" />
-          Device Settings
-        </Button>
-      </div>
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            disabled={!isConnected}
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Device Settings
+          </Button>
+        </div>
+      </Card>
 
       {/* Connection Help */}
       <div className="mt-auto p-3 bg-[var(--k1-bg)] rounded-lg">

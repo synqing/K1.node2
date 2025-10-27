@@ -1,108 +1,3 @@
-BLUF: skip the flaky download. Here’s a **single paste-and-run Bash script** that creates the entire `host/libgraph` drop-in (CSR + BFS/DFS/Dijkstra + topo/cycle + **JSON loader** + **metrics** + **bench** + **CI**). Run it from the **root of your repo**. It’s 100% complete—no placeholders.
-
-````bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-# --- paths ---
-ROOT="$(pwd)"
-LIBROOT="$ROOT/host/libgraph"
-INCDIR="$LIBROOT/include/k1"
-SRCDIR="$LIBROOT/src"
-TESTDIR="$LIBROOT/tests"
-WFDIR="$ROOT/.github/workflows"
-
-mkdir -p "$INCDIR" "$SRCDIR" "$TESTDIR" "$WFDIR"
-
-# --- CMakeLists.txt ---
-cat > "$LIBROOT/CMakeLists.txt" <<'EOF'
-cmake_minimum_required(VERSION 3.16)
-project(k1_graph LANGUAGES CXX)
-
-option(K1_GRAPH_BUILD_TESTS "Build k1_graph tests" ON)
-option(K1_GRAPH_BUILD_BENCH "Build k1_graph bench tools" ON)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-add_library(k1_graph STATIC
-    src/graph.cpp
-    src/graph_io.cpp
-)
-target_include_directories(k1_graph PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_features(k1_graph PUBLIC cxx_std_17)
-if (MSVC)
-  target_compile_options(k1_graph PRIVATE /W4 /permissive-)
-else()
-  target_compile_options(k1_graph PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
-endif()
-
-if(K1_GRAPH_BUILD_TESTS)
-  enable_testing()
-  add_executable(k1_graph_tests tests/test_main.cpp)
-  target_link_libraries(k1_graph_tests PRIVATE k1_graph)
-  add_test(NAME k1_graph_tests COMMAND k1_graph_tests)
-
-  add_executable(k1_graph_json_test tests/test_json_loader.cpp)
-  target_link_libraries(k1_graph_json_test PRIVATE k1_graph)
-  add_test(NAME k1_graph_json_test COMMAND k1_graph_json_test)
-endif()
-
-if(K1_GRAPH_BUILD_BENCH)
-  add_executable(k1_graph_bench tests/bench_large.cpp)
-  target_link_libraries(k1_graph_bench PRIVATE k1_graph)
-endif()
-EOF
-
-# --- include/k1/graph.hpp ---
-cat > "$INCDIR/graph.hpp" <<'EOF'
-#pragma once
-#include <cstdint>
-#include <vector>
-#include <stdexcept>
-#include <limits>
-#include <queue>
-#include <string>
-
-namespace k1::graph {
-
-constexpr uint32_t INF_U32 = std::numeric_limits<uint32_t>::max();
-constexpr float    INF_F32 = std::numeric_limits<float>::infinity();
-
-struct CSR {
-    bool directed = true;
-    std::vector<uint32_t> offsets; // length = N+1
-    std::vector<uint32_t> edges;   // length = M
-    std::vector<float>    weights; // optional length = M. If empty => unit weights.
-
-    [[nodiscard]] uint32_t num_vertices() const { return offsets.empty() ? 0u : uint32_t(offsets.size() - 1); }
-    [[nodiscard]] uint32_t num_edges() const { return uint32_t(edges.size()); }
-
-    void validate() const;
-    [[nodiscard]] bool has_weights() const { return !weights.empty() && weights.size() == edges.size(); }
-};
-
-struct GraphBuilder {
-    bool directed = true;
-    uint32_t N = 0;
-    std::vector<std::vector<std::pair<uint32_t,float>>> adj;
-    explicit GraphBuilder(uint32_t n=0, bool dir=true) : directed(dir), N(n), adj(n) {}
-    void add_edge(uint32_t u, uint32_t v, float w = 1.0f);
-    CSR  build_csr() const;
-};
-
-std::vector<uint32_t> bfs(const CSR& g, uint32_t src);
-std::vector<uint32_t> dfs_preorder(const CSR& g, uint32_t src);
-std::vector<float>    dijkstra(const CSR& g, uint32_t src);
-std::vector<uint32_t> topo_sort(const CSR& g);
-bool                  has_cycle(const CSR& g);
-
-CSR         make_layered_dag(uint32_t layers, uint32_t width, bool directed = true);
-std::string summary(const CSR& g);
-
-} // namespace k1::graph
-EOF
 
 # --- src/graph.cpp ---
 cat > "$SRCDIR/graph.cpp" <<'EOF'
@@ -534,11 +429,9 @@ cd host/libgraph
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ctest --test-dir build --output-on-failure
-````
-
-## Bench usage
-
-```bash
+Bench usage
+bash
+Copy code
 # Generate layered DAG and write JSON artifacts
 ./build/k1_graph_bench --layers 200 --width 500 \
   --out ../../tools/artifacts/bench.topo.json \
@@ -548,12 +441,9 @@ ctest --test-dir build --output-on-failure
 ./build/k1_graph_bench --json /path/to/graph.json \
   --out ../../tools/artifacts/bench.topo.json \
   --metrics ../../tools/artifacts/graph.metrics.json
-```
-
 EOF
 
-# --- .github/workflows/host-libgraph.yml ---
-
+--- .github/workflows/host-libgraph.yml ---
 cat > "$WFDIR/host-libgraph.yml" <<'EOF'
 name: host-libgraph
 on:
@@ -580,7 +470,8 @@ EOF
 
 echo "✓ host/libgraph created. Build with: cmake -S host/libgraph -B host/libgraph/build -DCMAKE_BUILD_TYPE=Release && cmake --build host/libgraph/build -j && ctest --test-dir host/libgraph/build"
 
-````
+bash
+Copy code
 
 ### Verify fast
 ```bash
@@ -595,5 +486,3 @@ ctest --test-dir build --output-on-failure
 ./build/k1_graph_bench --layers 200 --width 500 \
   --out ../../tools/artifacts/bench.topo.json \
   --metrics ../../tools/artifacts/graph.metrics.json
-````
-

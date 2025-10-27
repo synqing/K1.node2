@@ -1,0 +1,186 @@
+# Phase C + PF-5 Integrated Execution PRD
+
+## Executive Summary
+
+Phase C (Node Graph Editor) and PF-5 (AI Features) are integrated as a 30-week, 3-4 engineer initiative. Phase C is the foundational UI layer that enables PF-5 to visualize, generate, and allow users to edit AI-created lighting patterns.
+
+**Strategic Priority**: PF-5 (AI Features)
+**Timeline**: 7 months (30 weeks)
+**Team Size**: 3-4 engineers
+
+## Phase C: Node Graph Editor (Weeks 1-12)
+
+### C.1 Core Infrastructure (Weeks 1-2)
+- C.1.1: Node type definitions and type system
+- C.1.2: Graph data structure and validation
+- C.1.3: Graph store and state management
+- C.1.4: Undo/redo history system
+- C.1.5: Graph serialization (JSON import/export)
+- C.1.6: Error handling and recovery
+
+### C.2 Canvas & Interactivity (Weeks 3-6)
+- C.2.1: Canvas rendering engine (60 FPS target)
+- C.2.2: Node rendering and positioning
+- C.2.3: Connection/wire rendering
+- C.2.4: Drag-and-drop node creation
+- C.2.5: Wire drawing and connection logic
+- C.2.6: Node parameter editing UI
+- C.2.7: Keyboard shortcuts and accessibility
+
+### C.3 Features & Preview (Weeks 7-10)
+- C.3.1: LED preview (30+ FPS)
+- C.3.2: Real-time effect evaluation
+- C.3.3: Performance optimization
+- C.3.4: Node palette UI
+- C.3.5: Graph validation and error display
+
+### C.4 Polish & Release (Weeks 11-12)
+- C.4.1: Styling and theme system
+- C.4.2: Error handling and edge cases
+- C.4.3: User onboarding and help
+- C.4.4: Unit test coverage (>95%)
+- C.4.5: Integration test coverage
+- C.4.6: Accessibility audit (WCAG 2.1 AA)
+- C.4.7: Performance profiling
+- C.4.8: Documentation and release
+
+## PF-5 Phase 1: Audio Reactivity (Weeks 1-12)
+
+### P1.1 Audio Infrastructure (Weeks 1-3)
+- P1.1.1: Web Audio API research and spike
+- P1.1.2: AudioWorklet setup and implementation
+- P1.1.3: Audio input capture from device/file
+- P1.1.4: FFT implementation and testing
+
+### P1.2 Audio Analysis (Weeks 4-6)
+- P1.2.1: Spectral flux detection
+- P1.2.2: Tempo/BPM tracking
+- P1.2.3: Energy detection
+- P1.2.4: Beat detection algorithm
+
+### P1.3 Integration & Effects (Weeks 7-12)
+- P1.3.1: AudioReactivityManager service
+- P1.3.2: Integration with K1Provider
+- P1.3.3: Audio-reactive node generation
+- P1.3.4: 5 audio-reactive presets
+- P1.3.5: Node editor integration
+- P1.3.6: Testing and validation (>85% beat accuracy, <10ms latency)
+
+## PF-5 Phase 2: Color Intelligence (Weeks 13-18)
+
+### P2.1 Color Extraction (Weeks 13-15)
+- P2.1.1: ONNX Runtime integration
+- P2.1.2: Color model deployment
+- P2.1.3: Real-time video color tracking
+- P2.1.4: Color extraction engine (<500ms per frame)
+
+### P2.2 Palette Generation (Weeks 16-18)
+- P2.2.1: Palette generation algorithm
+- P2.2.2: Color harmony rules
+- P2.2.3: Palette quality validation (>4.0/5.0)
+- P2.2.4: Node editor integration
+- P2.2.5: UI for color extraction
+
+## PF-5 Phase 3: Text-to-Lighting (Weeks 19-22)
+
+### P3.1 NLP Processing (Weeks 19-20)
+- P3.1.1: MiniLM model deployment
+- P3.1.2: Intent classification (>90% accuracy)
+- P3.1.3: Parameter extraction from text
+
+### P3.2 Node Generation (Weeks 21-22)
+- P3.2.1: TextToEffectMapper implementation
+- P3.2.2: Node graph generation from intent
+- P3.2.3: TextToLightingModal UI
+- P3.2.4: Voice input support (iOS/Android)
+- P3.2.5: Validation and testing (<150ms latency)
+
+## PF-5 Phase 4: Personalization (Weeks 23-28)
+
+### P4.1 Learning System (Weeks 23-24)
+- P4.1.1: User feedback collection system
+- P4.1.2: Preference learning algorithm
+
+### P4.2 A/B Testing & Analytics (Weeks 25-28)
+- P4.2.1: A/B testing framework
+- P4.2.2: Model versioning system
+- P4.2.3: Analytics pipeline
+- P4.2.4: Personalization dashboard
+- P4.2.5: Validation (>5% improvement, >10% rating increase)
+
+## PF-5 Phase 5: Safety & Release (Weeks 29-30)
+
+### P5.1 Safety & Compliance (Week 29)
+- P5.1.1: Photosensitivity validation
+- P5.1.2: Device capability detection
+
+### P5.2 Production Hardening (Week 30)
+- P5.2.1: WCAG 2.1 AA compliance
+- P5.2.2: Security audit
+- P5.2.3: Release documentation
+- P5.2.4: <100ms p95 latency validation
+
+## Integration Points
+
+1. **Shared Node Graph Format**: Both Phase C and PF-5 work with identical GraphDocument structure
+2. **Effect Generation Pipeline**: PF-5 generates graphs → Node editor renders → effects evaluate to LED colors
+3. **K1Provider State**: Phase C adds nodeEditor namespace, PF-5 adds aiFeatures namespace (no conflicts)
+4. **Data Flow**: Text input → NLP → Node generation → Editor rendering → LED display
+
+## Success Criteria
+
+**Phase C (Week 12)**:
+- 60 FPS canvas rendering
+- 30+ FPS LED preview
+- 95%+ test coverage
+- WCAG 2.1 AA accessibility
+- Full undo/redo, export/import
+
+**PF-5 Phase 1 (Week 12)**:
+- >85% beat accuracy
+- <10ms end-to-end latency
+- 5 audio-reactive presets
+- Integration with node editor working
+
+**PF-5 Phase 2 (Week 18)**:
+- Color extraction <500ms per frame
+- Palette quality >4.0/5.0
+- Real-time video tracking
+
+**PF-5 Phase 3 (Week 22)**:
+- Intent classification >90% accuracy
+- <150ms node generation latency
+- Voice input working
+
+**Full Integration (Week 30)**:
+- Zero photosensitivity violations
+- <100ms p95 latency
+- WCAG 2.1 AA compliance
+- 450+ FPS firmware compilation
+
+## Resource Allocation
+
+**Option A: 3 Engineers**
+- Engineer 1: Phase C (Weeks 1-6), Phase C support (7-12), PF-5 Phase 2+ support
+- Engineer 2: PF-5 Phase 1 (all weeks)
+- Engineer 3: PF-5 Phase 2-5
+
+**Option B: 4 Engineers (Optimal)**
+- Engineer 1: Phase C (dedicated, Weeks 1-12)
+- Engineer 2: PF-5 Phase 1-2 (Weeks 1-18)
+- Engineer 3: PF-5 Phase 3-4 (Weeks 11-28)
+- Engineer 4: Infrastructure, testing, docs (all weeks)
+
+## Risk Mitigation
+
+1. Early integration testing (Week 4)
+2. Shared test suite (Week 2)
+3. Feature flags for AI features
+4. Weekly architecture sync meetings
+
+## Dependencies & Ordering
+
+1. Phase C foundation must complete by Week 6
+2. PF-5 Phase 1 integration depends on Phase C MVP
+3. PF-5 Phase 3 (text-to-lighting) depends on node graph format finalization
+4. All phases require weekly architecture sync

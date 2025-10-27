@@ -16,8 +16,10 @@ import { K1StatusTest } from './components/K1StatusTest';
 import { DebugHUD } from './components/debug/DebugHUD';
 import { DevDebugPanel } from './components/debug/DevDebugPanel';
 import { QaView } from './components/views/QaView';
-
-type ViewType = 'control' | 'profiling' | 'terminal' | 'debug' | 'qa';
+import { UIGuardProvider } from './components/guards/UIGuardProvider';
+import { GlassmorphPrototype } from './pages/GlassmorphPrototype';
+import { TileParameterExplorer } from './pages/TileParameterExplorer';
+import type { ViewType } from './types/view';
 
 export default function App() {
   const [activeView, setActiveView] = useState<ViewType>('control');
@@ -99,7 +101,16 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ErrorProvider>
-        <K1Provider initialEndpoint={connectionIP}>
+        <UIGuardProvider
+          initialConfig={{
+            enabled: true,
+            strictMode: false,
+            showViolationIndicators: true,
+            logViolations: true,
+            auditOnMount: true,
+          }}
+        >
+          <K1Provider initialEndpoint={connectionIP}>
           <div className="h-screen w-screen flex flex-col bg-[var(--k1-bg)] text-[var(--k1-text)] overflow-hidden">
           {(import.meta as any).env?.DEV && (
             <div className="px-3 py-1 text-xs bg-[var(--k1-panel)] text-[var(--k1-text-dim)] border-b border-[var(--k1-border)] flex items-center justify-between">
@@ -114,8 +125,6 @@ export default function App() {
             onViewChange={setActiveView}
             isConnected={isConnected}
             connectionIP={connectionIP}
-            onToggleHUD={() => setShowDebugHUD((v) => !v)}
-            hudOn={showDebugHUD}
           />
 
           {/* Main Content Area with Sidebar */}
@@ -155,6 +164,12 @@ export default function App() {
               {activeView === 'qa' && (
                 <QaView />
               )}
+              {activeView === 'glassmorphic' && (
+                <GlassmorphPrototype />
+              )}
+              {activeView === 'tile-explorer' && (
+                <TileParameterExplorer />
+              )}
             </main>
           </div>
 
@@ -178,7 +193,8 @@ export default function App() {
             )}
           </div>
         </K1Provider>
-      </ErrorProvider>
-    </ErrorBoundary>
-  );
+      </UIGuardProvider>
+    </ErrorProvider>
+  </ErrorBoundary>
+);
 }

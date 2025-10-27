@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <ArduinoOTA.h>
 #include <SPIFFS.h>
+#include <driver/uart.h>
 
 #include "types.h"
 #include "led_driver.h"
@@ -23,6 +24,14 @@
 #define WIFI_SSID "VX220-013F"
 #define WIFI_PASS "3232AA90E0F24"
 // NUM_LEDS and LED_DATA_PIN are defined in led_driver.h
+
+// ============================================================================
+// UART DAISY CHAIN CONFIGURATION
+// ============================================================================
+#define UART_NUM UART_NUM_1
+#define UART_TX_PIN 38  // GPIO 38 -> Secondary RX (GPIO 44)
+#define UART_RX_PIN 37  // GPIO 37 <- Secondary TX (GPIO 43)
+#define UART_BAUD 115200
 
 // Global LED buffer
 CRGBF leds[NUM_LEDS];
@@ -55,6 +64,67 @@ void handle_wifi_connected() {
 void handle_wifi_disconnected() {
     connection_logf("WARN", "WiFi disconnected callback");
     Serial.println("WiFi connection lost, attempting recovery...");
+}
+
+// ============================================================================
+// UART DAISY CHAIN - SYNCHRONIZE SECONDARY DEVICE (s3z)
+// ============================================================================
+void init_uart_sync() {
+    uart_config_t uart_config = {
+        .baud_rate = UART_BAUD,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .rx_flow_ctrl_thresh = 0,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+
+    uart_param_config(UART_NUM, &uart_config);
+    uart_set_pin(UART_NUM, UART_TX_PIN, UART_RX_PIN,
+                 UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    uart_driver_install(UART_NUM, 256, 0, 0, NULL, 0);
+
+    Serial.println("UART1 initialized for s3z daisy chain sync");
+}
+
+void send_uart_sync_frame() {
+    static uint32_t last_frame = 0;
+    static uint32_t packets_sent = 0;
+    uint32_t current_frame = FRAMES_COUNTED;
+
+    // Only send if frame number changed
+    if (current_frame == last_frame) {
+        return;
+    }
+
+    // Build 6-byte packet
+    // [0xAA] [FRAME_HI] [FRAME_LO] [PATTERN_ID] [BRIGHTNESS] [CHECKSUM]
+    uint8_t packet[6];
+    packet[0] = 0xAA;                              // Sync byte
+    packet[1] = (current_frame >> 8) & 0xFF;      // Frame HI
+    packet[2] = current_frame & 0xFF;             // Frame LO
+    packet[3] = g_current_pattern_index;          // Pattern ID (extern from pattern_registry.h)
+    packet[4] = (uint8_t)(get_params().brightness * 255);  // Brightness
+
+    // Compute XOR checksum
+    uint8_t checksum = packet[0];
+    for (int i = 1; i < 5; i++) {
+        checksum ^= packet[i];
+    }
+    packet[5] = checksum;
+
+    // Send via UART1
+    int bytes_written = uart_write_bytes(UART_NUM, (const char*)packet, 6);
+    packets_sent++;
+
+    // Debug output every 200 packets (~4.7 seconds at 42 FPS)
+    if (packets_sent % 200 == 0) {
+        Serial.printf("UART: Sent %lu packets (frame %lu, last write %d bytes)\n",
+            packets_sent, current_frame, bytes_written);
+    }
+
+    last_frame = current_frame;
 }
 
 // ============================================================================
@@ -128,6 +198,10 @@ void setup() {
     // Initialize LED driver
     Serial.println("Initializing LED driver...");
     init_rmt_driver();
+
+    // Initialize UART for s3z daisy chain sync
+    Serial.println("Initializing UART daisy chain sync...");
+    init_uart_sync();
 
     // Configure WiFi link options (defaults retain current stable behavior)
     WifiLinkOptions wifi_opts;
@@ -287,6 +361,9 @@ void loop() {
     // Transmit to LEDs via RMT (with timeout instead of portMAX_DELAY)
     // Modified transmit_leds() should use pdMS_TO_TICKS(10) timeout
     transmit_leds();
+
+    // Send sync packet to s3z secondary device
+    send_uart_sync_frame();
 
     // Track FPS
     watch_cpu_fps();

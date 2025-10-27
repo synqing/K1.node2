@@ -210,9 +210,12 @@ bool get_audio_snapshot(AudioDataSnapshot* snapshot);
 // ============================================================================
 
 // Inline helper: clip float to [0.0, 1.0]
+#ifndef CLIP_FLOAT_DEFINED
+#define CLIP_FLOAT_DEFINED
 inline float clip_float(float val) {
 	return fmax(0.0f, fmin(1.0f, val));
 }
+#endif
 
 // Inline stubs for Emotiscope-specific functions (no-op in K1)
 // Note: broadcast is not inlined here to avoid Serial dependency

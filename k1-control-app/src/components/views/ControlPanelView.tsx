@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { EffectSelector } from '../control/EffectSelector';
+import EffectSelector from '../control/EffectSelector';
 import { EffectParameters } from '../control/EffectParameters';
 import { ColorManagement } from '../control/ColorManagement';
 import { GlobalSettings } from '../control/GlobalSettings';

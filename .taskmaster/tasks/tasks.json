@@ -1178,19 +1178,1149 @@
         "complexity": 7,
         "recommendedSubtasks": 0,
         "expansionPrompt": "Author the specified docs under docs/architecture/control-app/ using current repo files as references, ensuring all code paths and line references resolve and diagrams render on GitHub."
+      },
+      {
+        "id": 12,
+        "title": "Phase C Node Graph Editor Implementation",
+        "description": "Execute Phase C node graph visual editor implementation based on PHASE_C_NODE_GRAPH_EDITOR_SPECIFICATION.md. Deliver a professional React-based node editor with live LED preview, integrated into K1 Control App. Four implementation phases: Foundation (types, state, canvas), Interactivity (dragging, editing, connections), Preview (LED simulation), Polish (styling, validation, docs). Target: 130-155 hours over 5-6 weeks.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize repo scan and locate Phase C spec",
+            "description": "I will enumerate files and search for the Phase C specification and any node graph/editor references to understand existing structure.",
+            "dependencies": [],
+            "details": "Actions: run ripgrep to list files and search for 'PHASE_C_NODE_GRAPH_EDITOR_SPECIFICATION' and 'node graph' keywords. Identify relevant directories (src, docs). Outcome: paths to spec and related code to read next.",
+            "status": "pending",
+            "testStrategy": "Confirm paths exist and are readable via Read tool."
+          },
+          {
+            "id": 2,
+            "title": "Identify frontend stack and state libs",
+            "description": "Confirm React/TypeScript setup, state libraries (Zustand/Immer), build tool, and UI component libraries to align implementation.",
+            "dependencies": [
+              1
+            ],
+            "details": "Actions: read package.json, tsconfig, vite/webpack config; grep for Zustand/Immer and UI libs (Radix, MUI, Tailwind). Outcome: list dependencies and versions to adopt in node editor.",
+            "status": "pending",
+            "testStrategy": "Presence of packages and imports verified with grep."
+          },
+          {
+            "id": 3,
+            "title": "Map app entry points and routing",
+            "description": "Locate App root, router, and where to integrate the Node Graph Editor within K1 Control App.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Actions: open src/main.tsx, src/App.tsx, routing files; identify feature layout and navigation pattern; select target route or view container for editor.",
+            "status": "pending",
+            "testStrategy": "Trace rendering tree to a screen where editor can mount."
+          },
+          {
+            "id": 4,
+            "title": "Audit existing types for patterns/palettes",
+            "description": "Search for K1 patterns, palettes, and color types to reuse in editor types.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Actions: rg for K1_PATTERNS, K1_PALETTES, Color, HSV/RGB types; read definitions. Outcome: list of reusable types and any gaps.",
+            "status": "pending",
+            "testStrategy": "Open files and verify exported types/interfaces."
+          },
+          {
+            "id": 5,
+            "title": "Check existing preview/simulation utilities",
+            "description": "Look for any LED simulation, color conversion, or canvas utilities to reuse for preview.",
+            "dependencies": [
+              1,
+              2,
+              4
+            ],
+            "details": "Actions: rg for 'LED', 'preview', 'canvas', 'simulate', 'WebGL'; assess reusability. Outcome: note modules and constraints.",
+            "status": "pending",
+            "testStrategy": "Read candidate files; confirm exported API and constraints."
+          },
+          {
+            "id": 6,
+            "title": "Confirm coding conventions and UI patterns",
+            "description": "Identify code style, directory naming, hooks/components patterns, and CSS approach to follow in new code.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Actions: scan src directories, look at existing feature modules, CSS-in-JS vs CSS Modules/Tailwind, testing tools. Outcome: conventions checklist.",
+            "status": "pending",
+            "testStrategy": "Summarize conventions with file references to examples."
+          },
+          {
+            "id": 7,
+            "title": "Define node editor types module skeleton",
+            "description": "Create nodeEditor/types with core interfaces for Node, Port, Edge, Graph, Parameter, and serialization schema aligned to project patterns.",
+            "dependencies": [
+              2,
+              4,
+              6
+            ],
+            "details": "Define TypeScript types: NodeKind enum, PortKind, PortDirection, NodeInstance, PortInstance, Edge, GraphDocument, Selection, Viewport, ValidationIssue. Use project’s naming and export style. Include JSON schema draft in comments or Zod if used. Est: 4h; Acceptance: tsc passes, types imported in a sample file.",
+            "status": "pending",
+            "testStrategy": "tsc --noEmit passes; unit type tests compile."
+          },
+          {
+            "id": 8,
+            "title": "Set up Zustand + Immer store for editor",
+            "description": "Implement a dedicated nodeEditor store with slices for graph, viewport, selection, history, and UI panels.",
+            "dependencies": [
+              2,
+              6,
+              7
+            ],
+            "details": "Create nodeEditor/store.ts using Zustand with Immer middleware if used in repo. Expose actions: addNode, removeNode, moveNode, connect, disconnect, setParam, select, multiSelect, setViewport, history.undo/redo. Est: 6h; Acceptance: actions mutate expected state; no type errors.",
+            "status": "pending",
+            "testStrategy": "Unit tests for reducers/selectors; verify immutability and history depth."
+          },
+          {
+            "id": 9,
+            "title": "Canvas component with grid rendering",
+            "description": "Build NodeCanvas component rendering infinite grid, panning, and zooming with performant transforms.",
+            "dependencies": [
+              3,
+              6,
+              8
+            ],
+            "details": "Create nodeEditor/components/NodeCanvas.tsx using HTML5 canvas or SVG per repo standard. Render grid lines respecting zoom, origin. Provide viewport state sync. Est: 5h; Acceptance: grid appears, pan/zoom update store.",
+            "status": "pending",
+            "testStrategy": "Render test verifies grid and transform; manual pan/zoom smoke."
+          },
+          {
+            "id": 10,
+            "title": "Render basic node instances",
+            "description": "Render NodeBox components positioned on canvas using current viewport transform; display ports.",
+            "dependencies": [
+              8,
+              9,
+              7
+            ],
+            "details": "Create NodeBox.tsx and Port.tsx. Position via CSS transform or SVG group. Show title, icon, input/output ports. Est: 4h; Acceptance: nodes render at coordinates; ports align.",
+            "status": "pending",
+            "testStrategy": "Jest DOM queries for node titles and positions; screenshot diff optional."
+          },
+          {
+            "id": 11,
+            "title": "Node palette sidebar UI",
+            "description": "Implement a palette listing available node types with search and drag source.",
+            "dependencies": [
+              3,
+              6,
+              7,
+              8
+            ],
+            "details": "Create NodePalette.tsx with search input, categories, drag handles. Integrate with DnD lib used in repo (if any) or pointer events. Est: 3h; Acceptance: list filters correctly; drag start payload matches node type.",
+            "status": "pending",
+            "testStrategy": "Unit test for filtering; simulate drag start payload."
+          },
+          {
+            "id": 12,
+            "title": "Inspector panel for node parameters",
+            "description": "Build NodeInspector to edit parameters of selected node with inputs tied to store.",
+            "dependencies": [
+              7,
+              8,
+              10
+            ],
+            "details": "Render controls based on parameter metadata (range, enum, color). Reuse existing slider/color components per repo. Persist edits to store via setParam. Est: 5h; Acceptance: editing updates node state and reflects in UI.",
+            "status": "pending",
+            "testStrategy": "Controlled input tests assert store updates and UI sync."
+          },
+          {
+            "id": 13,
+            "title": "Drag to place nodes from palette",
+            "description": "Enable drag from palette onto canvas to instantiate nodes at drop location.",
+            "dependencies": [
+              11,
+              9,
+              8,
+              7,
+              10
+            ],
+            "details": "Integrate drop target on canvas, compute world coordinates from screen position, create node with default params. Est: 3h; Acceptance: dropping creates node centered at pointer, undo removes.",
+            "status": "pending",
+            "testStrategy": "Simulate drop event; assert store contains new node with coords."
+          },
+          {
+            "id": 14,
+            "title": "Node movement via drag",
+            "description": "Allow dragging existing nodes on canvas with snapping to grid and selection-aware move.",
+            "dependencies": [
+              10,
+              9,
+              8
+            ],
+            "details": "Implement pointer-based drag with requestAnimationFrame updates, grid snapping toggle, multi-select move if multiple selected. Est: 4h; Acceptance: node position updates smoothly; multi-select moves group.",
+            "status": "pending",
+            "testStrategy": "Simulate drag events; positions change; group move tested."
+          },
+          {
+            "id": 15,
+            "title": "Wire/connection drawing interaction",
+            "description": "Draw edges by dragging from an output port to an input port with live rubber-band line.",
+            "dependencies": [
+              10,
+              9,
+              8,
+              7
+            ],
+            "details": "Implement start from port, show preview line following cursor, on drop validate and create Edge. Est: 4h; Acceptance: valid drop creates edge; invalid shows feedback and no edge.",
+            "status": "pending",
+            "testStrategy": "Simulated pointer path; assert edge added only when valid."
+          },
+          {
+            "id": 16,
+            "title": "Connection validation rules",
+            "description": "Enforce port compatibility, cycle prevention, single-input constraints, and type matching on connect.",
+            "dependencies": [
+              7,
+              8,
+              15
+            ],
+            "details": "Add validator module; run on connect and on import. Detect cycles via DFS, ensure types align, and prevent multiple edges to single input. Est: 4h; Acceptance: unit tests cover valid/invalid cases.",
+            "status": "pending",
+            "testStrategy": "Pure unit tests for validator across edge cases."
+          },
+          {
+            "id": 17,
+            "title": "Selection and marquee multi-select",
+            "description": "Implement click-to-select, shift multi-select, and drag marquee to select nodes.",
+            "dependencies": [
+              10,
+              9,
+              8
+            ],
+            "details": "Use store selection model; draw transient marquee rectangle; select nodes intersecting area. Est: 3h; Acceptance: selection states update and reflect UI.",
+            "status": "pending",
+            "testStrategy": "DOM tests for selection toggling and marquee inclusion."
+          },
+          {
+            "id": 18,
+            "title": "Keyboard shortcuts and commands",
+            "description": "Add keybindings for delete, duplicate, undo/redo, zoom, select all, and escape to cancel.",
+            "dependencies": [
+              8,
+              9,
+              10,
+              17
+            ],
+            "details": "Global hotkeys within editor focus scope; map to store actions. Respect platform conventions. Est: 3h; Acceptance: keys trigger expected actions; no global conflicts.",
+            "status": "pending",
+            "testStrategy": "Keyboard event tests verifying actions fired and preventedDefault."
+          },
+          {
+            "id": 19,
+            "title": "Undo/redo history integration",
+            "description": "Integrate an efficient history stack for graph and viewport changes with grouping of drags.",
+            "dependencies": [
+              8,
+              14,
+              15,
+              18
+            ],
+            "details": "Use Immer patches or custom snapshots; time-slice grouping for drags; limit depth. Est: 4h; Acceptance: undo reverts last logical action; redo reapplies; performance acceptable.",
+            "status": "pending",
+            "testStrategy": "Unit tests asserting state snapshots across actions."
+          },
+          {
+            "id": 20,
+            "title": "Edge editing and reconnection",
+            "description": "Allow selecting edges, deleting them, and reconnecting endpoints via drag.",
+            "dependencies": [
+              15,
+              17,
+              18,
+              19
+            ],
+            "details": "Edge hit testing; show handles; support reassigning source/target with validation. Est: 3h; Acceptance: edge selection and reconnection work with rules enforced.",
+            "status": "pending",
+            "testStrategy": "Interaction tests covering reconnection flows."
+          },
+          {
+            "id": 21,
+            "title": "Context menus and quick actions",
+            "description": "Provide right-click context menus for canvas, nodes, and ports with relevant actions.",
+            "dependencies": [
+              10,
+              17,
+              18
+            ],
+            "details": "Use existing menu component; actions include duplicate, delete, align, convert, isolate. Est: 3h; Acceptance: menus open and actions perform correctly.",
+            "status": "pending",
+            "testStrategy": "Menu open/close tests; action handlers fire expected updates."
+          },
+          {
+            "id": 22,
+            "title": "Implement CPU-based LED simulation engine",
+            "description": "Create a deterministic CPU renderer that evaluates the graph into LED color frames.",
+            "dependencies": [
+              7,
+              8,
+              16,
+              4,
+              5
+            ],
+            "details": "Engine module consumes GraphDocument and produces Uint8Array RGB buffer per tick. Support fixed timestep, seeded randomness, and color space conversions reusing utilities. Est: 6h; Acceptance: given graph + params, outputs expected buffer length with stable results.",
+            "status": "pending",
+            "testStrategy": "Unit tests with small graphs verify deterministic outputs."
+          },
+          {
+            "id": 23,
+            "title": "Graph evaluation scheduler",
+            "description": "Evaluate nodes in topological order and compute outputs, caching intermediates per tick.",
+            "dependencies": [
+              16,
+              22,
+              7,
+              8
+            ],
+            "details": "Implement topo sort, detect recompute scope on param changes, memoize node outputs. Est: 5h; Acceptance: correct order, no cycles, incremental updates verified.",
+            "status": "pending",
+            "testStrategy": "Tests for DAG ordering and partial recomputation speed/assertions."
+          },
+          {
+            "id": 24,
+            "title": "Node library execution adapters",
+            "description": "Implement per-node execution handlers mapping node types to compute functions.",
+            "dependencies": [
+              22,
+              23,
+              4,
+              7
+            ],
+            "details": "Create registry: type -> exec(node, inputs, params, ctx). Include at least generators, mixers, transforms, outputs. Est: 5h; Acceptance: sample nodes execute and produce expected arrays.",
+            "status": "pending",
+            "testStrategy": "Unit tests per node type with fixture inputs/params."
+          },
+          {
+            "id": 25,
+            "title": "Color output integration to preview",
+            "description": "Wire simulation frames into a visual LED strip/matrix preview component.",
+            "dependencies": [
+              9,
+              22,
+              23,
+              24,
+              5
+            ],
+            "details": "Create LedPreview.tsx rendering RGB buffer as grid/strip using Canvas. Accept layout config (rows, cols, serpentine). Est: 4h; Acceptance: preview updates at target FPS with correct mapping.",
+            "status": "pending",
+            "testStrategy": "Render test comparing pixel colors for known inputs."
+          },
+          {
+            "id": 26,
+            "title": "Real-time pattern preview loop",
+            "description": "Add requestAnimationFrame loop or worker timer to drive the simulation and preview updates.",
+            "dependencies": [
+              25,
+              22,
+              23
+            ],
+            "details": "Implement tick loop with pause/play, speed control via params; avoid blocking UI. Est: 3h; Acceptance: preview animates smoothly; pause resumes correctly.",
+            "status": "pending",
+            "testStrategy": "FPS sampling and state transitions tested; manual smoothness check."
+          },
+          {
+            "id": 27,
+            "title": "Performance optimization and memoization",
+            "description": "Profile hot paths and add memoization, pooling, and structural sharing to keep 60 FPS on typical graphs.",
+            "dependencies": [
+              26,
+              24,
+              23,
+              22
+            ],
+            "details": "Use performance markers; reuse buffers; avoid allocations in tick; batch state updates. Est: 4h; Acceptance: measured FPS >= 55 on target graphs; GC churn minimized.",
+            "status": "pending",
+            "testStrategy": "Benchmark test harness with synthetic graphs; collect FPS metrics."
+          },
+          {
+            "id": 28,
+            "title": "Fallback rendering path",
+            "description": "Implement lower-fidelity preview when under load or on low-end devices.",
+            "dependencies": [
+              25,
+              26,
+              27
+            ],
+            "details": "Dynamic quality scaling: reduce resolution or frame rate; switch to simplified shaderless path if needed. Est: 3h; Acceptance: system detects load and maintains responsiveness.",
+            "status": "pending",
+            "testStrategy": "Throttle CPU and verify fallback engages and recovers."
+          },
+          {
+            "id": 29,
+            "title": "Preview-panel controls and sync",
+            "description": "Add UI controls for preview size, brightness, and layout; sync with store and parameters.",
+            "dependencies": [
+              12,
+              25,
+              26,
+              8
+            ],
+            "details": "Controls in Inspector or separate panel; updates simulation context and preview component. Est: 3h; Acceptance: controls reflect and affect preview immediately.",
+            "status": "pending",
+            "testStrategy": "DOM tests; verify buffer mapping changes per layout."
+          },
+          {
+            "id": 30,
+            "title": "Export simulated frames to K1 device",
+            "description": "Integrate optional streaming of preview frames to device via existing client if supported.",
+            "dependencies": [
+              25,
+              26,
+              2,
+              4,
+              5
+            ],
+            "details": "Use K1Client WS/REST channel for frame or param updates. Add toggle to enable streaming. Est: 4h; Acceptance: when enabled, device shows preview with acceptable latency.",
+            "status": "pending",
+            "testStrategy": "Mock client; assert calls; manual device test if available."
+          },
+          {
+            "id": 31,
+            "title": "Visual design and theming",
+            "description": "Apply cohesive visual styling: colors, icons, spacing, and typography consistent with app.",
+            "dependencies": [
+              3,
+              6,
+              10,
+              11,
+              12,
+              21
+            ],
+            "details": "Adopt existing design tokens and icon set. Style nodes, ports, wires, selection, panels. Est: 4h; Acceptance: UI matches design spec; passes contrast checks.",
+            "status": "pending",
+            "testStrategy": "Visual QA checklist; snapshot tests for key components."
+          },
+          {
+            "id": 32,
+            "title": "Wire rendering with polish",
+            "description": "Render bezier/spline wires with hover/selection states and performance-friendly layering.",
+            "dependencies": [
+              15,
+              21,
+              31,
+              9
+            ],
+            "details": "Implement GPU-friendly path rendering (SVG path or Canvas). Add hit areas for selection. Est: 3h; Acceptance: wires look smooth; hover tooltips appear.",
+            "status": "pending",
+            "testStrategy": "Pixel diff of path; interaction tests for hover/select."
+          },
+          {
+            "id": 33,
+            "title": "Error handling and validation UI",
+            "description": "Surface validation errors and warnings inline on nodes/ports and in a diagnostics panel.",
+            "dependencies": [
+              16,
+              12,
+              21,
+              31
+            ],
+            "details": "Show badges, tooltips, and panel listing issues; focus navigation to issues. Est: 3h; Acceptance: invalid graphs show clear guidance; ARIA announcements present.",
+            "status": "pending",
+            "testStrategy": "Unit tests for issue mapping; a11y tests for announcements."
+          },
+          {
+            "id": 34,
+            "title": "Accessibility and keyboard navigation",
+            "description": "Ensure focus order, ARIA labels, and keyboard navigation for nodes, ports, and panels.",
+            "dependencies": [
+              18,
+              31
+            ],
+            "details": "Implement roving tabindex, arrow-key port navigation, and keyboard connections if feasible. Est: 4h; Acceptance: editor usable without mouse for core flows.",
+            "status": "pending",
+            "testStrategy": "a11y testing with axe; keyboard E2E checks."
+          },
+          {
+            "id": 35,
+            "title": "Autosave and document persistence",
+            "description": "Persist graph documents locally and restore on reload; support import/export JSON.",
+            "dependencies": [
+              8,
+              7,
+              3
+            ],
+            "details": "LocalStorage or IndexedDB per repo patterns; schema versioning and migration; file download/upload. Est: 4h; Acceptance: changes survive reload; import/export round-trips.",
+            "status": "pending",
+            "testStrategy": "Persistence tests; schema migration unit tests."
+          },
+          {
+            "id": 36,
+            "title": "Onboarding help and empty states",
+            "description": "Provide inline guidance, templates, and empty-state illustrations to help first-time users.",
+            "dependencies": [
+              11,
+              10,
+              31
+            ],
+            "details": "Show tips overlay, sample graphs in palette, and CTA to drag nodes. Est: 2h; Acceptance: empty canvas explains next steps; dismissible help.",
+            "status": "pending",
+            "testStrategy": "Snapshot tests; verify local dismissed state stored."
+          },
+          {
+            "id": 37,
+            "title": "Performance validation and profiling",
+            "description": "Establish test graphs and profiling scripts to validate performance budgets across devices.",
+            "dependencies": [
+              27,
+              31,
+              25,
+              26
+            ],
+            "details": "Create scripts to measure FPS, CPU, memory; capture profiles for typical and worst-case graphs. Est: 3h; Acceptance: reports show meeting targets and regressions flagged.",
+            "status": "pending",
+            "testStrategy": "Automated profiling harness; thresholds in CI if available."
+          },
+          {
+            "id": 38,
+            "title": "End-to-end smoke scenarios for editor",
+            "description": "Write E2E tests covering key flows: add, connect, edit, preview, save.",
+            "dependencies": [
+              13,
+              14,
+              15,
+              12,
+              25,
+              35
+            ],
+            "details": "Using existing E2E framework, script core flows with assertions on UI and state. Est: 4h; Acceptance: tests pass locally and in CI.",
+            "status": "pending",
+            "testStrategy": "Cypress/Playwright tests part of CI matrix."
+          },
+          {
+            "id": 39,
+            "title": "Developer documentation: architecture and APIs",
+            "description": "Document editor architecture, types, store APIs, and extension points per spec.",
+            "dependencies": [
+              7,
+              8,
+              22,
+              23,
+              24,
+              31
+            ],
+            "details": "Create docs in docs/PhaseC or README in nodeEditor/. Include diagrams and examples. Est: 3h; Acceptance: peer review; links validated.",
+            "status": "pending",
+            "testStrategy": "Link check; TypeDoc generation if used."
+          },
+          {
+            "id": 40,
+            "title": "User documentation and usage guide",
+            "description": "Write user-facing guide for building graphs, connecting nodes, and previewing.",
+            "dependencies": [
+              31,
+              33,
+              36,
+              38
+            ],
+            "details": "Add docs with screenshots/GIFs; explain shortcuts, tips, troubleshooting. Est: 3h; Acceptance: covers core flows clearly; added to app help.",
+            "status": "pending",
+            "testStrategy": "Content review checklist mapped to PRD."
+          },
+          {
+            "id": 41,
+            "title": "Release checklist and readiness gating",
+            "description": "Create a checklist for release readiness including QA, a11y, performance, and docs.",
+            "dependencies": [
+              37,
+              38,
+              39,
+              40,
+              33,
+              34
+            ],
+            "details": "Checklist in repo; define pass/fail criteria and owners. Est: 2h; Acceptance: reviewed and adopted by team.",
+            "status": "pending",
+            "testStrategy": "Run through checklist on a branch; capture sign-offs."
+          },
+          {
+            "id": 42,
+            "title": "Feature flag and routing toggle",
+            "description": "Guard editor behind a feature flag and add navigation entry in app.",
+            "dependencies": [
+              3,
+              8,
+              31
+            ],
+            "details": "Implement config-driven flag; conditionally show route/menu item. Est: 2h; Acceptance: toggle hides/shows feature without errors.",
+            "status": "pending",
+            "testStrategy": "Unit test for flag; E2E check for route visibility."
+          },
+          {
+            "id": 43,
+            "title": "Telemetry and error reporting hooks",
+            "description": "Add basic analytics for editor usage and error reporting integration if present.",
+            "dependencies": [
+              3,
+              33,
+              31
+            ],
+            "details": "Hook into existing analytics/error libs. Log actions: node add, connect, preview enable. Est: 2h; Acceptance: events appear in dev sink; PII policy respected.",
+            "status": "pending",
+            "testStrategy": "Mock transport; assert calls with expected payloads."
+          },
+          {
+            "id": 44,
+            "title": "Localization and copy review",
+            "description": "Ensure visible strings are externalized and copy reviewed.",
+            "dependencies": [
+              31,
+              40
+            ],
+            "details": "Use existing i18n solution; extract strings; add English keys; plan for future locales. Est: 2h; Acceptance: no hard-coded strings in UI components.",
+            "status": "pending",
+            "testStrategy": "i18n scan; snapshot tests for translated wrappers."
+          },
+          {
+            "id": 45,
+            "title": "CI tasks and linting for nodeEditor",
+            "description": "Add lint/test targets for new code, ensure strict TS passes, and include in CI.",
+            "dependencies": [
+              2,
+              8,
+              38,
+              39
+            ],
+            "details": "Update package scripts and CI config; ensure ESLint/Prettier rules apply. Est: 2h; Acceptance: CI green; no lint errors.",
+            "status": "pending",
+            "testStrategy": "Run CI locally; verify new paths included."
+          },
+          {
+            "id": 46,
+            "title": "Sample graphs and fixtures",
+            "description": "Provide sample graphs for demos, tests, and docs, covering common patterns.",
+            "dependencies": [
+              24,
+              35,
+              39,
+              38
+            ],
+            "details": "Add JSON files under fixtures/graphs and hook into docs/E2E. Est: 2h; Acceptance: samples load and render; used in tests.",
+            "status": "pending",
+            "testStrategy": "Load fixtures in unit/E2E tests; verify nodes/edges count."
+          },
+          {
+            "id": 47,
+            "title": "Security and data review",
+            "description": "Review inputs, serialization, and potential unsafe HTML/URLs in node metadata.",
+            "dependencies": [
+              33,
+              35,
+              39
+            ],
+            "details": "Audit schema, sanitize labels, validate imports, and guard against prototype pollution. Est: 2h; Acceptance: checklist complete; fixes applied if needed.",
+            "status": "pending",
+            "testStrategy": "Static analysis and targeted unit tests for sanitization."
+          },
+          {
+            "id": 48,
+            "title": "Handover and maintenance plan",
+            "description": "Prepare a maintenance plan outlining ownership, issue triage, and future enhancements.",
+            "dependencies": [
+              41,
+              39,
+              40
+            ],
+            "details": "Create MAINTAINERS.md entries, backlog of follow-ups, and upgrade notes. Est: 1h; Acceptance: doc merged and acknowledged by team.",
+            "status": "pending",
+            "testStrategy": "Review by leads; entries visible in repo."
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Repository scan and tech stack identification",
+        "description": "Explore the codebase to determine frameworks, language, build tooling, state management, rendering approach, and existing modules (e.g., K1Provider, graph/effects/audio AI). Summarize findings to align subsequent tasks with current architecture and conventions.",
+        "details": "- Run `rg --files` to map directories; open `package.json`/`pnpm-lock.yaml`/`yarn.lock` if present to detect frameworks (React/Next/Electron), bundlers (Vite/Webpack), TS/JS setup.\n- Locate any `Provider`/`K1Provider` and editor/graph modules; document naming conventions, lint/test configs.\n- Identify platform targets (web, mobile bridges), feature flags and env handling.\n- Output a concise architecture note under `docs/stack-overview.md` to ground later tasks.",
+        "testStrategy": "- Confirm files and paths referenced exist via shell.\n- Validate build scripts referenced in docs are present.\n- Peer check the overview aligns with repo reality (framework, language, directories).",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Shared GraphDocument schema and typings",
+        "description": "Define a versioned, JSON-serializable GraphDocument schema used by Phase C and PF-5 with strict validation types and migration hooks.",
+        "details": "- Create `schemas/graph-document.schema.json` with `schemaVersion`, `nodes[]`, `edges[]`, `parameters`, `uiMeta`, `provenance`.\n- Node fields: `id`, `type`, `inputs/outputs` (typed ports), `params` (typed), `meta`.\n- Edge fields: `id`, `from.nodeId/port`, `to.nodeId/port`, `dataType`.\n- Generate TS types via `zod`/`typebox`; expose `GraphDocument` types in `src/graph/types.ts`.\n- Add `src/graph/schema/migrations.ts` to support future versions and `validateGraphDocument(doc)`.",
+        "testStrategy": "- Unit tests for valid/invalid payloads and migration correctness (e.g., missing fields, port mismatch).\n- Snapshot round-trip tests JSON -> type -> JSON.\n- Fuzz invalid structures to ensure deterministic errors.",
+        "priority": "high",
+        "dependencies": [
+          13
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Immutable graph core (CRUD + indexes)",
+        "description": "Implement core in-memory graph model with normalized maps, O(1) lookups, deterministic IDs, and event hooks.",
+        "details": "- `src/graph/core/graph.ts`: CRUD for nodes/edges/params; compute adjacency, topological sort guard.\n- Store structure `{nodesById, edgesById, nodeIds}`; derive indexes (inputsByNode, outputsByNode, edgesByNode).\n- Emit domain events (`onNodeAdded`, etc.) for history/renderer.\n- Enforce schema compatibility via guard functions before applying mutations.",
+        "testStrategy": "- Unit tests for add/remove/update and index correctness.\n- Property-based tests for random sequences; no orphan edges.\n- Microbenchmarks for 2k nodes <5ms per op on average.",
+        "priority": "high",
+        "dependencies": [
+          14
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Graph validator (structure, typing, cycles)",
+        "description": "Create a validation engine that checks structure, port type compatibility, cycles (for DAG segments), and parameter ranges, returning actionable issues.",
+        "details": "- `src/graph/validate/index.ts`: rulesets with severity (error/warn/info), codes, and locations.\n- Use DFS/Tarjan SCC for cycles; unify data types with simple inference (e.g., color, number, audio, framebuffer).\n- Parameter schema validation via zod schema from Task 14.\n- Provide `validateGraph(graph): GraphIssue[]` and incremental validation on mutations.",
+        "testStrategy": "- Targeted unit tests for each rule and complex graphs.\n- Performance test on 2k nodes <3ms.\n- Integration tests ensuring validator blocks invalid connects on UI operations.",
+        "priority": "high",
+        "dependencies": [
+          15
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Graph store and selectors",
+        "description": "Introduce centralized state store for graph data, selection, viewport, and derived selectors consistent with repo’s state library.",
+        "details": "- Implement `src/graph/store/index.ts` using existing state lib (Redux/Zustand/Recoil as found in Task 13).\n- Actions: selection, viewport pan/zoom, create/update/delete nodes/edges, parameter edits, import/export.\n- Memoized selectors for visible nodes, dirty state, and validation summaries; event bus for renderer.",
+        "testStrategy": "- Reducer/action unit tests; idempotence of no-op updates.\n- Rerender count tests using a sample component to guard against selector churn.\n- Integration test that store updates trigger validator and history hooks.",
+        "priority": "high",
+        "dependencies": [
+          13,
+          15
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "Undo/redo history manager",
+        "description": "Add command-pattern history with batched transactions, caps, and persistence across sessions.",
+        "details": "- `src/graph/history/history.ts`: `Command {do,undo,label}` with stacks and `begin/endTransaction`.\n- Middleware binds to store to record atomic ops; squash move/drag sequences.\n- Persist bounded history in session storage; clear redo on new op; expose keyboard bindings.",
+        "testStrategy": "- Unit tests for single, batched, nested transactions; redo clearing.\n- Persistence test: reload restores last session’s history safely.\n- Keyboard E2E for Cmd/Ctrl+Z/Y with expected state transitions.",
+        "priority": "medium",
+        "dependencies": [
+          17
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Graph JSON import/export + migration",
+        "description": "Implement robust import/export with version detection, migrations, and strict validation before applying to store.",
+        "details": "- `src/graph/io/serializer.ts`: `exportGraph(graph)`, `importGraph(json)`.\n- Import path: parse -> detect version -> run migrations -> validate -> normalize -> load into store.\n- Export path: strip transient UI fields; embed metadata (timestamps, appVersion, author).",
+        "testStrategy": "- Round-trip tests on real graphs; equality modulo metadata.\n- Versioned fixtures for migration paths; invalid file rejections tested.\n- Fuzz invalid inputs to ensure safe failure and error messages.",
+        "priority": "high",
+        "dependencies": [
+          14,
+          16,
+          17
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Canvas/WebGL renderer (60 FPS)",
+        "description": "Build a layered renderer for nodes/ports/edges with dirty-rects, hit-testing, and pan/zoom targeting 60 FPS.",
+        "details": "- `src/graph/view/renderer/*`: choose Canvas2D with caching or WebGL for lines/instanced quads depending on repo stack.\n- Use rAF loop gated by invalidation; quadtree for picking; world->screen transforms; grid + snapping.\n- Accessibility: ensure focus ring rendering and large hit areas for ports.",
+        "testStrategy": "- FPS harness with 1k nodes; assert >60 FPS typical.\n- Unit tests for transform math and picking.\n- Visual regression snapshots for node/edge drawing if test infra supports.",
+        "priority": "high",
+        "dependencies": [
+          17
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 21,
+        "title": "Node UI and positioning",
+        "description": "Render node widgets (header, ports, parameters badges) and support drag/resize with constraints and focus management.",
+        "details": "- `src/graph/view/nodes.tsx`: list virtualization, GPU-friendly styles, drop-shadows via layers.\n- Persist `uiMeta.position/size` to graph; keyboard arrow nudge; alignment guides and snap-to-grid.\n- Maintain roving focus; announce movement for screen readers.",
+        "testStrategy": "- Interaction tests for drag/resize/keyboard move; persistence across reload.\n- Snapshot tests for node markup.\n- A11y tests for focus order and roles.",
+        "priority": "high",
+        "dependencies": [
+          20
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 22,
+        "title": "Connections UI and logic",
+        "description": "Implement wire drawing with snapping, validation feedback, and auto-routing with minimal overlap.",
+        "details": "- `src/graph/view/edges.tsx`: interactive path creation; cubic bezier with hover states; live validator integration.\n- Allow multi-connect where permitted; disallow type mismatches with inline reason tooltip.\n- Store updates routed via history system for undo/redo.",
+        "testStrategy": "- Interaction tests for connect/disconnect; invalid attempt surfaces error.\n- Perf on 2k edges; hover hit-tests remain snappy.\n- Keyboard-only connect workflow verified.",
+        "priority": "high",
+        "dependencies": [
+          16,
+          20,
+          21
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Drag-and-drop node creation",
+        "description": "Create nodes from palette drag or hotkeys at cursor location with optional auto-connect heuristics.",
+        "details": "- `src/graph/view/dnd.ts`: handle drag source from palette, drop target on canvas.\n- Heuristics: if one node selected, auto-connect compatible closest ports.\n- Ensure transactions are batched; focus new node; escape to cancel.",
+        "testStrategy": "- DnD tests and keyboard creation path; ensure cancel leaves no residue.\n- Verify auto-connect only on compatible ports; history shows one transaction.\n- Measure latency from drop to render under 16ms budget.",
+        "priority": "medium",
+        "dependencies": [
+          17,
+          21,
+          22
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 24,
+        "title": "Parameter editing UI (inspector)",
+        "description": "Side panel and inline editors for node parameters with type-aware controls and validation feedback.",
+        "details": "- `src/graph/inspector/*`: numeric with sliders, color pickers, enums, curves; debounce to reduce re-eval churn.\n- Inline validation messages tied to validator; error badges on nodes.\n- Expression fields gated by schema flags where supported.",
+        "testStrategy": "- Component tests for editors; debounce correctness.\n- Integration tests ensure parameter change updates evaluation and preview.\n- A11y for labels, ARIA, and keyboard operation.",
+        "priority": "high",
+        "dependencies": [
+          16,
+          17,
+          21
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 25,
+        "title": "Keyboard shortcuts and WCAG scaffolding",
+        "description": "Global keymap for editor actions and foundational accessibility checks to target WCAG 2.1 AA.",
+        "details": "- `src/graph/input/keymap.ts`: bind undo/redo, duplicate, delete, zoom, frame, connect, run/pause.\n- Focus outlines, contrast tokens, prefers-reduced-motion support.\n- Integrate axe-core checks in dev/test and fix initial violations.",
+        "testStrategy": "- Keyboard-only E2E: create → connect → edit → export.\n- Axe automated checks pass baseline; color contrast verified programmatically.\n- Snapshot checks for focus styles.",
+        "priority": "medium",
+        "dependencies": [
+          18,
+          21,
+          22,
+          24
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 26,
+        "title": "LED preview (30+ FPS)",
+        "description": "Render real-time LED layouts (strip/grid) from evaluation frames with consistent pacing.",
+        "details": "- `src/preview/led-preview.tsx`: accept frame buffers (RGB/RGBA), render via WebGL/Canvas with instancing.\n- Layout configs for common devices; frame pacing synced to evaluation clock; backpressure handling.\n- Optional tone-mapping and gamma controls.",
+        "testStrategy": "- FPS/profiling harness ensures 30+ FPS under expected workloads.\n- Visual correctness with known patterns and golden images.\n- Resize/DPI behaviors validated.",
+        "priority": "high",
+        "dependencies": [
+          20,
+          24
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 27,
+        "title": "Real-time evaluation engine",
+        "description": "Execute node graphs each frame to produce LED colors with caching and deterministic stepping.",
+        "details": "- `src/eval/engine.ts`: pull-based DAG scheduler; memoization keyed by time and param hashes.\n- Inputs: time, audio features, color sources; outputs: frame buffer.\n- Guard per-frame budget (<=10ms) with metrics; plugin API for new node types.",
+        "testStrategy": "- Unit tests for order, caching, determinism across seeds/time.\n- Benchmarks on representative graphs; budget alarms covered.\n- Fault injection tests ensure error isolation per node.",
+        "priority": "high",
+        "dependencies": [
+          15,
+          16,
+          19
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 28,
+        "title": "Node registry and palette UI",
+        "description": "Central registry of node types with searchable palette to instantiate nodes and support dynamic registration by PF-5.",
+        "details": "- `src/nodes/registry.ts`: metadata (category, ports, params, defaults, icon); factory to instantiate nodes.\n- Palette UI with search, category filters, keyboard navigation.\n- Expose registration hooks for audio/color/NLP nodes.",
+        "testStrategy": "- Registry unit tests; dynamic register/unregister.\n- UI tests for palette filtering, focus, and selection.\n- Ensure factory outputs schema-valid nodes.",
+        "priority": "medium",
+        "dependencies": [
+          14,
+          21,
+          23,
+          24
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 29,
+        "title": "Validation surfacing UI",
+        "description": "Display validator issues inline on nodes/ports and in a central panel with quick-fixes.",
+        "details": "- `src/graph/view/validation-ui.tsx`: badges on nodes, tooltips on ports, overlay on edges; issues panel with filters.\n- Quick-fix actions (e.g., auto-insert converter node) where defined.\n- Live region announcements for screen readers.",
+        "testStrategy": "- UI tests for issue lifecycle, filtering, and quick-fixes.\n- Accessibility tests for announcements and focus restore.\n- Visual snapshots for issue rendering.",
+        "priority": "medium",
+        "dependencies": [
+          16,
+          21,
+          22,
+          24
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 30,
+        "title": "Styling and theming system",
+        "description": "Introduce theme tokens, dark/light themes, and shared component styles meeting contrast requirements.",
+        "details": "- Use repo’s design system; otherwise CSS variables + ThemeProvider.\n- Tokens for colors, spacing, elevation, focus, states; prefers-color-scheme integration.\n- Provide storybook/docs for components if present.",
+        "testStrategy": "- Contrast automation; theme toggle tests.\n- Visual regression across light/dark.\n- Token existence unit tests.",
+        "priority": "low",
+        "dependencies": [
+          21,
+          24,
+          25
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 31,
+        "title": "AudioWorklet pipeline and input capture",
+        "description": "Implement Web Audio input capture (mic/file) and AudioWorklet processing with ring buffer to main thread.",
+        "details": "- `src/audio/` init: `getUserMedia` mic; decode files; create `AudioWorkletProcessor` to emit frames.\n- Use SAB-based ring buffer for low latency; handle permissions and errors; feature-flag behind PF-5.\n- Configurable sample rate/hop size; time-sync with evaluation engine.",
+        "testStrategy": "- Simulated inputs; continuity and latency checks (<10ms contribution).\n- Unit tests for ring buffer correctness and overflow handling.\n- Browser capability detection and graceful fallback.",
+        "priority": "high",
+        "dependencies": [
+          13,
+          26,
+          27
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 32,
+        "title": "FFT and spectral analysis",
+        "description": "Efficient FFT, windowing, energy bands, and spectral flux computation within Worklet/WASM.",
+        "details": "- Integrate FFT lib (WASM/kissfft/fft.js); apply Hann; compute band energies.\n- Emit typed arrays via SAB; throttle to evaluation rate.\n- Parameterize window/hop; expose calibration API.",
+        "testStrategy": "- Numerical parity with reference FFT; error bounds asserted.\n- Performance profile: <2ms for 1024-sample frame.\n- Unit tests for spectral flux/energy outputs.",
+        "priority": "high",
+        "dependencies": [
+          31
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 33,
+        "title": "Tempo/BPM and beat detection",
+        "description": "Tempo tracking and beat detection from spectral flux with >85% beat accuracy.",
+        "details": "- Onset detection + peak picking; autocorrelation/comb filter for BPM; adaptive thresholds.\n- Stabilize tempo over sliding windows; expose confidence.\n- Publish events to app state and evaluation engine.",
+        "testStrategy": "- Evaluate on local dataset fixtures; report accuracy.\n- Synthetic unit tests; latency from frame to beat event measured.\n- Edge cases: tempo changes, silence handling.",
+        "priority": "high",
+        "dependencies": [
+          32
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 34,
+        "title": "AudioReactivityManager and K1Provider integration",
+        "description": "Service that aggregates audio features (energy, BPM, beats) and updates K1Provider `aiFeatures` state.",
+        "details": "- `src/audio/manager.ts`: start/stop lifecycle, error handling, selectors.\n- Extend K1Provider namespaces: `nodeEditor` + `aiFeatures` without conflict; events for consumers.\n- Feature flags; cleanup on unmount; metrics hooks.",
+        "testStrategy": "- Integration tests with mocked Worklet; state updates verified.\n- Lifecycle idempotence tests; cleanup of resources and listeners.\n- Selector correctness and memoization tests.",
+        "priority": "high",
+        "dependencies": [
+          17,
+          31,
+          33
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 35,
+        "title": "Audio-reactive nodes and five presets",
+        "description": "Implement audio-driven nodes and ship five preset GraphDocuments for PF-5 Phase 1.",
+        "details": "- Nodes: `BeatTrigger`, `BPMFollower`, `BandEnergy`, `EnvelopeFollower`, `AudioColorizer`.\n- Create 5 presets as GraphDocuments; register via registry; expose in palette.\n- Ensure evaluation engine resolves audio inputs and parameters.",
+        "testStrategy": "- Unit tests for node compute paths; deterministic with canned audio.\n- Preset snapshot tests against known audio inputs.\n- Manual test: load preset and verify LED preview reactivity.",
+        "priority": "medium",
+        "dependencies": [
+          27,
+          28,
+          34
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 36,
+        "title": "ONNX Runtime Web integration (color)",
+        "description": "Load ONNX color model with WebGL/WebGPU execution provider, caching, and warmup.",
+        "details": "- `src/color/onnx.ts`: integrate `onnxruntime-web`; lazy-load model assets; warm-up inference.\n- Fallback EPs selection; robust error handling and feature flag.\n- Version and cache models; keep memory footprint bounded.",
+        "testStrategy": "- Load/warmup time tests; fallback coverage.\n- Deterministic inference on sample frames; memory leak checks.\n- Failure-mode tests (missing model files).",
+        "priority": "medium",
+        "dependencies": [
+          13,
+          26,
+          27,
+          30
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 37,
+        "title": "Video capture and real-time color tracking",
+        "description": "Capture camera/video frames, downscale efficiently, and feed color model to produce dominant colors <500ms/frame.",
+        "details": "- `src/color/capture.ts`: `getUserMedia`, `<video>` + `OffscreenCanvas` for processing.\n- Backpressure and batching; timestamps for synchronization; emits dominant colors and confidence.\n- Permissions UX and fallback media.",
+        "testStrategy": "- Latency measurement from capture to color result.\n- Visual overlay test; permissions denied fallback coverage.\n- Resource cleanup tests.",
+        "priority": "medium",
+        "dependencies": [
+          36
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 38,
+        "title": "Palette generation and harmony scoring",
+        "description": "Create palettes from extracted colors using harmony rules with quality scoring >4.0/5.0.",
+        "details": "- `src/color/palette.ts`: OKLCH/Lab conversions; rules: complementary, triadic, analogous, monochromatic.\n- Score by perceptual contrast, distinctiveness, and balance; expose tuned API.\n- Integrate with node types and UI inspector.",
+        "testStrategy": "- Unit tests for conversions and rule outputs.\n- Fixture-based scoring checks achieving thresholds.\n- Snapshot tests for generated palettes.",
+        "priority": "low",
+        "dependencies": [
+          37
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 39,
+        "title": "MiniLM NLP for text-to-lighting",
+        "description": "Deploy MiniLM embeddings and lightweight classifiers for intent and slot extraction with <150ms latency.",
+        "details": "- Integrate `@xenova/transformers` (or repo-approved equivalent) with WebGPU/WebGL; quantized weights.\n- Classifier heads for intents (effect families) and slots (color, speed, intensity, pattern).\n- Cache model and tokenizer; offline-first loading.",
+        "testStrategy": "- Accuracy evaluation on labeled prompts (>90% intent accuracy).\n- Latency profiling cold/warm; assert <150ms warm.\n- Unit tests for tokenization and slot parsing edge cases.",
+        "priority": "medium",
+        "dependencies": [
+          13,
+          27,
+          30
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 40,
+        "title": "TextToEffectMapper (graphs from intents)",
+        "description": "Translate parsed intents/slots into GraphDocuments using templates and parameter binding with validation.",
+        "details": "- `src/nlp/mapper.ts`: map intents to node templates; bind slot params (colors, tempo sync, intensity).\n- Validate output against schema; include provenance and versioning.\n- Return ready-to-render document for editor insertion.",
+        "testStrategy": "- Unit tests mapping common phrases to valid graphs.\n- End-to-end latency test: text → graph under 150ms with warm model.\n- Golden snapshots for stability.",
+        "priority": "medium",
+        "dependencies": [
+          19,
+          28,
+          39
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 41,
+        "title": "TextToLighting modal and voice input",
+        "description": "UX to enter text and voice (web/iOS/Android) to generate and insert effects into editor.",
+        "details": "- Modal with text input, mic button; voice via Web Speech API or native bridge shims.\n- Debounced invoke of NLP; show preview; ‘Insert into Editor’ wires to import/insert and focus.\n- A11y: labeled controls, focus trap, error states.",
+        "testStrategy": "- UI tests for submit/cancel/insert flows; mocked voice.\n- A11y checks; keyboard-only operation.\n- Integration test that inserted graph renders and evaluates.",
+        "priority": "low",
+        "dependencies": [
+          21,
+          24,
+          40
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 42,
+        "title": "Feedback collection and preference learning",
+        "description": "Collect ratings on generated effects and learn user preferences for personalization.",
+        "details": "- UI affordances to like/rate; event schema; local persistence and (if present) analytics sink.\n- On-device lightweight bandit (e.g., epsilon-greedy) or matrix factorization for suggestions.\n- Feature flags, privacy, export/delete data.",
+        "testStrategy": "- Simulated feedback improves selection (>5% CTR proxy) in offline tests.\n- Unit tests for model update and persistence/migration.\n- A/B hooks verified with deterministic bucketing.",
+        "priority": "low",
+        "dependencies": [
+          41,
+          40
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 43,
+        "title": "A/B testing and analytics plumbing",
+        "description": "Framework for experiment assignment, exposure logging, and analytics export; model version tagging.",
+        "details": "- Deterministic bucketing (hash-based), experiment registry, guardrails for mutual exclusion.\n- Event batching with retry/backoff; dashboard integration points per repo.\n- Tag generated graphs/presets with model and experiment IDs.",
+        "testStrategy": "- Unit tests for bucketing determinism and event schemas.\n- Load tests for batching/retry; ensure no event loss in offline scenarios.\n- E2E dry run that dashboard receives representative events.",
+        "priority": "low",
+        "dependencies": [
+          42
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 44,
+        "title": "Photosensitivity and device capability checks",
+        "description": "Safety heuristics for photosensitivity and capability-based tuning for rendering/evaluation.",
+        "details": "- Analyze flash frequency, luminance deltas; block/warn unsafe graphs; add ‘safe mode’ transforms.\n- Detect device FPS, color depth, WebGL/WebGPU; adjust preview/eval parameters.\n- Expose results in UI with override and audit logging.",
+        "testStrategy": "- Unit tests with known unsafe patterns flagged correctly.\n- Runtime tests toggling capabilities ensure correct fallbacks.\n- Manual safety review checklist automated where possible.",
+        "priority": "medium",
+        "dependencies": [
+          27,
+          26,
+          35
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 45,
+        "title": "Performance profiling and hardening",
+        "description": "Instrument end-to-end performance and optimize hot paths to hit <100ms p95 and <10ms audio latency.",
+        "details": "- Add performance marks and metrics collectors; analyze evaluation, rendering, and audio pipelines.\n- Optimize allocations (object pooling), avoid layout thrash, tune memoization and SAB sizes.\n- CI perf checks/regression thresholds; export perf report for release.",
+        "testStrategy": "- Automated perf scenarios with synthetic graphs/audio; record p95 and memory.\n- Compare before/after; assert thresholds.\n- Leak checks with heap snapshots and flamecharts.",
+        "priority": "medium",
+        "dependencies": [
+          26,
+          27,
+          31,
+          35,
+          41
+        ],
+        "status": "pending",
+        "subtasks": []
       }
     ],
     "metadata": {
-      "version": "1.0.0",
-      "lastModified": "2025-10-26T21:30:47.791Z",
-      "taskCount": 11,
-      "completedCount": 1,
-      "tags": [
-        "master"
-      ],
       "created": "2025-10-27T01:48:04.300Z",
-      "description": "Tasks for master context",
-      "updated": "2025-10-27T03:47:47.807Z"
+      "updated": "2025-10-27T21:34:25.363Z",
+      "description": "Tasks for master context"
     }
   }
 }
