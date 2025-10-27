@@ -157,7 +157,39 @@ curl http://192.168.1.100/api/patterns
 3. Test under various load conditions
 4. Verify performance stays within acceptable ranges
 
+#### Debug Panel Testing (Development Mode)
+1. Press **Alt+Shift+D** to toggle DevDebugPanel
+2. Verify real-time metrics display correctly
+3. Test abort error logging toggle
+4. Monitor HMR delay and subscription counts
+5. Adjust summary window and verify updates
+
 ## Debugging and Troubleshooting
+
+### Enhanced Debug Panel (Alt+Shift+D)
+
+The DevDebugPanel provides comprehensive development insights:
+
+#### Real-time Monitoring
+- **Subscription Tracking**: Live counts for realtime, audio, and performance subscriptions
+- **Abort Error Analysis**: HMR-related error tracking with configurable logging
+- **Performance Metrics**: HMR delay monitoring and timing analysis
+- **Interactive Controls**: Runtime configuration of debug settings
+
+#### Usage Workflow
+```typescript
+// 1. Enable debug panel
+// Press Alt+Shift+D in development mode
+
+// 2. Monitor subscription activity
+// Watch live counts update as components mount/unmount
+
+// 3. Track abort errors during HMR
+// Enable abort logging to see detailed error information
+
+// 4. Analyze performance bottlenecks
+// Monitor HMR delays and subscription overhead
+```
 
 ### Browser Developer Tools
 

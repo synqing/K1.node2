@@ -219,6 +219,29 @@ client.connectWebSocket(
 
 ## Debugging
 
+### DevDebugPanel (Development Mode Only)
+The application includes a comprehensive debug panel accessible via **Alt+Shift+D** hotkey:
+
+**Features:**
+- **Real-time Metrics**: Live subscription counts for realtime, audio, and performance monitoring
+- **Abort Error Tracking**: Monitor HMR-related abort errors with configurable logging
+- **Performance Monitoring**: Track HMR delays and debug timing
+- **Interactive Controls**: Toggle abort logging and adjust summary windows
+
+**Usage:**
+```typescript
+// Toggle debug panel
+// Press Alt+Shift+D in development mode
+
+// Enable abort logging programmatically
+import { setAbortLoggingEnabled } from './utils/error-utils';
+setAbortLoggingEnabled(true);
+
+// Access real-time metrics
+import { getRealtimeMetrics } from './utils/realtime-metrics';
+const metrics = getRealtimeMetrics();
+```
+
 ### Browser DevTools
 1. **Console**: Check for JavaScript errors
 2. **Network**: Monitor API requests/responses
@@ -233,15 +256,64 @@ curl -X POST http://192.168.1.100/api/select -d '{"index":2}' -H "Content-Type: 
 curl http://192.168.1.100/api/params
 ```
 
+### Advanced Debugging Features
+
+#### Abort Error Management
+```typescript
+// Configure abort error handling
+import { 
+  setAbortLoggingEnabled, 
+  setAbortWindowMs, 
+  getAbortStats 
+} from './utils/error-utils';
+
+// Enable detailed abort logging
+setAbortLoggingEnabled(true);
+
+// Set summary window (default: 10 seconds)
+setAbortWindowMs(10000);
+
+// Get current abort statistics
+const stats = getAbortStats();
+console.log(`Aborts in window: ${stats.windowCount}, Total: ${stats.totalCount}`);
+```
+
+#### Real-time Metrics Tracking
+```typescript
+// Monitor subscription activity
+import { 
+  recordSubscription, 
+  recordStart, 
+  recordStop, 
+  getActiveCounts 
+} from './utils/realtime-metrics';
+
+// Track subscription lifecycle
+recordSubscription('audio');
+recordStart('audio');
+// ... later
+recordStop('audio');
+
+// Get active counts by category
+const activeCounts = getActiveCounts();
+console.log('Active subscriptions:', activeCounts);
+```
+
 ### Logging
-Add debug logging:
+Enhanced debug logging with categorization:
 ```typescript
 // Enable detailed logging
 localStorage.setItem('k1-debug', 'true');
 
-// In code
-if (localStorage.getItem('k1-debug')) {
-  console.log('Debug info:', data);
+// In code with abort error filtering
+import { isAbortError } from './utils/error-utils';
+
+try {
+  // API call
+} catch (err) {
+  if (!isAbortError(err)) {
+    console.error('Non-abort error:', err);
+  }
 }
 ```
 
