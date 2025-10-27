@@ -4,6 +4,8 @@ import { readFileSync, writeFileSync, readdirSync } from 'fs';
 import { resolve, join, basename } from 'path';
 import { program } from 'commander';
 import Handlebars from 'handlebars';
+import { validateGraph, generateValidationReport } from './validation_tests.js';
+import { analyzeGraphSemantics, validateCodeGeneration, type ComprehensiveValidationResult } from './advanced_validation.js';
 
 // Node graph structure supporting multiple node types
 export interface Node {
@@ -658,25 +660,56 @@ program
 program
     .command('single <input> <output>')
     .description('Compile single graph to C++ (original mode)')
-    .action((input: string, output: string) => {
+    .option('--validate-only', 'Run validation without generating code')
+    .action((input: string, output: string, options: {validateOnly?: boolean}) => {
         try {
-            console.log(`Compiling ${input} -> ${output}`);
+            console.log(`${options.validateOnly ? 'Validating' : 'Compiling'} ${input}...`);
 
             // Read and parse graph
             const graphJson = readFileSync(resolve(input), 'utf-8');
             const graph = JSON.parse(graphJson) as Graph;
 
-            // Compile to C++
-            const cppCode = compileGraph(graph);
-
-            // Write output
-            writeFileSync(resolve(output), cppCode);
-
-            console.log(`✓ Generated ${output}`);
-            console.log(`  ${graph.nodes.length} nodes compiled`);
-            console.log(`  ${cppCode.split('\n').length} lines of C++ generated`);
+            // Run validation
+            console.log('Running validation...');
+            const structureResult = validateGraph(graph);
+            const semanticResult = analyzeGraphSemantics(graph);
+            
+            // Check for critical issues
+            const criticalIssues = structureResult.violations.filter(v => v.severity === 'critical');
+            
+            if (criticalIssues.length > 0) {
+                console.error(`❌ Validation failed with ${criticalIssues.length} critical issue(s)`);
+                console.error(generateValidationReport(graph.name || 'Unknown', structureResult));
+                process.exit(1);
+            }
+            
+            // Log performance estimate
+            const perf = semanticResult.performanceEstimate;
+            console.log(`Performance: ~${Math.round(perf.frameRateEstimate)} FPS (${perf.estimatedCyclesPerFrame} cycles/frame)`);
+            
+            if (perf.frameRateEstimate < 100) {
+                console.warn(`⚠️  Warning: Estimated FPS (${Math.round(perf.frameRateEstimate)}) below 100 FPS minimum`);
+            }
+            
+            // Log warnings
+            if (structureResult.warnings.length > 0 || semanticResult.semanticViolations.length > 0) {
+                const totalWarnings = structureResult.warnings.length + 
+                    semanticResult.semanticViolations.filter(v => v.severity !== 'critical').length;
+                console.warn(`⚠️  ${totalWarnings} warning(s) - see details above`);
+            }
+            
+            console.log('✓ Validation passed');
+            
+            // Generate code unless validate-only mode
+            if (!options.validateOnly) {
+                const cppCode = compileGraph(graph);
+                writeFileSync(resolve(output), cppCode);
+                console.log(`✓ Generated ${output}`);
+                console.log(`  ${graph.nodes.length} nodes compiled`);
+                console.log(`  ${cppCode.split('\n').length} lines of C++ generated`);
+            }
         } catch (error) {
-            console.error('Compilation failed:', error);
+            console.error('Validation/compilation failed:', error);
             process.exit(1);
         }
     });
@@ -685,24 +718,106 @@ program
 program
     .command('multi <input_dir> <output>')
     .description('Compile all graphs in directory to multi-pattern registry')
-    .action((inputDir: string, output: string) => {
+    .option('--validate-only', 'Run validation without generating code')
+    .option('--json-output <file>', 'Write validation results to JSON file')
+    .action(async (inputDir: string, output: string, options: {validateOnly?: boolean, jsonOutput?: string}) => {
         try {
-            console.log(`Compiling multi-pattern from ${inputDir} -> ${output}`);
+            console.log(`${options.validateOnly ? 'Validating' : 'Compiling'} patterns from ${inputDir}...`);
 
             // Load all graphs from directory
             const graphs = loadGraphsFromDirectory(resolve(inputDir));
+            
+            const allResults: any[] = [];
+            let hasCriticalIssues = false;
 
-            // Compile to multi-pattern C++
-            const cppCode = compileMultiPattern(graphs);
-
-            // Write output
-            writeFileSync(resolve(output), cppCode);
-
-            console.log(`✓ Generated ${output}`);
-            console.log(`  ${graphs.length} patterns compiled`);
-            console.log(`  ${cppCode.split('\n').length} lines of C++ generated`);
+            // Validate each graph
+            for (const graph of graphs) {
+                console.log(`\n  Validating: ${graph.name}`);
+                
+                // Run structure validation
+                const structureResult = validateGraph(graph);
+                
+                // Run semantic analysis
+                const semanticResult = analyzeGraphSemantics(graph);
+                
+                // Check for critical issues
+                const criticalIssues = structureResult.violations.filter(v => v.severity === 'critical');
+                
+                if (criticalIssues.length > 0) {
+                    console.error(`  ❌ ${graph.name}: ${criticalIssues.length} critical issue(s)`);
+                    console.error(generateValidationReport(graph.name || 'Unknown', structureResult));
+                    hasCriticalIssues = true;
+                    
+                    allResults.push({
+                        pattern: graph.name,
+                        passed: false,
+                        structure: structureResult,
+                        semantic: semanticResult
+                    });
+                    continue;
+                }
+                
+                // Log performance estimate
+                const perf = semanticResult.performanceEstimate;
+                console.log(`  Performance: ~${Math.round(perf.frameRateEstimate)} FPS (${perf.estimatedCyclesPerFrame} cycles/frame)`);
+                
+                // Check FPS threshold
+                if (perf.frameRateEstimate < 100) {
+                    console.warn(`  ⚠️  Warning: Estimated FPS (${Math.round(perf.frameRateEstimate)}) below 100 FPS minimum`);
+                }
+                
+                // Log warnings
+                if (structureResult.warnings.length > 0) {
+                    console.warn(`  ⚠️  ${structureResult.warnings.length} warning(s)`);
+                }
+                
+                if (semanticResult.semanticViolations.length > 0) {
+                    const majorIssues = semanticResult.semanticViolations.filter(v => v.severity === 'major');
+                    if (majorIssues.length > 0) {
+                        console.warn(`  ⚠️  ${majorIssues.length} major issue(s)`);
+                    }
+                }
+                
+                allResults.push({
+                    pattern: graph.name,
+                    passed: true,
+                    structure: structureResult,
+                    semantic: semanticResult
+                });
+            }
+            
+            // Stop if critical issues found
+            if (hasCriticalIssues) {
+                console.error('\n❌ Validation failed with critical issues. Fix errors before generating code.');
+                
+                if (options.jsonOutput) {
+                    writeFileSync(options.jsonOutput, JSON.stringify(allResults, null, 2));
+                    console.log(`Validation results written to ${options.jsonOutput}`);
+                }
+                
+                process.exit(1);
+            }
+            
+            console.log('\n✓ All patterns passed validation');
+            
+            // Write JSON output if requested
+            if (options.jsonOutput) {
+                writeFileSync(options.jsonOutput, JSON.stringify(allResults, null, 2));
+                console.log(`Validation results written to ${options.jsonOutput}`);
+            }
+            
+            // Generate code unless validate-only mode
+            if (!options.validateOnly) {
+                console.log(`\nGenerating C++ code...`);
+                const cppCode = compileMultiPattern(graphs);
+                writeFileSync(resolve(output), cppCode);
+                console.log(`✓ Generated ${output}`);
+                console.log(`  ${graphs.length} patterns compiled`);
+                console.log(`  ${cppCode.split('\n').length} lines of C++ generated`);
+            }
+            
         } catch (error) {
-            console.error('Multi-pattern compilation failed:', error);
+            console.error('Validation/compilation failed:', error);
             process.exit(1);
         }
     });

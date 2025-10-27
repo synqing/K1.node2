@@ -1,41 +1,68 @@
-name: Host Libgraph CI
-
+name: host-libgraph
 on:
   push:
-    paths:
-      - 'host/libgraph/**'
-      - '.github/workflows/host-libgraph.yml'
+    branches: [ main, master ]
   pull_request:
-    paths:
-      - 'host/libgraph/**'
-      - '.github/workflows/host-libgraph.yml'
+    branches: [ main, master ]
 
 jobs:
-  build-and-test:
+  libgraph:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup CMake
-        uses: lukka/get-cmake@v3.27.0
-
+      - uses: actions/checkout@v4
       - name: Configure
-        run: cmake -S host/libgraph -B host/libgraph/build -DCMAKE_BUILD_TYPE=Release
-
+        working-directory: host/libgraph
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build
-        run: cmake --build host/libgraph/build -j
-
-      - name: Run tests
-        run: ctest --test-dir host/libgraph/build --output-on-failure
-
-      - name: Run small bench
+        working-directory: host/libgraph
+        run: cmake --build build -j
+      - name: Test
+        working-directory: host/libgraph
+        run: ctest --test-dir build --output-on-failure
+      - name: Bench (topo + metrics)
+        working-directory: host/libgraph/build
         run: |
-          mkdir -p host/libgraph/build/metrics
-          ./host/libgraph/build/k1_graph_bench 10 20 --json-out host/libgraph/build/metrics/graph.metrics.json
-
-      - name: Upload metrics artifact
+          mkdir -p ../../tools/artifacts
+          ./k1_graph_bench --json ../../tools/artifacts/graph.csr.json \
+            --out ../../tools/artifacts/bench.topo.json \
+            --metrics ../../tools/artifacts/graph.metrics.json
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: libgraph-metrics
-          path: host/libgraph/build/metrics/graph.metrics.json
+          name: host-suite-artifacts
+          path: tools/artifacts
+
+  tools:
+    runs-on: ubuntu-latest
+    needs: libgraph
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download libgraph artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: host-suite-artifacts
+          path: tools/artifacts
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install deps
+        working-directory: tools
+        run: npm install
+      - name: Build tools
+        working-directory: tools
+        run: npm run build
+      - name: Run host agents (deps/estimate/graph)
+        working-directory: tools
+        run: |
+          npm run qa:deps -- --deps ./samples/deps.sample.json --changed Core,Audio --out ./artifacts
+          npm run qa:estimate -- --graph ./artifacts/graph.csr.json --kinds ./artifacts/graph-kinds.json --out ./artifacts
+          npm run qa:graph -- --graph ./artifacts/graph.csr.json --src 0 --out ./artifacts
+      - name: Gates
+        working-directory: tools
+        run: npm run qa:gates -- ./artifacts
+      - name: Upload combined artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-artifacts
+          path: tools/artifacts

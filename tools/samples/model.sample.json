@@ -1,0 +1,9 @@
+{
+  "name": "K1 Cost Model",
+  "version": 1,
+  "constraints": [
+    { "id": "no-raw-audio", "severity": "error" },
+    { "id": "no-global-mutable", "severity": "warn" }
+  ],
+  "weights": { "edge": 0.02, "node": 0.5 }
+}

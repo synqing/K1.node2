@@ -371,6 +371,13 @@ function BetweennessMetricsSection({ betw, error, onFileSelected }: {
             <span style={{ fontFamily: 'monospace' }}>{betw.betweenness_normalization_scheme ?? 'n/a'}</span>
             <SchemeTooltip scheme={betw.betweenness_normalization_scheme} />
           </div>
+          {/* Normalization advisory (adapts to domain) */}
+          <NormalizationAdvice
+            domain={betw.betweenness_domain}
+            layers={betw.layers}
+            scheme={betw.betweenness_normalization_scheme}
+            topK={betw.betweenness_top_k}
+          />
           <div style={{ marginBottom: 6 }}>
             <span style={panelStyles.label}>top_k</span>{' '}
             <span style={{ fontFamily: 'monospace' }}>{betw.betweenness_top_k ?? 'n/a'}</span>
@@ -497,6 +504,63 @@ function SchemeTooltip({ scheme }: { scheme: string | undefined }) {
         }}>{text}</span>
       )}
     </span>
+  );
+}
+
+function NormalizationAdvice({ domain, layers, scheme, topK }: { domain: string | undefined; layers?: number; scheme?: string; topK?: number }) {
+  const text = useMemo(() => {
+    if (!domain) return '';
+    const layerAware = typeof layers === 'number' && layers > 0;
+    const banded = (
+      domain === 'even' || domain === 'odd' || domain === 'middle' ||
+      domain.startsWith('layers:') || domain.startsWith('layer_rank:') ||
+      domain.startsWith('layer_quantile:') || domain.startsWith('quantile:') ||
+      domain.startsWith('layer:') || domain === 'layer0'
+    );
+
+    const topFocus = typeof topK === 'number' && topK > 0;
+    const topSuffix = topFocus
+      ? (scheme === 'none' ? ' • top-k focus — raw magnitudes preserved.' : ' • top-k focus — prefer none for absolute magnitudes.')
+      : '';
+
+    if (domain === 'all') {
+      const ok = scheme === 'graph_minmax' || scheme === 'zscore';
+      const base = ok
+        ? 'Advisory: global domain — current scheme is appropriate.'
+        : 'Advisory: global domain — prefer graph_minmax or zscore.';
+      return base + topSuffix;
+    }
+
+    if (banded) {
+      const req = layerAware ? '' : ' (requires layered DAG)';
+      const ok = scheme === 'layer_minmax';
+      const base = ok
+        ? `Advisory: banded selection — layer_minmax${req} is appropriate.`
+        : `Advisory: banded selection — prefer layer_minmax${req}.`;
+      return base + topSuffix;
+    }
+
+    if (domain.startsWith('custom:')) {
+      const ok = scheme === 'domain_minmax' || (layerAware && scheme === 'layer_minmax');
+      const base = ok
+        ? 'Advisory: custom selection — current scheme is reasonable.'
+        : 'Advisory: custom selection — start with domain_minmax; use layer_minmax if multi-layer.';
+      return base + topSuffix;
+    }
+
+    // Fallback guidance
+    const ok = scheme === 'domain_minmax' || scheme === 'graph_minmax' || (layerAware && scheme === 'layer_minmax');
+    const base = ok
+      ? 'Advisory: domain — current scheme is reasonable.'
+      : 'Advisory: domain — use domain_minmax for small domains; graph_minmax for global; layer_minmax for layered.';
+    return base + topSuffix;
+  }, [domain, layers, scheme]);
+
+  if (!text) return null;
+  return (
+    <div style={{ fontSize: 11, color: 'var(--k1-text-dim)', marginTop: -2 }}>
+      {text}
+    </div>
   );
 }
 
@@ -676,111 +740,153 @@ function SnapshotCompareSection({ a, b }: { a: BetweennessMetrics | null; b: Bet
 
 function DomainTooltip({ domain, layers }: { domain: string | undefined; layers?: number }) {
   const [open, setOpen] = useState(false);
+  // Provide normalization cross-hints tailored to the domain selector
+  function normHints(d: string, L?: number): string[] {
+    const layerAware = typeof L === 'number' && L > 0;
+    const banded = (
+      d === 'even' || d === 'odd' || d === 'middle' ||
+      d.startsWith('layers:') || d.startsWith('layer_rank:') ||
+      d.startsWith('layer_quantile:') || d.startsWith('quantile:') ||
+      d.startsWith('layer:') || d === 'layer0'
+    );
+
+    if (d === 'all') {
+      return [
+        'Normalization hints: prefer `graph_minmax` or `zscore` for global comparability.',
+        'Note: `domain_minmax` ≈ `graph_minmax` when domain is `all`.'
+      ];
+    }
+
+    if (banded) {
+      const requiresLayers = layerAware ? '' : ' (requires layered DAG)';
+      return [
+        `Normalization hints: prefer \`layer_minmax\`${requiresLayers} to compare across layers fairly.`,
+        'Caveat: `domain_minmax` may overweight high-variance layers within the band.',
+        'Caveat: `graph_minmax` can mask inter-layer differences for banded selections.',
+        'Tip: use `none` to inspect raw scores; use `zscore` for domain-level outlier detection.'
+      ];
+    }
+
+    if (d.startsWith('custom:')) {
+      return [
+        'Normalization hints: start with `domain_minmax` to scale within selected nodes.',
+        'If nodes span many layers, `layer_minmax` improves cross-layer comparability (layered DAG only).'
+      ];
+    }
+
+    // Fallback guidance
+    return [
+      'Normalization hints: use `domain_minmax` for small domains; `graph_minmax` for global.',
+      'When layers are involved, prefer `layer_minmax`; `zscore` helps spot outliers within domain.'
+    ];
+  }
+
   const text = useMemo(() => {
     if (!domain) return '—';
     const Linfo = typeof layers === 'number' ? ` (L=${layers})` : '';
     const common = `Requires layered DAG for layer-dependent selectors${Linfo}.`;
+    const addHints = (d: string, lines: string[]) => [...lines, ...normHints(d, layers)];
 
     if (domain === 'all') {
-      return [
+      return addHints(domain, [
         'all — All nodes in the graph.',
         'Example: --betweenness-domain all',
         'Notes: fastest, no layer constraints.'
-      ].join('\n');
+      ]).join('\n');
     }
     if (domain === 'layer0') {
-      return [
+      return addHints(domain, [
         'layer0 — Only nodes from layer 0.',
         'Example: --betweenness-domain layer0',
         `Edge cases: ${common}`
-      ].join('\n');
+      ]).join('\n');
     }
     if (domain.startsWith('layer:')) {
-      return [
+      return addHints(domain, [
         'layer:<i> — Nodes from a specific layer index (0-based).',
         'Example: --betweenness-domain layer:2',
         'Edge cases: out-of-range indices are ignored/clipped; prefer 0..L-1.',
         common
-      ].join('\n');
+      ]).join('\n');
     }
     if (domain.startsWith('layers:') && domain.includes(':step:')) {
-      return [
+      return addHints(domain, [
         'layers:<a-b>:step:<k> — Inclusive range sampled every k layers.',
         'Example: --betweenness-domain layers:1-7:step:2',
         'Edge cases: k>=1 integer; a and b order normalized; endpoints inclusive.',
         common
-      ].join('\n');
+      ]).join('\n');
     }
     if (domain.startsWith('layers:')) {
-      return [
+      return addHints(domain, [
         'layers:<a-b> — Inclusive layer range.',
         'Example: --betweenness-domain layers:2-4',
         'Edge cases: a>b is normalized to b..a; endpoints inclusive.',
         common
-      ].join('\n');
+      ]).join('\n');
     }
     if (domain === 'even') {
-      return [
+      return addHints(domain, [
         'even — Nodes from even-indexed layers (0-based).',
         'Example: --betweenness-domain even',
         common
-      ].join('\n');
+      ]).join('\n');
     }
     if (domain === 'odd') {
-      return [
+      return addHints(domain, [
         'odd — Nodes from odd-indexed layers (0-based).',
         'Example: --betweenness-domain odd',
         common
-      ].join('\n');
+      ]).join('\n');
     }
     if (domain === 'middle') {
-      return [
+      return addHints(domain, [
         'middle — Middle layer (odd L) or the two middle layers (even L).',
         'Example: --betweenness-domain middle',
         'Edge cases: L<2 → selects layer 0.',
         common
-      ].join('\n');
+      ]).join('\n');
     }
     if (domain.startsWith('quantile:') && domain.includes(':step:')) {
-      return [
+      return addHints(domain, [
         'quantile:<q1-q2>:step:<k> — Quantile band over [0,1], sampled every k.',
         'Example: --betweenness-domain quantile:0.25-0.75:step:2',
         'Edge cases: q1,q2 clipped to [0,1]; endpoints inclusive; uniform mapping across layers.',
         common
-      ].join('\n');
+      ]).join('\n');
     }
     if (domain.startsWith('quantile:')) {
-      return [
+      return addHints(domain, [
         'quantile:<q1-q2> — Layers by quantile band over [0,1].',
         'Example: --betweenness-domain quantile:0.25-0.75',
         'Edge cases: q1,q2 clipped to [0,1]; endpoints inclusive; uniform mapping across layers.',
         common
-      ].join('\n');
+      ]).join('\n');
     }
     if (domain.startsWith('layer_quantile:')) {
-      return [
+      return addHints(domain, [
         'layer_quantile:<metric>:<q1-q2> — Select layers by the metric’s quantile.',
         'Examples: layer_quantile:outdeg:0.0-0.0, layer_quantile:indeg_median:0.25-0.75',
         'Edge cases: indices are metric-derived; band UI shows unknown indices.',
         common
-      ].join('\n');
+      ]).join('\n');
     }
     if (domain.startsWith('layer_rank:')) {
-      return [
+      return addHints(domain, [
         'layer_rank:<metric>:<top|bottom>:<k> — Top/bottom-k layers by metric.',
         'Example: layer_rank:outdeg:top:2',
         'Edge cases: ties resolved stably; k clipped to [1..L]; indices metric-derived; band UI shows unknown indices.',
         common
-      ].join('\n');
+      ]).join('\n');
     }
     if (domain.startsWith('custom:')) {
-      return [
+      return addHints(domain, [
         'custom:<path> — Nodes listed in an external JSON file.',
         'Example: custom:metrics/custom.nodes.json (array of node ids)',
         'Edge cases: file must be accessible by the CLI and well-formed.'
-      ].join('\n');
+      ]).join('\n');
     }
-    return ['Domain selector', common].join('\n');
+    return addHints(domain, ['Domain selector', common]).join('\n');
   }, [domain, layers]);
 
   return (

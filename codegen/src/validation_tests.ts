@@ -349,6 +349,106 @@ export function testSignalChainConnections(graph: Graph): Violation[] {
     return violations;
 }
 
+/**
+ * Test: Detect circular dependencies in graph
+ * CRITICAL: Circular dependencies cause infinite loops during code generation
+ */
+export function testCircularDependencies(graph: Graph): Violation[] {
+    const violations: Violation[] = [];
+    const visited = new Set<string>();
+    const recursionStack = new Set<string>();
+    
+    // Build adjacency list from wires
+    const adjacency = new Map<string, string[]>();
+    graph.wires.forEach(wire => {
+        if (!adjacency.has(wire.from)) {
+            adjacency.set(wire.from, []);
+        }
+        adjacency.get(wire.from)!.push(wire.to);
+    });
+    
+    // DFS to detect cycles
+    function dfs(nodeId: string, path: string[]): boolean {
+        if (recursionStack.has(nodeId)) {
+            // Found a cycle - build the cycle path
+            const cycleStart = path.indexOf(nodeId);
+            const cyclePath = [...path.slice(cycleStart), nodeId].join(' → ');
+            
+            violations.push({
+                type: 'node_compatibility',
+                severity: 'critical',
+                description: `Circular dependency detected: ${cyclePath}`,
+                location: 'Graph structure',
+                fix_guidance: 'Remove circular wire connections to create acyclic graph. Break the cycle by removing one of the wires in the path.'
+            });
+            return true;
+        }
+        
+        if (visited.has(nodeId)) {
+            return false;
+        }
+        
+        visited.add(nodeId);
+        recursionStack.add(nodeId);
+        
+        // Visit all neighbors
+        const neighbors = adjacency.get(nodeId) || [];
+        for (const neighbor of neighbors) {
+            if (dfs(neighbor, [...path, nodeId])) {
+                return true;
+            }
+        }
+        
+        recursionStack.delete(nodeId);
+        return false;
+    }
+    
+    // Check each node as potential cycle start
+    for (const node of graph.nodes) {
+        if (!visited.has(node.id)) {
+            dfs(node.id, []);
+        }
+    }
+    
+    return violations;
+}
+
+/**
+ * Test: All wires connect to existing nodes
+ * CRITICAL: Invalid wire connections cause code generation failures
+ */
+export function testWireConnections(graph: Graph): Violation[] {
+    const violations: Violation[] = [];
+    
+    // Build set of valid node IDs
+    const nodeIds = new Set(graph.nodes.map(n => n.id));
+    
+    // Check each wire
+    graph.wires.forEach((wire, index) => {
+        if (!nodeIds.has(wire.from)) {
+            violations.push({
+                type: 'node_compatibility',
+                severity: 'critical',
+                description: `Wire ${index} references non-existent source node "${wire.from}"`,
+                location: `Wire: ${wire.from} → ${wire.to}`,
+                fix_guidance: `Remove wire or create node with id "${wire.from}"`
+            });
+        }
+        
+        if (!nodeIds.has(wire.to)) {
+            violations.push({
+                type: 'node_compatibility',
+                severity: 'critical',
+                description: `Wire ${index} references non-existent destination node "${wire.to}"`,
+                location: `Wire: ${wire.from} → ${wire.to}`,
+                fix_guidance: `Remove wire or create node with id "${wire.to}"`
+            });
+        }
+    });
+    
+    return violations;
+}
+
 // ============================================================================
 // COMPREHENSIVE VALIDATION RUNNER
 // ============================================================================
@@ -378,6 +478,10 @@ export function validateGraph(graph: Graph): ValidationResult {
     // Node compatibility tests
     violations.push(...testNodeTypeCompatibility(graph));
     violations.push(...testSignalChainConnections(graph));
+    
+    // Graph structure tests
+    violations.push(...testCircularDependencies(graph));
+    violations.push(...testWireConnections(graph));
     
     // Determine if validation passed (no critical or major violations)
     const criticalViolations = violations.filter(v => v.severity === 'critical');

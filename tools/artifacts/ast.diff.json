@@ -1,0 +1,9 @@
+{
+  "invariants": {
+    "loop_bounds": "unchanged",
+    "macro_calls": {
+      "K1_DEBUG": 5
+    },
+    "node_count_delta": 0
+  }
+}

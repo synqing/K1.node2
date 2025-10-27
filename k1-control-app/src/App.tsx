@@ -15,8 +15,9 @@ import { K1Provider } from './providers/K1Provider';
 import { K1StatusTest } from './components/K1StatusTest';
 import { DebugHUD } from './components/debug/DebugHUD';
 import { DevDebugPanel } from './components/debug/DevDebugPanel';
+import { QaView } from './components/views/QaView';
 
-type ViewType = 'control' | 'profiling' | 'terminal' | 'debug';
+type ViewType = 'control' | 'profiling' | 'terminal' | 'debug' | 'qa';
 
 export default function App() {
   const [activeView, setActiveView] = useState<ViewType>('control');
@@ -150,6 +151,9 @@ export default function App() {
                   isConnected={isConnected}
                   k1Client={k1Client}
                 />
+              )}
+              {activeView === 'qa' && (
+                <QaView />
               )}
             </main>
           </div>

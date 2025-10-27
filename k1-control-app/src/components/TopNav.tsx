@@ -9,8 +9,9 @@ import { useK1Actions, useK1State } from '../providers/K1Provider'
 import { isAbortLoggingEnabled, setAbortLoggingEnabled } from '../utils/error-utils'
 import { triggerStorageEvent } from '../utils/persistence'
 import { isActivationKey } from '../utils/accessibility'
+import { artifactsBase, fetchJson } from '../services/artifacts'
 
- type ViewType = 'control' | 'profiling' | 'terminal' | 'debug';
+ type ViewType = 'control' | 'profiling' | 'terminal' | 'debug' | 'qa';
  
  interface TopNavProps {
    activeView: ViewType;
@@ -28,6 +29,9 @@ import { isActivationKey } from '../utils/accessibility'
    const k1State = useK1State()
    const [abortOn, setAbortOn] = useState<boolean>(isAbortLoggingEnabled())
    const [overlayOn, setOverlayOn] = useState<boolean>(typeof localStorage !== 'undefined' && ((localStorage.getItem('k1.hmrOverlay') === '1') || (localStorage.getItem('k1.hmrOverlay') === 'true')))
+   // Gates badge state
+   const [gatesOk, setGatesOk] = useState<boolean | null>(null)
+   const [gatesCounts, setGatesCounts] = useState<{ failures: number; notes: number } | null>(null)
    useEffect(() => {
      const updateFromStorage = () => {
        try {
@@ -41,6 +45,27 @@ import { isActivationKey } from '../utils/accessibility'
        window.removeEventListener('storage', updateFromStorage)
      }
    }, [])
+   // Fetch compact gates status for QA tab badge
+   useEffect(() => {
+     let cancelled = false
+     const load = async () => {
+       const data = await fetchJson<any>('gates.status.json')
+       if (cancelled) return
+       if (data) {
+         setGatesOk(!!data.ok)
+         const failures = Array.isArray(data.failures) ? data.failures.length : (typeof data.failureCount === 'number' ? data.failureCount : 0)
+         const notes = Array.isArray(data.notes) ? data.notes.length : (typeof data.noteCount === 'number' ? data.noteCount : 0)
+         setGatesCounts({ failures, notes })
+       } else {
+         setGatesOk(null)
+         setGatesCounts(null)
+       }
+     }
+     load()
+     const onQaRefreshed = () => { load() }
+     window.addEventListener('k1:qa-refreshed', onQaRefreshed)
+     return () => { cancelled = true }
+   }, [artifactsBase])
    // Sync abort logging and HMR overlay states
    useEffect(() => {
      const onStorage = (e: StorageEvent) => {
@@ -169,8 +194,8 @@ import { isActivationKey } from '../utils/accessibility'
          >
            Terminal
          </button>
-         <button
-           onClick={() => onViewChange('debug')}
+        <button
+          onClick={() => onViewChange('debug')}
            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
              activeView === 'debug'
                ? 'bg-[var(--k1-panel)] text-[var(--k1-text)]'
@@ -178,9 +203,28 @@ import { isActivationKey } from '../utils/accessibility'
            }`}
          >
            <Bug className="w-4 h-4" />
-           Debug
-         </button>
-       </nav>
+          Debug
+        </button>
+        <button
+          onClick={() => onViewChange('qa')}
+          className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+            activeView === 'qa'
+              ? 'bg-[var(--k1-panel)] text-[var(--k1-text)]'
+              : 'text-[var(--k1-text-dim)] hover:text-[var(--k1-text)] hover:bg-[var(--k1-panel)]/50'
+          }`}
+          title={gatesOk === null ? 'QA' : `QA • Gates: ${gatesOk ? 'Passed' : 'Failed'}${gatesCounts ? ` • ${gatesCounts.failures} failures, ${gatesCounts.notes} notes` : ''}`}
+        >
+          <span>QA</span>
+          {gatesOk !== null && gatesCounts && (
+            <span
+              className={`inline-flex items-center justify-center h-4 px-1 rounded-full font-[family-name:var(--k1-code-family)] text-[10px] ${gatesOk ? 'bg-[var(--k1-success)] text-[var(--k1-bg)]' : 'bg-[var(--k1-error)] text-[var(--k1-bg)]'}`}
+              aria-label={`Gates ${gatesOk ? 'Passed' : 'Failed'} (${gatesCounts.failures} failures)`}
+            >
+              {gatesCounts.failures}
+            </span>
+          )}
+        </button>
+      </nav>
  
        {/* Actions */}
        <div className="flex items-center gap-2">

@@ -1,0 +1,17 @@
+[
+  {
+    "startNs": "0",
+    "endNs": "1000000",
+    "label": "init"
+  },
+  {
+    "startNs": "1000000",
+    "endNs": "6000000",
+    "label": "render"
+  },
+  {
+    "startNs": "6000000",
+    "endNs": "7000000",
+    "label": "teardown"
+  }
+]

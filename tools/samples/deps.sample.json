@@ -1,0 +1,9 @@
+{
+  "edges": [
+    ["Core","Graph"],
+    ["Graph","Audio"],
+    ["Graph","Visual"],
+    ["Audio","Mixer"],
+    ["Visual","Renderer"]
+  ]
+}

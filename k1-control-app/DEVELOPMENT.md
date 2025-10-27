@@ -242,6 +242,38 @@ import { getRealtimeMetrics } from './utils/realtime-metrics';
 const metrics = getRealtimeMetrics();
 ```
 
+
+## QA Artifacts Configuration
+
+The QA tab reads analysis outputs (JSON) produced by the host QA agents.
+
+- Development (default):
+  - The dev server serves `/artifacts` from `../tools/artifacts` via middleware.
+  - `.env.development` sets `VITE_ARTIFACT_BASE=/artifacts`.
+  - Run host QA agents to populate files:
+    - `cd tools && npm install && npm run build`
+    - `npm run qa:graph -- --graph ./artifacts/graph.csr.json --src 0 --out ./artifacts`
+    - `npm run qa:estimate -- --graph ./artifacts/graph.csr.json --kinds ./artifacts/graph-kinds.json --out ./artifacts`
+    - `npm run qa:gates -- --in ./artifacts --out ./artifacts`
+
+- Production:
+  - Set `VITE_ARTIFACT_BASE` to a reachable URL hosting artifacts (e.g., bucket or Pages):
+    - In CI: export `VITE_ARTIFACT_BASE=https://example.com/k1/artifacts/<build-id>/` before `npm run build`.
+    - Locally: edit `k1-control-app/.env.production` and set `VITE_ARTIFACT_BASE`.
+  - The QA tab fetches from `${VITE_ARTIFACT_BASE}/...`.
+
+### Expected Files
+The QA tab expects the following JSONs under the artifact base:
+- `graph.metrics.json`
+- `bench.topo.json`
+- `graph.csr.json`
+- `graph-kinds.json`
+- `graph.estimate.json`
+- `graph.impact.json`
+- `graph.validation.json`
+- `gates.status.json`
+
+If any are missing, the QA view shows an empty/error state per card and lets you refresh.
 ### Debug HUD Toggles
 
 The Debug HUD (Alt+D) exposes quick dev-only toggles:

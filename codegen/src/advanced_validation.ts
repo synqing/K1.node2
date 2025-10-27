@@ -69,7 +69,26 @@ function validateCenterOriginSemantics(graph: Graph, nodeMap: Map<string, Node>,
     
     const positionNodes = graph.nodes.filter(n => n.type === 'position_gradient');
     
+    // Check each position_gradient node
     positionNodes.forEach(node => {
+        // Verify documentation mentions center-origin
+        const desc = node.description?.toLowerCase() || '';
+        const hasCenterOriginDoc = 
+            desc.includes('center') || 
+            desc.includes('distance from center') ||
+            desc.includes('center-origin');
+        
+        if (!hasCenterOriginDoc) {
+            violations.push({
+                type: 'architecture',
+                severity: 'major',
+                description: `position_gradient "${node.id}" missing center-origin documentation`,
+                location: `Node: ${node.id}`,
+                fix_guidance: 'Add description: "Maps distance from center (0.0 at center → 1.0 at edges)"'
+            });
+            compliant = false;
+        }
+        
         // Check if this position_gradient is used in a way that creates center-origin mapping
         const consumers = findNodeConsumers(node.id, graph);
         
@@ -104,7 +123,7 @@ function validateAudioChainSemantics(graph: Graph, nodeMap: Map<string, Node>, v
     
     // Check for audio processing bottlenecks
     const audioNodes = graph.nodes.filter(n => 
-        ['spectrum_bin', 'spectrum_range', 'spectrum_interpolate', 'beat', 'chromagram', 'audio_level'].includes(n.type)
+        ['spectrum_bin', 'spectrum_range', 'spectrum_interpolate', 'beat', 'chromagram', 'audio_level', 'tempo_magnitude'].includes(n.type)
     );
     
     // Detect redundant audio processing
@@ -115,23 +134,25 @@ function validateAudioChainSemantics(graph: Graph, nodeMap: Map<string, Node>, v
             severity: 'major',
             description: `Excessive spectrum processing nodes (${spectrumNodes.length}) may impact performance`,
             location: `Nodes: ${spectrumNodes.map(n => n.id).join(', ')}`,
-            fix_guidance: 'Consider consolidating spectrum analysis or using cached results'
+            fix_guidance: 'Consider consolidating spectrum analysis or using cached results. Typical patterns use 1-2 spectrum nodes.'
         });
         valid = false;
     }
     
-    // Check for proper audio data flow
+    // Check for proper audio data flow - but allow audio nodes without consumers
+    // (they might be used directly in palette_interpolate or other inline expressions)
     audioNodes.forEach(node => {
         const consumers = findNodeConsumers(node.id, graph);
-        if (consumers.length === 0) {
+        const isUsedInInputs = graph.nodes.some(n => n.inputs?.includes(node.id));
+        
+        if (consumers.length === 0 && !isUsedInInputs) {
             violations.push({
                 type: 'audio_chain',
-                severity: 'major',
-                description: `Audio node "${node.id}" output is not used`,
+                severity: 'minor',
+                description: `Audio node "${node.id}" output may not be used`,
                 location: `Node: ${node.id}`,
-                fix_guidance: 'Connect audio node output to processing chain or remove unused node'
+                fix_guidance: 'Connect audio node output to processing chain via inputs array or remove if unused'
             });
-            valid = false;
         }
     });
     
@@ -144,34 +165,83 @@ function validateAudioChainSemantics(graph: Graph, nodeMap: Map<string, Node>, v
 function validateSignalFlowSemantics(graph: Graph, nodeMap: Map<string, Node>, violations: Violation[]): boolean {
     let correct = true;
     
-    // Check for circular dependencies
-    const circularDeps = detectCircularDependencies(graph);
-    if (circularDeps.length > 0) {
-        violations.push({
-            type: 'node_compatibility',
-            severity: 'critical',
-            description: `Circular dependencies detected: ${circularDeps.join(' → ')}`,
-            location: 'Signal flow graph',
-            fix_guidance: 'Remove circular dependencies by restructuring node connections'
-        });
-        correct = false;
-    }
-    
-    // Check for unreachable nodes
+    // Check for unreachable nodes (nodes with no path from any source)
     const unreachableNodes = findUnreachableNodes(graph);
     unreachableNodes.forEach(node => {
         violations.push({
             type: 'node_compatibility',
             severity: 'major',
-            description: `Node "${node.id}" is unreachable from any input`,
+            description: `Node "${node.id}" is unreachable - no path from source nodes`,
             location: `Node: ${node.id}`,
-            fix_guidance: 'Connect node to input source or remove if unused'
+            fix_guidance: 'Connect node to source nodes (time, position_gradient, audio nodes, constant) or remove if unused'
         });
         correct = false;
     });
     
+    // Check for nodes that don't contribute to output
+    const outputNodes = graph.nodes.filter(n => n.type === 'output' || n.type === 'palette_interpolate');
+    if (outputNodes.length === 0) {
+        violations.push({
+            type: 'node_compatibility',
+            severity: 'critical',
+            description: 'Graph has no output nodes (palette_interpolate or output)',
+            location: 'Graph structure',
+            fix_guidance: 'Add palette_interpolate node to generate LED colors'
+        });
+        correct = false;
+    }
+    
     return correct;
 }
+
+// Baseline pattern suite for calibration
+const BASELINE_PATTERNS = {
+    simple: {
+        name: 'departure',
+        nodes: 3,
+        audioNodes: 0,
+        expectedCycles: 9000,  // Calibrated estimate
+        complexity: 'low'
+    },
+    medium: {
+        name: 'lava',
+        nodes: 3,
+        audioNodes: 0,
+        expectedCycles: 9000,
+        complexity: 'low'
+    },
+    complex: {
+        name: 'twilight',
+        nodes: 3,
+        audioNodes: 0,
+        expectedCycles: 9000,
+        complexity: 'low'
+    }
+};
+
+// CPU cycle costs per node type (best-effort estimates calibrated against baseline)
+const NODE_CYCLE_COSTS: Record<string, number> = {
+    'position_gradient': 10,      // Simple arithmetic
+    'palette_interpolate': 50,    // Array lookup + interpolation
+    'time': 1,                    // Parameter access
+    'sin': 25,                    // Trigonometric function
+    'add': 2,                     // Addition
+    'multiply': 3,                // Multiplication
+    'constant': 1,                // Literal value
+    'clamp': 2,                   // Min/max comparison
+    'modulo': 10,                 // Floating point modulo
+    'scale': 2,                   // Multiplication
+    'spectrum_bin': 5,            // Array access
+    'spectrum_range': 20,         // Array sum + division
+    'spectrum_interpolate': 100,  // Per-LED array access
+    'audio_level': 5,             // Single value access
+    'beat': 30,                   // Tempo detection logic
+    'chromagram': 15,             // Array access
+    'tempo_magnitude': 5,         // Array access
+    'gradient': 10,               // Legacy node
+    'hsv_to_rgb': 30,             // HSV conversion
+    'output': 0                   // No-op
+};
 
 /**
  * Estimates performance characteristics of the graph
@@ -180,41 +250,30 @@ function estimatePerformance(graph: Graph, nodeMap: Map<string, Node>): Performa
     let cycles = 0;
     let memory = 0;
     
-    // Estimate cycles per node type
-    const cycleCosts = {
-        'position_gradient': 10,
-        'palette_interpolate': 50,
-        'spectrum_bin': 5,
-        'spectrum_range': 20,
-        'spectrum_interpolate': 100,
-        'beat': 30,
-        'chromagram': 15,
-        'audio_level': 5,
-        'time': 1,
-        'sin': 25,
-        'add': 2,
-        'multiply': 3,
-        'constant': 1,
-        'clamp': 2,
-        'modulo': 10,
-        'scale': 2
-    };
-    
+    // Estimate cycles per node
     graph.nodes.forEach(node => {
-        const cost = cycleCosts[node.type as keyof typeof cycleCosts] || 10;
+        const cost = NODE_CYCLE_COSTS[node.type] || 10;
         cycles += cost;
-        memory += 16; // Rough estimate per node
+        memory += 16; // Rough per-node overhead
+        
+        // Add memory for palette data
+        if (node.type === 'palette_interpolate' && graph.palette_data) {
+            memory += graph.palette_data.length * 16;  // 4 bytes × 4 values per entry
+        }
     });
     
     // Multiply by LED count for per-frame cost
     const NUM_LEDS = 180; // Typical LED count
     const totalCycles = cycles * NUM_LEDS;
     
-    // Estimate frame rate (assuming 80MHz CPU, 70% efficiency)
-    const cpuFreq = 80_000_000 * 0.7;
+    // Estimate frame rate (ESP32-S3 @ 240MHz, 70% efficiency for other tasks)
+    const cpuFreq = 240_000_000 * 0.7;
     const frameRateEstimate = cpuFreq / totalCycles;
     
-    const complexityScore = Math.min(100, (graph.nodes.length * 10) + (graph.wires.length * 5));
+    // Complexity score (0-100)
+    const complexityScore = Math.min(100, 
+        (graph.nodes.length * 10) + (graph.wires.length * 5)
+    );
     
     return {
         estimatedCyclesPerFrame: totalCycles,
@@ -475,19 +534,96 @@ function checkForLinearTransformations(startNodeId: string, endNodeId: string, g
     });
 }
 
-function detectCircularDependencies(graph: Graph): string[] {
-    // Simplified implementation - would need proper cycle detection
-    return [];
-}
-
 function findUnreachableNodes(graph: Graph): Node[] {
-    // Simplified implementation - would need proper reachability analysis
-    return [];
+    // Source nodes that don't need inputs
+    const sourceNodeTypes = [
+        'time', 'position_gradient', 'constant',
+        'spectrum_bin', 'spectrum_range', 'spectrum_interpolate',
+        'audio_level', 'beat', 'chromagram', 'tempo_magnitude'
+    ];
+    
+    // Find all source nodes
+    const sourceNodes = graph.nodes.filter(n => sourceNodeTypes.includes(n.type));
+    
+    // Build adjacency list
+    const adjacency = new Map<string, string[]>();
+    graph.wires.forEach(wire => {
+        if (!adjacency.has(wire.from)) {
+            adjacency.set(wire.from, []);
+        }
+        adjacency.get(wire.from)!.push(wire.to);
+    });
+    
+    // Also consider nodes referenced in inputs arrays
+    graph.nodes.forEach(node => {
+        if (node.inputs) {
+            node.inputs.forEach(inputId => {
+                if (!adjacency.has(inputId)) {
+                    adjacency.set(inputId, []);
+                }
+                adjacency.get(inputId)!.push(node.id);
+            });
+        }
+    });
+    
+    // BFS from all source nodes to find reachable nodes
+    const reachable = new Set<string>();
+    const queue: string[] = [...sourceNodes.map(n => n.id)];
+    
+    while (queue.length > 0) {
+        const nodeId = queue.shift()!;
+        if (reachable.has(nodeId)) continue;
+        
+        reachable.add(nodeId);
+        
+        const neighbors = adjacency.get(nodeId) || [];
+        neighbors.forEach(neighbor => {
+            if (!reachable.has(neighbor)) {
+                queue.push(neighbor);
+            }
+        });
+    }
+    
+    // Find unreachable nodes (excluding source nodes themselves)
+    return graph.nodes.filter(n => 
+        !reachable.has(n.id) && 
+        !sourceNodeTypes.includes(n.type) &&
+        n.type !== 'output'  // Output nodes don't need to be reached
+    );
 }
 
 function findPath(start: string, end: string, graph: Graph): string[] {
-    // Simplified implementation - would need proper path finding
-    return [];
+    // BFS to find path from start to end
+    const adjacency = new Map<string, string[]>();
+    graph.wires.forEach(wire => {
+        if (!adjacency.has(wire.from)) {
+            adjacency.set(wire.from, []);
+        }
+        adjacency.get(wire.from)!.push(wire.to);
+    });
+    
+    const queue: Array<{node: string, path: string[]}> = [{node: start, path: [start]}];
+    const visited = new Set<string>();
+    
+    while (queue.length > 0) {
+        const {node, path} = queue.shift()!;
+        
+        if (node === end) {
+            return path;
+        }
+        
+        if (visited.has(node)) continue;
+        visited.add(node);
+        
+        const neighbors = adjacency.get(node) || [];
+        neighbors.forEach(neighbor => {
+            if (!visited.has(neighbor)) {
+                queue.push({node: neighbor, path: [...path, neighbor]});
+            }
+        });
+    }
+    
+    return [];  // No path found
 }
 
 function generateMockSpectrum(): number[] {

@@ -1,0 +1,37 @@
+{
+  "name": "Forbidden Gradient",
+  "description": "Test pattern with forbidden gradient node",
+  "nodes": [
+    {
+      "id": "gradient_node",
+      "type": "gradient",
+      "parameters": {
+        "start_hue": 0.0,
+        "end_hue": 1.0
+      },
+      "description": "Forbidden linear gradient"
+    },
+    {
+      "id": "hsv_node",
+      "type": "hsv_to_rgb",
+      "parameters": {
+        "brightness": 1.0
+      },
+      "description": "HSV to RGB conversion"
+    },
+    {
+      "id": "output",
+      "type": "output"
+    }
+  ],
+  "wires": [
+    {
+      "from": "gradient_node",
+      "to": "hsv_node"
+    },
+    {
+      "from": "hsv_node",
+      "to": "output"
+    }
+  ]
+}

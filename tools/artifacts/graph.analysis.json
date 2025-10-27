@@ -1,0 +1,19 @@
+{
+  "bfs": {
+    "src": 0,
+    "reachable": 4
+  },
+  "dfs": {
+    "status": "ok"
+  },
+  "dijkstra": {
+    "status": "ok"
+  },
+  "topo": {
+    "status": "ok",
+    "isDag": true
+  },
+  "cycle": {
+    "detected": false
+  }
+}

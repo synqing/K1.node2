@@ -1,0 +1,8 @@
+{
+  "N": 4,
+  "M": 4,
+  "minOut": 0,
+  "maxOut": 2,
+  "avgOut": 1,
+  "isDag": true
+}

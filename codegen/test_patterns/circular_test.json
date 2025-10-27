@@ -1,0 +1,55 @@
+{
+  "name": "Circular Test",
+  "description": "Test pattern with circular dependency",
+  "palette": "test",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [255, 255, 255, 255]
+  ],
+  "nodes": [
+    {
+      "id": "time_node",
+      "type": "time",
+      "description": "Time input"
+    },
+    {
+      "id": "sin_node",
+      "type": "sin",
+      "inputs": ["multiply_node"],
+      "description": "Sine wave"
+    },
+    {
+      "id": "multiply_node",
+      "type": "multiply",
+      "inputs": ["time_node", "sin_node"],
+      "description": "Multiply time and sine - creates cycle!"
+    },
+    {
+      "id": "palette",
+      "type": "palette_interpolate",
+      "inputs": ["multiply_node"],
+      "parameters": {
+        "palette": "test"
+      },
+      "description": "Output colors"
+    }
+  ],
+  "wires": [
+    {
+      "from": "time_node",
+      "to": "multiply_node"
+    },
+    {
+      "from": "sin_node",
+      "to": "multiply_node"
+    },
+    {
+      "from": "multiply_node",
+      "to": "sin_node"
+    },
+    {
+      "from": "multiply_node",
+      "to": "palette"
+    }
+  ]
+}

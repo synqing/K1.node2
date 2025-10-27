@@ -1,0 +1,7 @@
+{
+  "directed": true,
+  "N": 100000,
+  "M": 49750000,
+  "outdegree": { "min": 0, "max": 500, "avg": 497.5 },
+  "isDag": true
+}
