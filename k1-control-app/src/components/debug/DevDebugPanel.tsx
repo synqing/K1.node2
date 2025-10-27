@@ -413,6 +413,36 @@ function BetweennessMetricsSection({ betw, error, onFileSelected }: {
               <span style={{ fontSize: 12, color: 'var(--k1-text-dim)' }}>
                 {snapshotA ? 'A ✓' : 'A -'} · {snapshotB ? 'B ✓' : 'B -'}
               </span>
+              <label style={{ fontSize: 11, color: 'var(--k1-text-dim)' }}>
+                Import A
+                <input type="file" accept="application/json" style={{ display: 'block' }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const text = await file.text();
+                      const json = JSON.parse(text) as BetweennessMetrics;
+                      if (json && (json.betweenness_domain || json.betweenness_top_nodes)) {
+                        setSnapshotA(json);
+                      }
+                    } catch {}
+                  }} />
+              </label>
+              <label style={{ fontSize: 11, color: 'var(--k1-text-dim)' }}>
+                Import B
+                <input type="file" accept="application/json" style={{ display: 'block' }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const text = await file.text();
+                      const json = JSON.parse(text) as BetweennessMetrics;
+                      if (json && (json.betweenness_domain || json.betweenness_top_nodes)) {
+                        setSnapshotB(json);
+                      }
+                    } catch {}
+                  }} />
+              </label>
             </div>
             <SnapshotCompareSection a={snapshotA} b={snapshotB} />
           </div>
@@ -639,46 +669,6 @@ function SnapshotCompareSection({ a, b }: { a: BetweennessMetrics | null; b: Bet
           }}
           style={{ padding: '4px 6px', border: '1px solid var(--k1-border)', borderRadius: 4, background: 'var(--k1-surface)', fontSize: 12 }}
         >Export B</button>
-        <label style={{ fontSize: 11, color: 'var(--k1-text-dim)' }}>
-          Import A
-          <input type="file" accept="application/json" style={{ display: 'block' }}
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              try {
-                const text = await file.text();
-                const json = JSON.parse(text) as BetweennessMetrics;
-                // Basic sanity check: domain present
-                if (json && (json.betweenness_domain || json.betweenness_top_nodes)) {
-                  // try to attach topology from bench.topo.json in same folder
-                  setTimeout(async () => {
-                    try {
-                      const name = file.name;
-                      const topoName = name.replace(/graph\.metrics\.json|\.metrics\.json/, 'bench.topo.json');
-                      // Cannot infer path via File API; leave as-is
-                    } catch {}
-                  }, 0);
-                  (window as any).dispatchEvent?.(new Event('snapshot-import'));
-                  // update outer state by calling setSnapshotA in parent; not accessible here
-                }
-              } catch {}
-            }} />
-        </label>
-        <label style={{ fontSize: 11, color: 'var(--k1-text-dim)' }}>
-          Import B
-          <input type="file" accept="application/json" style={{ display: 'block' }}
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              try {
-                const text = await file.text();
-                const json = JSON.parse(text) as BetweennessMetrics;
-                if (json && (json.betweenness_domain || json.betweenness_top_nodes)) {
-                  (window as any).dispatchEvent?.(new Event('snapshot-import'));
-                }
-              } catch {}
-            }} />
-        </label>
       </div>
     </div>
   );
