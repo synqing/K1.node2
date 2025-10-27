@@ -24,7 +24,7 @@
 #define NUM_LEDS 180
 #define LED_DATA_PIN 5
 #define STATUS_LED_PIN 21        // WS2812 status LED on GPIO 21
-#define UART_NUM UART_NUM_0
+#define UART_NUM UART_NUM_1      // Use UART1 for sync packets (preserves USB CDC debug on UART0)
 #define UART_RX_PIN 44
 #define UART_TX_PIN 43
 #define UART_BAUD 115200
@@ -171,7 +171,8 @@ void update_status_led() {
 // UART INITIALIZATION
 // ============================================================================
 void init_uart_receiver() {
-    Serial.end();  // Disable default Serial
+    // Don't call Serial.end() - we need USB CDC (UART0) for debug output
+    // We're using UART1 for sync packets, so UART0 remains available for Serial
 
     uart_config_t uart_config = {
         .baud_rate = UART_BAUD,
@@ -388,11 +389,23 @@ void render_sync_indicator() {
 // SETUP
 // ============================================================================
 void setup() {
+    // Initialize USB CDC serial debug output (115200 baud)
+    Serial.begin(115200);
+    delay(500);  // Wait for USB CDC to be ready
+
+    Serial.println("\n\n============================================");
+    Serial.println("K1.REINVENTED S3Z SECONDARY FIRMWARE BOOT");
+    Serial.println("============================================");
+    Serial.println("Board: Waveshare ESP32-S3-Zero");
+    Serial.println("Flash: 4MB | PSRAM: 2MB");
+    Serial.println("Status: Initializing...");
+
     // Initialize LED strip
     init_fastled();
 
     // Initialize UART receiver
     init_uart_receiver();
+    Serial.println("✓ UART1 receiver initialized (GPIO 44 RX, GPIO 43 TX)");
 
     // Create UART receive task on Core 1
     xTaskCreatePinnedToCore(
@@ -412,6 +425,11 @@ void setup() {
 
     // Wait for initialization
     delay(1000);
+
+    Serial.println("============================================");
+    Serial.println("✓ S3Z FIRMWARE READY");
+    Serial.println("Waiting for sync packets from primary...");
+    Serial.println("============================================\n");
 }
 
 // ============================================================================
