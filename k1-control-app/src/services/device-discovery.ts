@@ -14,15 +14,17 @@ import { K1DiscoveryService } from './discovery-service';
  * Normalized device summary (internal format)
  */
 export interface NormalizedDevice {
-  /** Stable identifier (usually IP) */
+  /** Stable identifier (MAC address preferred, falls back to IP) */
   id: string;
+  /** Alternative stable identifier (IP address, used if MAC unavailable) */
+  alternateId?: string;
   /** Display name */
   name: string;
   /** IPv4 or IPv6 address */
   ip: string;
   /** HTTP port (usually 80) */
   port: number;
-  /** MAC address */
+  /** MAC address (primary stable identifier) */
   mac: string;
   /** Firmware version */
   firmware: string;
@@ -48,6 +50,8 @@ export interface DiscoveryResult {
   duration: number;
   /** Any errors encountered */
   errors?: string[];
+  /** Whether the operation experienced errors */
+  hasErrors?: boolean;
   /** Whether the operation was cancelled */
   cancelled: boolean;
 }
@@ -60,6 +64,7 @@ export interface DiscoveryResult {
  * - Debouncing rapid discovery calls
  * - Result normalization
  * - Cancellation support
+ * - Cache size limits and TTL eviction
  */
 export class DeviceDiscoveryAbstraction {
   private _discoveryService: K1DiscoveryService;
@@ -68,9 +73,68 @@ export class DeviceDiscoveryAbstraction {
   private _abortController: AbortController | null = null;
   private _discoveryCache = new Map<string, NormalizedDevice>();
   private _lastDiscovery: DiscoveryResult | null = null;
+  private _isDiscoveryInProgress = false; // Prevent concurrent discovery scans
+
+  // Cache management configuration
+  private _maxCacheSize = 100; // Maximum devices to cache
+  private _cacheTtlMs = 3600000; // Cache TTL: 1 hour (ms)
 
   constructor() {
     this._discoveryService = new K1DiscoveryService();
+  }
+
+  /**
+   * Remove expired devices from cache (older than TTL)
+   * @private
+   */
+  private _evictExpiredDevices(): void {
+    const now = Date.now();
+    const expired: string[] = [];
+
+    this._discoveryCache.forEach((device, deviceId) => {
+      if (now - device.lastSeen.getTime() > this._cacheTtlMs) {
+        expired.push(deviceId);
+      }
+    });
+
+    expired.forEach(deviceId => this._discoveryCache.delete(deviceId));
+  }
+
+  /**
+   * Evict least recently used device when cache exceeds max size
+   * @private
+   */
+  private _evictLRUDevice(): void {
+    if (this._discoveryCache.size <= this._maxCacheSize) {
+      return;
+    }
+
+    // Find least recently used device (oldest lastSeen)
+    let oldestId = '';
+    let oldestTime = Date.now();
+
+    this._discoveryCache.forEach((device, deviceId) => {
+      const deviceTime = device.lastSeen.getTime();
+      if (deviceTime < oldestTime) {
+        oldestTime = deviceTime;
+        oldestId = deviceId;
+      }
+    });
+
+    if (oldestId) {
+      this._discoveryCache.delete(oldestId);
+    }
+  }
+
+  /**
+   * Enforce cache size limits (remove LRU device if over max)
+   * @private
+   */
+  private _enforceMaxCacheSize(): void {
+    // Remove LRU devices one at a time until under limit
+    while (this._discoveryCache.size > this._maxCacheSize) {
+      this._evictLRUDevice();
+    }
   }
 
   /**
@@ -81,14 +145,41 @@ export class DeviceDiscoveryAbstraction {
    */
   async discover(options: K1DiscoveryOptions = {}): Promise<DiscoveryResult> {
     return new Promise((resolve) => {
+      // If discovery already in progress, return last result instead of duplicate scan
+      if (this._isDiscoveryInProgress && this._lastDiscovery) {
+        const cachedResult = { ...this._lastDiscovery };
+        cachedResult.hasErrors = (cachedResult.errors?.length ?? 0) > 0;
+        return resolve(cachedResult);
+      }
+
       // Debounce if a discovery is already pending
       if (this._debounceTimer) {
         clearTimeout(this._debounceTimer);
       }
 
       this._debounceTimer = setTimeout(async () => {
+        // Guard against concurrent discoveries
+        if (this._isDiscoveryInProgress) {
+          if (this._lastDiscovery) {
+            return resolve(this._lastDiscovery);
+          }
+          return resolve({
+            devices: [],
+            method: 'hybrid',
+            duration: 0,
+            errors: ['Discovery already in progress'],
+            hasErrors: true,
+            cancelled: true,
+          });
+        }
+
+        this._isDiscoveryInProgress = true;
+
         try {
           const startTime = performance.now();
+
+          // Clean up expired devices before discovery
+          this._evictExpiredDevices();
 
           // Try K1Client.discover first if available
           let result: K1DiscoveryResult | null = null;
@@ -112,6 +203,7 @@ export class DeviceDiscoveryAbstraction {
                 method: 'hybrid',
                 duration: performance.now() - startTime,
                 errors: errors.length > 0 ? errors : undefined,
+                hasErrors: true,
               };
             }
           }
@@ -130,22 +222,30 @@ export class DeviceDiscoveryAbstraction {
             this._discoveryCache.set(device.id, device);
           });
 
+          // Enforce cache size limits (remove LRU devices if needed)
+          this._enforceMaxCacheSize();
+
           const discoveryResult: DiscoveryResult = {
             devices: normalizedDevices,
             method: result.method,
             duration,
             errors: errors.length > 0 ? errors : undefined,
+            hasErrors: errors.length > 0,
             cancelled: false,
           };
 
           this._lastDiscovery = discoveryResult;
+          this._isDiscoveryInProgress = false;
           resolve(discoveryResult);
         } catch (err) {
+          this._isDiscoveryInProgress = false;
+          const errorMessage = err instanceof Error ? err.message : String(err);
           resolve({
             devices: [],
             method: 'hybrid',
             duration: 0,
-            errors: [err instanceof Error ? err.message : String(err)],
+            errors: [errorMessage],
+            hasErrors: true,
             cancelled: false,
           });
         }
@@ -157,6 +257,7 @@ export class DeviceDiscoveryAbstraction {
    * Cancel an ongoing discovery operation
    */
   cancel(): void {
+    this._isDiscoveryInProgress = false;
     if (this._abortController) {
       this._abortController.abort();
     }
@@ -164,6 +265,13 @@ export class DeviceDiscoveryAbstraction {
       clearTimeout(this._debounceTimer);
       this._debounceTimer = null;
     }
+  }
+
+  /**
+   * Check if discovery is currently in progress
+   */
+  isDiscoveryInProgress(): boolean {
+    return this._isDiscoveryInProgress;
   }
 
   /**
@@ -199,6 +307,39 @@ export class DeviceDiscoveryAbstraction {
   }
 
   /**
+   * Set maximum cache size (devices to keep in memory)
+   * When exceeded, least recently used devices are evicted
+   *
+   * @param size Maximum number of devices (default: 100)
+   */
+  setMaxCacheSize(size: number): void {
+    this._maxCacheSize = Math.max(1, size);
+    // Immediately enforce new limit
+    this._enforceMaxCacheSize();
+  }
+
+  /**
+   * Set cache TTL (time to live) in milliseconds
+   * Devices older than this are automatically evicted
+   *
+   * @param ttlMs TTL in milliseconds (default: 3600000 = 1 hour)
+   */
+  setCacheTtl(ttlMs: number): void {
+    this._cacheTtlMs = Math.max(60000, ttlMs); // Minimum 1 minute
+  }
+
+  /**
+   * Get current cache size and TTL configuration
+   */
+  getCacheConfig(): { maxSize: number; ttlMs: number; currentSize: number } {
+    return {
+      maxSize: this._maxCacheSize,
+      ttlMs: this._cacheTtlMs,
+      currentSize: this._discoveryCache.size,
+    };
+  }
+
+  /**
    * Try K1Client.discover (if available)
    * Returns null if K1Client doesn't have discover method
    */
@@ -216,12 +357,23 @@ export class DeviceDiscoveryAbstraction {
 
   /**
    * Normalize K1DiscoveredDevice array to NormalizedDevice
+   * Uses MAC address as stable ID (preferred) or IP as fallback
    */
   private _normalizeDevices(devices: K1DiscoveredDevice[]): NormalizedDevice[] {
     return devices.map(device => {
-      const cached = this._discoveryCache.get(device.id);
+      // Use MAC address as primary stable ID (doesn't change if IP changes)
+      const stableId = device.mac || device.id;
+      const alternateId = device.mac ? device.id : undefined;
+
+      // Check cache by primary ID first, then by alternate ID
+      let cached = this._discoveryCache.get(stableId);
+      if (!cached && alternateId) {
+        cached = this._discoveryCache.get(alternateId);
+      }
+
       return {
-        id: device.id,
+        id: stableId,
+        alternateId,
         name: device.name,
         ip: device.ip,
         port: device.port,

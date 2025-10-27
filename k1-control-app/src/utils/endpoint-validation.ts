@@ -19,11 +19,12 @@ export interface ValidationResult {
 const IPV4_PATTERN = /^((\d{1,3})\.){3}(\d{1,3})$/;
 
 /**
- * IPv6 address pattern (simplified, covers most common cases)
- * Matches compressed and uncompressed IPv6 addresses
+ * IPv6 address pattern (comprehensive validation)
+ * Covers full uncompressed, compressed, and ::1 formats
+ * Allows for zone IDs and proper hex group validation
  */
 const IPV6_PATTERN =
-  /^(([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}|::(([0-9a-fA-F]{0,4}:){0,6}[0-9a-fA-F]{0,4})?)$/;
+  /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
 
 /**
  * Hostname pattern (DNS compatible)
@@ -35,6 +36,16 @@ const HOSTNAME_PATTERN = /^(?!-)([a-zA-Z0-9-]{1,63}(?<!-)\.)*[a-zA-Z0-9]([a-zA-Z
  * Port pattern
  */
 const PORT_PATTERN = /^(\d{1,5})$/;
+
+/**
+ * Maximum endpoint input length (prevent processing huge strings)
+ */
+const MAX_ENDPOINT_LENGTH = 1000;
+
+/**
+ * Maximum hostname/IP length
+ */
+const MAX_HOSTNAME_LENGTH = 253;
 
 /**
  * Validate an IPv4 address
@@ -65,8 +76,8 @@ function isValidIPv6(ip: string): boolean {
  * Validate a hostname (DNS name)
  */
 function isValidHostname(hostname: string): boolean {
-  // Maximum hostname length is 253 characters
-  if (hostname.length > 253) {
+  // Maximum hostname length is 253 characters (RFC 1035)
+  if (hostname.length > MAX_HOSTNAME_LENGTH) {
     return false;
   }
 
@@ -119,6 +130,14 @@ export function validateEndpoint(input: string): ValidationResult {
     return {
       isValid: false,
       error: 'Please enter an IP address or hostname',
+    };
+  }
+
+  // Check for excessively long input (prevent DoS-style huge strings)
+  if (trimmed.length > MAX_ENDPOINT_LENGTH) {
+    return {
+      isValid: false,
+      error: `Endpoint is too long (maximum ${MAX_ENDPOINT_LENGTH} characters)`,
     };
   }
 
