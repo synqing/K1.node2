@@ -6,20 +6,24 @@ import { useK1Actions } from '../../providers/K1Provider';
 import { ColorPaletteSelector } from './color/ColorPaletteSelector';
 import { BasicColorControls } from './color/BasicColorControls';
 import { ColorMotionControls } from './color/ColorMotionControls';
+import { AudioReactivePresets } from '../audio/AudioReactivePresets';
+import { AudioPermissionHandler } from '../audio/AudioPermissionHandler';
 import { Settings2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { K1_PALETTES } from '../../api/k1-data';
+import '../audio/AudioReactivePresets.css';
+import '../audio/AudioPermissionHandler.css';
 import { K1Parameters } from '../../types/k1-types';
 
 interface ColorManagementProps {
   disabled: boolean;
 }
 
-type TabType = 'palette' | 'motion' | 'manual';
+type TabType = 'palette' | 'motion' | 'manual' | 'audio';
 type ColorMode = 'static' | 'flow' | 'pulse' | 'rainbow';
 
 export function ColorManagement({ disabled }: ColorManagementProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('palette');
-  const [tabOrder, setTabOrder] = useState<TabType[]>(['palette','motion','manual']);
+  const [activeTab, setActiveTab] = useState<TabType>('audio');
+  const [tabOrder, setTabOrder] = useState<TabType[]>(['audio','palette','motion','manual']);
   const [reorderMode, setReorderMode] = useState(false);
   const [dragKey, setDragKey] = useState<TabType | null>(null);
   const handleDragStart = (key: TabType) => { if (!reorderMode) return; setDragKey(key); };
@@ -149,6 +153,7 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
           <div className="flex bg-[var(--k1-bg)] rounded-lg p-1 border border-[var(--k1-border)]">
             {tabOrder.map((key) => {
               const defs: Record<TabType, { label: string; icon: string }> = {
+                audio: { label: 'Audio Reactive', icon: '🎵' },
                 palette: { label: 'Palettes', icon: '🎨' },
                 motion: { label: 'Motion', icon: '🌊' },
                 manual: { label: 'Manual', icon: '🎛️' },
@@ -247,6 +252,18 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
               onIntensityChange={handleMotionIntensityChange}
               disabled={disabled}
             />
+          </div>
+        )}
+
+        {/* Audio Reactive Tab */}
+        {activeTab === 'audio' && (
+          <div className="animate-in fade-in-0 slide-in-from-right-2 duration-200">
+            <AudioPermissionHandler
+              onPermissionGranted={() => {}}
+              onPermissionDenied={() => {}}
+            >
+              <AudioReactivePresets />
+            </AudioPermissionHandler>
           </div>
         )}
 

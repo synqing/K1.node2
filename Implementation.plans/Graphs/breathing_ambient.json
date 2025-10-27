@@ -1,0 +1,120 @@
+{
+  "name": "Breathing Ambient",
+  "description": "Gentle expansion and contraction based on audio energy. Center-outward fill on beats, releases during silence.",
+  "artistic_intent": "CENTER-ORIGIN breathing effect: smooth energy curve creates organic pulsing. Calm ambient visualization.",
+  "palette_data": [
+    [0, 0, 0, 20],
+    [64, 20, 10, 40],
+    [128, 50, 30, 80],
+    [192, 100, 70, 140],
+    [255, 180, 140, 220]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "CENTER-ORIGIN: breath expansion from center"
+    },
+    {
+      "id": "time_slow",
+      "type": "time",
+      "description": "Slow time for gentle breathing (controlled by params.speed)"
+    },
+    {
+      "id": "breath_wave",
+      "type": "sin",
+      "inputs": ["time_slow"],
+      "description": "Sinusoidal breathing cycle"
+    },
+    {
+      "id": "audio_energy",
+      "type": "audio_level",
+      "description": "Audio RMS level for energy tracking"
+    },
+    {
+      "id": "beat_pulse",
+      "type": "beat",
+      "parameters": { "tempo_bin": -1 },
+      "description": "Beat detection for sudden expansion"
+    },
+    {
+      "id": "energy_smooth",
+      "type": "scale",
+      "inputs": ["audio_energy"],
+      "parameters": { "factor": 0.7 },
+      "description": "Gentle energy scaling (70% of full range)"
+    },
+    {
+      "id": "beat_scaled",
+      "type": "scale",
+      "inputs": ["beat_pulse"],
+      "parameters": { "factor": 0.3 },
+      "description": "Subtle beat accent (30% influence)"
+    },
+    {
+      "id": "breath_energy",
+      "type": "multiply",
+      "inputs": ["breath_wave", "energy_smooth"],
+      "description": "Breathing modulated by audio energy"
+    },
+    {
+      "id": "breath_with_beat",
+      "type": "add",
+      "inputs": ["breath_energy", "beat_scaled"],
+      "description": "Add beat accents to breath"
+    },
+    {
+      "id": "position_inverted",
+      "type": "scale",
+      "inputs": ["position"],
+      "parameters": { "factor": -1.0 },
+      "description": "Invert position: bright center, dark edges"
+    },
+    {
+      "id": "constant_one",
+      "type": "constant",
+      "parameters": { "value": 1.0 },
+      "description": "Constant value 1.0"
+    },
+    {
+      "id": "position_shifted",
+      "type": "add",
+      "inputs": ["position_inverted", "constant_one"],
+      "description": "Add constant to make center = 1.0"
+    },
+    {
+      "id": "breathing_radius",
+      "type": "multiply",
+      "inputs": ["position_shifted", "breath_with_beat"],
+      "description": "Breath expands/contracts radial brightness"
+    },
+    {
+      "id": "final_position",
+      "type": "clamp",
+      "inputs": ["breathing_radius"],
+      "parameters": { "min": 0.0, "max": 1.0 },
+      "description": "Clamp to valid palette range"
+    },
+    {
+      "id": "output",
+      "type": "palette_interpolate",
+      "inputs": ["final_position"],
+      "description": "Warm amber breathing from center"
+    }
+  ],
+  "wires": [
+    { "from": "time_slow", "to": "breath_wave" },
+    { "from": "audio_energy", "to": "energy_smooth" },
+    { "from": "breath_wave", "to": "breath_energy" },
+    { "from": "energy_smooth", "to": "breath_energy" },
+    { "from": "breath_energy", "to": "breath_with_beat" },
+    { "from": "beat_scaled", "to": "breath_with_beat" },
+    { "from": "position", "to": "position_inverted" },
+    { "from": "position_inverted", "to": "position_shifted" },
+    { "from": "constant_one", "to": "position_shifted" },
+    { "from": "position_shifted", "to": "breathing_radius" },
+    { "from": "breath_with_beat", "to": "breathing_radius" },
+    { "from": "breathing_radius", "to": "final_position" },
+    { "from": "final_position", "to": "output" }
+  ]
+}

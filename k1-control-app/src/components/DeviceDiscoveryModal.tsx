@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, Wifi, RefreshCw, AlertCircle, Check } from 'lucide-react';
+import { Loader2, Wifi, RefreshCw, AlertCircle, Check, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -26,6 +26,7 @@ interface DeviceDiscoveryModalProps {
   isOpen: boolean;
   isConnected: boolean;
   onDiscoveryComplete: (device: K1DiscoveredDevice) => Promise<void>;
+  onClose?: () => void;
 }
 
 /**
@@ -34,11 +35,13 @@ interface DeviceDiscoveryModalProps {
  * - Shows discovered devices with one-click connect
  * - Fallback to manual IP entry
  * - Auto-suggests previously connected device
+ * - Auto-dismisses when connection is successful
  */
 export function DeviceDiscoveryModal({
   isOpen,
   isConnected,
   onDiscoveryComplete,
+  onClose,
 }: DeviceDiscoveryModalProps) {
   const discovery = useDeviceDiscovery();
   const autoDiscovery = useAutoDiscovery();
@@ -54,6 +57,17 @@ export function DeviceDiscoveryModal({
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [connectionSuccess, setConnectionSuccess] = useState(false);
+
+  // Auto-dismiss when successfully connected
+  useEffect(() => {
+    if (providerIsConnected && connectionSuccess) {
+      const timer = setTimeout(() => {
+        onClose?.();
+      }, 1500); // Give user time to see success message
+      return () => clearTimeout(timer);
+    }
+  }, [providerIsConnected, connectionSuccess, onClose]);
 
   // Auto-discover on mount
   useEffect(() => {
@@ -65,6 +79,7 @@ export function DeviceDiscoveryModal({
   const runDiscovery = async () => {
     setIsDiscovering(true);
     setDiscoveryError(null);
+    setConnectionError(null);
 
     try {
       console.log('[DeviceDiscoveryModal] Starting auto-discovery...');
@@ -110,6 +125,7 @@ export function DeviceDiscoveryModal({
   const handleConnectToDevice = async (device: K1DiscoveredDevice) => {
     setIsConnecting(true);
     setConnectionError(null);
+    setConnectionSuccess(false);
 
     try {
       console.log('[DeviceDiscoveryModal] Connecting to device:', device.name);
@@ -121,6 +137,7 @@ export function DeviceDiscoveryModal({
       await onDiscoveryComplete(device);
 
       console.log('[DeviceDiscoveryModal] Successfully connected to device');
+      setConnectionSuccess(true);
     } catch (error) {
       console.error('[DeviceDiscoveryModal] Connection failed:', error);
       setConnectionError(
@@ -151,29 +168,61 @@ export function DeviceDiscoveryModal({
     setDiscoveredDevices([]);
     setSelectedDevice(null);
     setShowManualEntry(false);
+    setConnectionError(null);
     runDiscovery();
   };
 
+  const handleClose = () => {
+    if (!isConnecting) {
+      onClose?.();
+    }
+  };
+
   return (
-    <Dialog open={isOpen && !providerIsConnected} onOpenChange={() => {}}>
+    <Dialog open={isOpen && !providerIsConnected} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl bg-[var(--k1-panel)] border-[var(--k1-border)]">
         <DialogHeader>
-          <DialogTitle className="text-[var(--k1-text)] flex items-center gap-2">
-            <Wifi className="w-5 h-5 text-[var(--k1-accent)]" />
-            Connect to K1 Device
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-[var(--k1-text)] flex items-center gap-2">
+              <Wifi className="w-5 h-5 text-[var(--k1-accent)]" />
+              Connect to K1 Device
+            </DialogTitle>
+            {!isConnecting && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClose}
+                className="h-6 w-6 p-0 text-[var(--k1-text-dim)] hover:text-[var(--k1-text)]"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
           <DialogDescription className="text-[var(--k1-text-dim)]">
-            {isDiscovering
-              ? 'Searching for K1 devices on your network...'
-              : discoveredDevices.length > 0
-                ? 'Select a device to connect or enter IP manually'
-                : 'No devices found. Enter your device IP address below.'}
+            {connectionSuccess
+              ? '✅ Successfully connected! This dialog will close automatically.'
+              : isDiscovering
+                ? 'Searching for K1 devices on your network...'
+                : discoveredDevices.length > 0
+                  ? 'Select a device to connect or enter IP manually'
+                  : 'No devices found. Enter your device IP address below.'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Connection Success */}
+          {connectionSuccess && (
+            <Card className="p-6 text-center bg-green-900/20 border-green-600/30">
+              <Check className="w-8 h-8 mx-auto text-green-400 mb-3" />
+              <p className="text-green-300 font-medium">Connection Successful!</p>
+              <p className="text-sm text-green-200 mt-1">
+                You're now connected to your K1 device
+              </p>
+            </Card>
+          )}
+
           {/* Discovery Progress */}
-          {isDiscovering && (
+          {isDiscovering && !connectionSuccess && (
             <Card className="p-6 text-center bg-[var(--k1-bg)] border-[var(--k1-border)]">
               <Loader2 className="w-8 h-8 animate-spin mx-auto text-[var(--k1-accent)] mb-3" />
               <p className="text-[var(--k1-text-dim)]">
@@ -184,7 +233,7 @@ export function DeviceDiscoveryModal({
           )}
 
           {/* Discovery Error */}
-          {discoveryError && (
+          {discoveryError && !connectionSuccess && (
             <Card className="p-4 bg-red-900/20 border-red-600/30">
               <div className="flex gap-3">
                 <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
@@ -198,16 +247,33 @@ export function DeviceDiscoveryModal({
             </Card>
           )}
 
+          {/* Connection Error */}
+          {connectionError && !connectionSuccess && (
+            <Card className="p-4 bg-red-900/20 border-red-600/30">
+              <div className="flex gap-3">
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-red-300">Connection Failed</p>
+                  <p className="text-sm text-red-200 mt-1">{connectionError}</p>
+                  <p className="text-xs text-red-200 mt-2">
+                    💡 Make sure your K1 device is powered on and on the same network
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Discovered Devices List */}
-          {!isDiscovering && discoveredDevices.length > 0 && !showManualEntry && (
+          {!isDiscovering && discoveredDevices.length > 0 && !showManualEntry && !connectionSuccess && (
             <div className="space-y-2">
-              <Label className="text-[var(--k1-text-dim)]">Available Devices</Label>
+              <Label className="text-[var(--k1-text-dim)]">Available Devices ({discoveredDevices.length} found)</Label>
               <div className="space-y-2 max-h-[200px] overflow-y-auto">
                 {discoveredDevices.map((device) => (
                   <button
                     key={device.id}
                     onClick={() => setSelectedDevice(device)}
-                    className={`w-full p-3 rounded-lg border-2 transition-colors text-left ${
+                    disabled={isConnecting}
+                    className={`w-full p-3 rounded-lg border-2 transition-colors text-left disabled:opacity-50 ${
                       selectedDevice?.id === device.id
                         ? 'bg-[var(--k1-accent)]/20 border-[var(--k1-accent)]'
                         : 'bg-[var(--k1-bg)] border-[var(--k1-border)] hover:border-[var(--k1-accent)]'
@@ -219,6 +285,13 @@ export function DeviceDiscoveryModal({
                         <p className="text-sm text-[var(--k1-text-dim)]">
                           {device.ip}:{device.port}
                         </p>
+                        {autoDiscovery.autoConnectSuggestion && 
+                         (device.ip === autoDiscovery.autoConnectSuggestion.ip || 
+                          device.mac === autoDiscovery.autoConnectSuggestion.mac) && (
+                          <p className="text-xs text-[var(--k1-accent)] mt-1">
+                            ⭐ Previously connected
+                          </p>
+                        )}
                       </div>
                       {selectedDevice?.id === device.id && (
                         <Check className="w-5 h-5 text-[var(--k1-accent)]" />
@@ -231,12 +304,13 @@ export function DeviceDiscoveryModal({
           )}
 
           {/* Manual Entry Toggle */}
-          {!isDiscovering && discoveredDevices.length > 0 && !showManualEntry && (
+          {!isDiscovering && discoveredDevices.length > 0 && !showManualEntry && !connectionSuccess && (
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowManualEntry(true)}
+                disabled={isConnecting}
                 className="flex-1"
               >
                 Enter IP Manually
@@ -245,6 +319,7 @@ export function DeviceDiscoveryModal({
                 variant="outline"
                 size="sm"
                 onClick={handleRetryDiscovery}
+                disabled={isConnecting}
                 className="flex-1"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -254,11 +329,11 @@ export function DeviceDiscoveryModal({
           )}
 
           {/* Manual IP Entry */}
-          {(showManualEntry || (discoveredDevices.length === 0 && !isDiscovering)) && (
+          {(showManualEntry || (discoveredDevices.length === 0 && !isDiscovering)) && !connectionSuccess && (
             <form onSubmit={handleManualConnect} className="space-y-3">
               <div>
                 <Label htmlFor="manual-ip" className="text-[var(--k1-text-dim)]">
-                  Device IP Address
+                  Device IP Address or Hostname
                 </Label>
                 <Input
                   id="manual-ip"
@@ -269,6 +344,9 @@ export function DeviceDiscoveryModal({
                   disabled={isConnecting}
                   className="mt-1.5"
                 />
+                <p className="text-xs text-[var(--k1-text-dim)] mt-1">
+                  💡 Try "k1-reinvented.local" first, or check your router for the device IP
+                </p>
               </div>
 
               <div>
@@ -286,31 +364,41 @@ export function DeviceDiscoveryModal({
                 />
               </div>
 
-              {connectionError && (
-                <Card className="p-3 bg-red-900/20 border-red-600/30">
-                  <p className="text-sm text-red-300">{connectionError}</p>
-                </Card>
-              )}
-
               <Button
                 type="submit"
                 disabled={isConnecting || !manualIp.trim()}
                 className="w-full"
+                size="lg"
               >
                 {isConnecting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Connecting...
+                    Connecting to {manualIp}...
                   </>
                 ) : (
-                  'Connect to Device'
+                  <>
+                    <Wifi className="w-4 h-4 mr-2" />
+                    Connect to Device
+                  </>
                 )}
               </Button>
+
+              {showManualEntry && discoveredDevices.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowManualEntry(false)}
+                  disabled={isConnecting}
+                  className="w-full"
+                >
+                  ← Back to Discovered Devices
+                </Button>
+              )}
             </form>
           )}
 
           {/* Selected Device Connection */}
-          {selectedDevice && !showManualEntry && discoveredDevices.length > 0 && (
+          {selectedDevice && !showManualEntry && discoveredDevices.length > 0 && !connectionSuccess && (
             <Button
               onClick={() => handleConnectToDevice(selectedDevice)}
               disabled={isConnecting}

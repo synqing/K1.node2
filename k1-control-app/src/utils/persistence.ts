@@ -55,6 +55,7 @@ export function validateParameters(params: any): K1Parameters | null {
       saturation: clampNumber(params.saturation, 0, 100, K1_DEFAULTS.PARAMETERS.saturation),
       warmth: clampNumber(params.warmth, 0, 100, K1_DEFAULTS.PARAMETERS.warmth),
       background: clampNumber(params.background, 0, 100, K1_DEFAULTS.PARAMETERS.background),
+      dithering: clampNumber(params.dithering, 0, 100, K1_DEFAULTS.PARAMETERS.dithering),
       speed: clampNumber(params.speed, 0, 100, K1_DEFAULTS.PARAMETERS.speed),
       palette_id: clampNumber(params.palette_id, 0, 32, K1_DEFAULTS.PARAMETERS.palette_id),
       custom_param_1: clampNumber(params.custom_param_1, 0, 100, K1_DEFAULTS.PARAMETERS.custom_param_1),

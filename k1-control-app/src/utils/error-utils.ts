@@ -1,7 +1,7 @@
 // Centralized abort error detection and lightweight dev logging utilities
 
 // Constants
-const DEFAULT_WINDOW_MS = 5000;
+const DEFAULT_WINDOW_MS = 10000; // Increased to 10s to reduce frequency of summaries
 const ABORT_ERROR_NAMES = ['AbortError', 'AbortErrorSignal', 'AbortController'] as const;
 const ABORT_MESSAGE_PATTERN = /(abort|cancel)/i;
 const LS_DEBUG_ABORTS_KEY = 'k1.debugAborts';
@@ -13,6 +13,7 @@ interface AbortState {
   lastWindowStart: number;
   windowMs: number;
   loggingEnabled: boolean | undefined;
+  hmrSuppressUntil: number; // Timestamp to suppress logging during HMR cycles
 }
 
 const state: AbortState = {
@@ -21,6 +22,7 @@ const state: AbortState = {
   lastWindowStart: Date.now(),
   windowMs: DEFAULT_WINDOW_MS,
   loggingEnabled: undefined,
+  hmrSuppressUntil: 0,
 };
 
 export interface AbortStats {
@@ -97,10 +99,13 @@ function summarizeWindow(): void {
   
   const now = Date.now();
   if (now - state.lastWindowStart >= state.windowMs) {
-    // eslint-disable-next-line no-console
-    console.debug(
-      `[K1] Abort summary: window=${state.windowCount}, total=${state.totalCount}, windowMs=${state.windowMs}`
-    );
+    // Only log if there were abort errors in this window to reduce noise
+    if (state.windowCount > 0) {
+      // eslint-disable-next-line no-console
+      console.debug(
+        `[K1] HMR aborts: ${state.windowCount} in ${state.windowMs}ms (total: ${state.totalCount})`
+      );
+    }
     state.windowCount = 0;
     state.lastWindowStart = now;
   }
@@ -108,8 +113,25 @@ function summarizeWindow(): void {
 
 /**
  * Increments abort counters and triggers window summary if needed
+ * Includes HMR suppression logic to reduce noise during hot reloads
  */
 function bumpAbortCounters(): void {
+  const now = Date.now();
+  
+  // Check if we're in an HMR suppression period
+  if (now < state.hmrSuppressUntil) {
+    // Still count the abort but don't log
+    state.totalCount += 1;
+    return;
+  }
+  
+  // Detect potential HMR burst (multiple aborts in quick succession)
+  const timeSinceLastWindow = now - state.lastWindowStart;
+  if (state.windowCount === 0 && timeSinceLastWindow < 2000) {
+    // First abort in a potential HMR cycle - suppress logging for 3 seconds
+    state.hmrSuppressUntil = now + 3000;
+  }
+  
   state.windowCount += 1;
   state.totalCount += 1;
   summarizeWindow();
@@ -202,4 +224,5 @@ export function resetAbortStats(): void {
   state.windowCount = 0;
   state.totalCount = 0;
   state.lastWindowStart = Date.now();
+  state.hmrSuppressUntil = 0;
 }

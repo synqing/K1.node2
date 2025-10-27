@@ -10,6 +10,7 @@
 #include "pattern_registry.h"
 #include "pattern_audio_interface.h"
 #include "palettes.h"
+#include "emotiscope_helpers.h"
 #include <math.h>
 
 extern CRGBF leds[NUM_LEDS];
@@ -1108,6 +1109,240 @@ void draw_void_trail(float time, const PatternParameters& params) {
 }
 
 // ============================================================================
+// MISSING EMOTISCOPE PATTERNS - Analog, Metronome, Hype
+// ============================================================================
+
+/**
+ * Pattern: Analog VU Meter
+ * Classic VU meter visualization using draw_dot() for precise positioning
+ * 
+ * This pattern was broken because K1 lacked the draw_dot() helper function.
+ * Now properly implemented with Emotiscope-compatible dot rendering.
+ */
+void draw_analog(float time, const PatternParameters& params) {
+    PATTERN_AUDIO_START();
+    
+    // Clear LED buffer
+    for (int i = 0; i < NUM_LEDS; i++) {
+        leds[i] = CRGBF(0.0f, 0.0f, 0.0f);
+    }
+    
+    // Fallback to gentle pulse if no audio
+    if (!AUDIO_IS_AVAILABLE()) {
+        float pulse = 0.3f + 0.2f * sinf(time * params.speed);
+        float dot_pos = 0.5f + 0.3f * sinf(time * params.speed * 0.7f);
+        CRGBF color = color_from_palette(params.palette_id, dot_pos, pulse * 0.5f);
+        draw_dot(leds, NUM_RESERVED_DOTS + 0, color, dot_pos, pulse);
+        return;
+    }
+    
+    // Get VU level and apply smoothing
+    float vu_level = AUDIO_VU;
+    float freshness_factor = AUDIO_IS_STALE() ? 0.7f : 1.0f;
+    vu_level *= freshness_factor;
+    
+    // Clamp and apply minimum threshold for visibility
+    float dot_pos = clip_float(vu_level);
+    dot_pos = 0.05f + dot_pos * 0.95f; // Map to 5%-100% of strip
+    
+    // Color based on VU level (Emotiscope style)
+    CRGBF dot_color = hsv_enhanced(
+        get_color_range_hue(dot_pos),
+        params.saturation,
+        1.0f
+    );
+    
+    // Check if mirror mode should be simulated
+    bool mirror_mode = (params.custom_param_1 > 0.5f);
+    
+    if (mirror_mode) {
+        // Mirror mode: two dots from center
+        draw_dot(leds, NUM_RESERVED_DOTS + 0, dot_color, 0.5f + (dot_pos * 0.5f), 1.0f);
+        draw_dot(leds, NUM_RESERVED_DOTS + 1, dot_color, 0.5f + (dot_pos * -0.5f), 1.0f);
+    } else {
+        // Single dot mode
+        draw_dot(leds, NUM_RESERVED_DOTS + 0, dot_color, dot_pos, 1.0f);
+    }
+    
+    // Apply global brightness
+    for (int i = 0; i < NUM_LEDS; i++) {
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
+    }
+}
+
+/**
+ * Pattern: Metronome Beat Dots
+ * Shows beat phase for each tempo bin as moving dots
+ * 
+ * This pattern was broken because K1 lacked the draw_dot() system.
+ * Now properly implemented with per-tempo-bin phase visualization.
+ */
+void draw_metronome(float time, const PatternParameters& params) {
+    PATTERN_AUDIO_START();
+    
+    // Clear LED buffer
+    for (int i = 0; i < NUM_LEDS; i++) {
+        leds[i] = CRGBF(0.0f, 0.0f, 0.0f);
+    }
+    
+    // Fallback to animated dots if no audio
+    if (!AUDIO_IS_AVAILABLE()) {
+        for (int tempo_bin = 0; tempo_bin < 8; tempo_bin++) {
+            float phase = fmodf(time * params.speed + tempo_bin * 0.125f, 1.0f);
+            float dot_pos = 0.1f + phase * 0.8f;
+            float progress = (float)tempo_bin / 8.0f;
+            
+            CRGBF dot_color = color_from_palette(params.palette_id, progress, 0.5f);
+            draw_dot(leds, NUM_RESERVED_DOTS + tempo_bin, dot_color, dot_pos, 0.7f);
+        }
+        return;
+    }
+    
+    // Render tempo bins with phase-synchronized dots
+    float freshness_factor = AUDIO_IS_STALE() ? 0.6f : 1.0f;
+    bool mirror_mode = (params.custom_param_1 > 0.5f);
+    
+    // Limit to first 8 tempo bins for visibility
+    int max_tempo_bins = fminf(8, NUM_TEMPI);
+    
+    for (int tempo_bin = 0; tempo_bin < max_tempo_bins; tempo_bin++) {
+        float magnitude = AUDIO_TEMPO_MAGNITUDE(tempo_bin);
+        float phase = AUDIO_TEMPO_PHASE(tempo_bin);
+        
+        // Only render if magnitude is significant
+        if (magnitude > 0.05f) {
+            // Convert phase to position (Emotiscope mapping)
+            float sine_factor = sinf(phase);
+            float dot_pos = clip_float(sine_factor * 0.4f + 0.5f); // Center ± 40%
+            
+            // Color based on tempo bin position
+            float progress = (float)tempo_bin / (float)max_tempo_bins;
+            CRGBF dot_color = hsv_enhanced(
+                get_color_range_hue(progress),
+                params.saturation,
+                1.0f
+            );
+            
+            // Opacity based on magnitude
+            float opacity = magnitude * freshness_factor;
+            opacity = clip_float(opacity);
+            
+            // Draw primary dot
+            draw_dot(leds, NUM_RESERVED_DOTS + tempo_bin * 2 + 0, dot_color, dot_pos, opacity);
+            
+            // Mirror mode: draw second dot
+            if (mirror_mode) {
+                draw_dot(leds, NUM_RESERVED_DOTS + tempo_bin * 2 + 1, dot_color, 1.0f - dot_pos, opacity);
+            }
+        }
+    }
+    
+    // Apply global brightness
+    for (int i = 0; i < NUM_LEDS; i++) {
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
+    }
+}
+
+/**
+ * Pattern: Hype Energy Activation
+ * Shows energy threshold activation with dual-color dots
+ * 
+ * This pattern was completely missing from K1.
+ * Now implemented with proper beat sum calculation and energy visualization.
+ */
+void draw_hype(float time, const PatternParameters& params) {
+    PATTERN_AUDIO_START();
+    
+    // Clear LED buffer
+    for (int i = 0; i < NUM_LEDS; i++) {
+        leds[i] = CRGBF(0.0f, 0.0f, 0.0f);
+    }
+    
+    // Fallback to pulsing energy if no audio
+    if (!AUDIO_IS_AVAILABLE()) {
+        float energy = 0.3f + 0.4f * sinf(time * params.speed);
+        float beat_odd = 0.5f + 0.3f * sinf(time * params.speed * 1.3f);
+        float beat_even = 0.5f + 0.3f * sinf(time * params.speed * 0.7f);
+        
+        CRGBF color_odd = color_from_palette(params.palette_id, 0.3f, energy);
+        CRGBF color_even = color_from_palette(params.palette_id, 0.7f, energy);
+        
+        draw_dot(leds, NUM_RESERVED_DOTS + 0, color_odd, 1.0f - beat_odd, energy);
+        draw_dot(leds, NUM_RESERVED_DOTS + 1, color_even, 1.0f - beat_even, energy);
+        return;
+    }
+    
+    // Calculate beat sums for odd/even tempo bins
+    float beat_sum_odd = 0.0f;
+    float beat_sum_even = 0.0f;
+    int count_odd = 0, count_even = 0;
+    
+    // Sum magnitudes from tempo bins
+    for (int i = 0; i < NUM_TEMPI; i++) {
+        float magnitude = AUDIO_TEMPO_MAGNITUDE(i);
+        if (i % 2 == 0) {
+            beat_sum_even += magnitude;
+            count_even++;
+        } else {
+            beat_sum_odd += magnitude;
+            count_odd++;
+        }
+    }
+    
+    // Average the sums
+    if (count_odd > 0) beat_sum_odd /= count_odd;
+    if (count_even > 0) beat_sum_even /= count_even;
+    
+    // Apply freshness factor
+    float freshness_factor = AUDIO_IS_STALE() ? 0.5f : 1.0f;
+    beat_sum_odd *= freshness_factor;
+    beat_sum_even *= freshness_factor;
+    
+    // Calculate overall strength for energy visualization
+    float strength = (beat_sum_odd + beat_sum_even) * 0.5f;
+    strength = clip_float(strength);
+    
+    // Color mapping (Emotiscope style)
+    float beat_color_odd = beat_sum_odd * 0.5f;
+    float beat_color_even = beat_sum_even * 0.5f + 0.5f; // Offset for different hue
+    
+    CRGBF dot_color_odd = hsv_enhanced(
+        get_color_range_hue(beat_color_odd),
+        params.saturation,
+        1.0f
+    );
+    
+    CRGBF dot_color_even = hsv_enhanced(
+        get_color_range_hue(beat_color_even),
+        params.saturation,
+        1.0f
+    );
+    
+    // Draw energy dots
+    float opacity = 0.1f + 0.8f * strength;
+    draw_dot(leds, NUM_RESERVED_DOTS + 0, dot_color_odd, 1.0f - beat_sum_odd, opacity);
+    draw_dot(leds, NUM_RESERVED_DOTS + 1, dot_color_even, 1.0f - beat_sum_even, opacity);
+    
+    // Mirror mode: additional dots
+    bool mirror_mode = (params.custom_param_1 > 0.5f);
+    if (mirror_mode) {
+        draw_dot(leds, NUM_RESERVED_DOTS + 2, dot_color_odd, beat_sum_odd, opacity);
+        draw_dot(leds, NUM_RESERVED_DOTS + 3, dot_color_even, beat_sum_even, opacity);
+    }
+    
+    // Apply global brightness
+    for (int i = 0; i < NUM_LEDS; i++) {
+        leds[i].r *= params.brightness;
+        leds[i].g *= params.brightness;
+        leds[i].b *= params.brightness;
+    }
+}
+
+// ============================================================================
 // PATTERN REGISTRY
 // ============================================================================
 
@@ -1190,6 +1425,28 @@ const PatternInfo g_pattern_registry[] = {
 		"void_trail",
 		"Ambient audio-responsive with 3 switchable modes (custom_param_1)",
 		draw_void_trail,
+		true
+	},
+	// Missing Emotiscope Patterns (Now Fixed!)
+	{
+		"Analog",
+		"analog",
+		"VU meter with precise dot positioning",
+		draw_analog,
+		true
+	},
+	{
+		"Metronome",
+		"metronome",
+		"Beat phase dots for tempo visualization",
+		draw_metronome,
+		true
+	},
+	{
+		"Hype",
+		"hype",
+		"Energy threshold activation with dual colors",
+		draw_hype,
 		true
 	}
 };

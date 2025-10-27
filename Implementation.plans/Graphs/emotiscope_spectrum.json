@@ -1,0 +1,67 @@
+{
+  "name": "Emotiscope Spectrum",
+  "description": "CENTER-ORIGIN audio visualization: position gradient shows audio level magnitude. Darker center = quieter, brighter edges = louder. Real-time frequency analysis.",
+  "artistic_intent": "Center-origin mandate compliant. Audio level radiates from center. Uses beat+spectrum for layered reactivity.",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [32, 255, 0, 0],
+    [64, 255, 255, 0],
+    [96, 0, 255, 0],
+    [128, 0, 255, 255],
+    [160, 0, 0, 255],
+    [192, 255, 0, 255],
+    [255, 255, 255, 255]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "CENTER-ORIGIN: distance from center (0 at center, 1 at edges)"
+    },
+    {
+      "id": "bass_bin",
+      "type": "spectrum_bin",
+      "parameters": { "bin": 0 },
+      "description": "Low frequency magnitude (bass)"
+    },
+    {
+      "id": "mid_bin",
+      "type": "spectrum_bin",
+      "parameters": { "bin": 32 },
+      "description": "Mid frequency magnitude"
+    },
+    {
+      "id": "treble_bin",
+      "type": "spectrum_bin",
+      "parameters": { "bin": 60 },
+      "description": "High frequency magnitude (treble)"
+    },
+    {
+      "id": "beat_signal",
+      "type": "beat",
+      "description": "Beat pulse for rhythm gating"
+    },
+    {
+      "id": "audio_level",
+      "type": "audio_level",
+      "description": "Overall audio RMS level"
+    },
+    {
+      "id": "position_audio",
+      "type": "add",
+      "inputs": ["position", "audio_level"],
+      "description": "Combine center-origin with audio level"
+    },
+    {
+      "id": "output",
+      "type": "palette_interpolate",
+      "inputs": ["position_audio"],
+      "description": "Color based on center-origin position + audio energy"
+    }
+  ],
+  "wires": [
+    { "from": "position", "to": "position_audio" },
+    { "from": "audio_level", "to": "position_audio" },
+    { "from": "position_audio", "to": "output" }
+  ]
+}

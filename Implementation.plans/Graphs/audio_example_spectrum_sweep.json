@@ -1,0 +1,23 @@
+{
+  "name": "Spectrum Sweep",
+  "description": "Map LED positions across spectrum with beat-modulated intensity",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [64, 255, 0, 0],
+    [128, 255, 255, 0],
+    [192, 0, 255, 0],
+    [255, 0, 0, 255]
+  ],
+  "nodes": [
+    { "id": "sweep", "type": "spectrum_interpolate", "parameters": { "start_bin": 0, "end_bin": 63 } },
+    { "id": "beat", "type": "beat", "parameters": { "tempo_bin": 0 } },
+    { "id": "mod", "type": "multiply", "inputs": ["sweep", "beat"] },
+    { "id": "out", "type": "palette_interpolate", "inputs": ["mod"] }
+  ],
+  "wires": [
+    { "from": "sweep", "to": "mod" },
+    { "from": "beat", "to": "mod" },
+    { "from": "mod", "to": "out" }
+  ]
+}
+

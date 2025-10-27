@@ -27,6 +27,7 @@ export interface K1Parameters {
   saturation: number;
   warmth: number;
   background: number;
+  dithering: number; // 0-100 (UI) → 0.0-1.0 (firmware)
   
   // Pattern-specific controls
   speed: number;
@@ -83,6 +84,7 @@ export interface K1ParameterUI {
   warmth: number;        // 0-100%
   softness: number;      // 0-100%
   background: number;    // 0-100%
+  dithering: number;     // 0-100% (switch maps to 100/0)
   palette_id: number;    // 0-32
 }
 
@@ -349,6 +351,7 @@ export const K1_DEFAULTS = {
     saturation: 75,
     warmth: 50,
     background: 10,
+    dithering: 100,
     speed: 50,
     palette_id: 0,
     custom_param_1: 0,

@@ -89,6 +89,7 @@ static String build_params_json() {
     doc["saturation"] = params.saturation;
     doc["warmth"] = params.warmth;
     doc["background"] = params.background;
+    doc["dithering"] = params.dithering;
     // Pattern-specific
     doc["speed"] = params.speed;
     doc["palette_id"] = params.palette_id;
@@ -179,6 +180,7 @@ static void apply_params_json(const JsonObjectConst& root) {
     if (root.containsKey("saturation")) updated.saturation = root["saturation"].as<float>();
     if (root.containsKey("warmth")) updated.warmth = root["warmth"].as<float>();
     if (root.containsKey("background")) updated.background = root["background"].as<float>();
+    if (root.containsKey("dithering")) updated.dithering = root["dithering"].as<float>();
     if (root.containsKey("speed")) updated.speed = root["speed"].as<float>();
     if (root.containsKey("palette_id")) updated.palette_id = root["palette_id"].as<uint8_t>();
     if (root.containsKey("custom_param_1")) updated.custom_param_1 = root["custom_param_1"].as<float>();

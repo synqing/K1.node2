@@ -25,6 +25,7 @@ export default function App() {
   const [k1Client, setK1Client] = useState<K1Client | null>(null);
   const [showDebugHUD, setShowDebugHUD] = useState(false);
   const [debugInitialTab, setDebugInitialTab] = useState<'performance' | 'parameters' | 'audio'>('performance');
+  const [showDiscoveryModal, setShowDiscoveryModal] = useState(true);
 
   // Initialize K1 client when IP changes
   useEffect(() => {
@@ -80,6 +81,19 @@ export default function App() {
 
   const isConnected = connectionStatus === 'connected';
   const devApiBase = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:8000';
+  const disableDiscoveryEnv = !!(import.meta as any).env?.VITE_DISABLE_DISCOVERY_MODAL;
+  const disableDiscoveryUrl = (() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get('disableDiscoveryModal');
+      if (!raw) return false;
+      const v = raw.toLowerCase();
+      return v === 'true' || v === '1';
+    } catch {
+      return false;
+    }
+  })();
+  const disableDiscovery = disableDiscoveryEnv || disableDiscoveryUrl;
 
   return (
     <ErrorBoundary>
@@ -147,9 +161,10 @@ export default function App() {
 
           {/* Device Discovery Modal (Phase 1 Week 1) */}
           <DeviceDiscoveryModal
-            isOpen={!isConnected}
+            isOpen={disableDiscovery ? false : showDiscoveryModal && !isConnected}
             isConnected={isConnected}
             onDiscoveryComplete={handleDiscoveryComplete}
+            onClose={() => setShowDiscoveryModal(false)}
           />
 
             {/* Toast Notifications */}

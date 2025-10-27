@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { K1Client } from '../../api/k1-client';
-import { useK1Actions } from '../../providers/K1Provider';
+import { useK1Actions, useK1State } from '../../providers/K1Provider';
 import { useK1Realtime } from '../../hooks/useK1Realtime';
 
 interface DebugHUDProps {
@@ -87,6 +87,24 @@ export function DebugHUD({ k1Client, isConnected, onClose }: DebugHUDProps) {
   const underTarget = perf && perf.fps < fpsTarget;
   const highFrameTime = perf && perf.frameTimeMs > 20;
 
+  const { transport } = useK1State();
+  const [reconnectInfo, setReconnectInfo] = useState<any | null>(null);
+  const [rateLimiterInfo, setRateLimiterInfo] = useState<any | null>(null);
+  const coalesceWindowMs = (transport.activeTransport === 'ws' && transport.wsAvailable) ? 80 : 140;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setReconnectInfo(k1Client?.getReconnectInfo ? k1Client.getReconnectInfo() : null);
+      setRateLimiterInfo(k1Client?.getRateLimiterInfo ? k1Client.getRateLimiterInfo() : null);
+    }, 500);
+    return () => clearInterval(interval);
+  }, [k1Client, transport]);
+
+  const handleTransportToggle = () => {
+    const isCurrentlyWS = transport.activeTransport === 'ws' && transport.wsAvailable;
+    k1Actions.setWebSocketEnabled(!isCurrentlyWS);
+  };
+
   return (
     <div className="fixed top-4 right-4 z-50">
       <div className="rounded-lg shadow-lg border border-gray-700 bg-black/80 backdrop-blur-sm text-white w-72">
@@ -138,10 +156,51 @@ export function DebugHUD({ k1Client, isConnected, onClose }: DebugHUDProps) {
               <span className="px-2 py-0.5 rounded bg-red-600/30 text-red-300">Under target 60 FPS</span>
             )}
             {highFrameTime && (
-              <span className="px-2 py-0.5 rounded bg-orange-600/30 text-orange-300">Frame {'>'}  20 ms</span>
+              <span className="px-2 py-0.5 rounded bg-orange-600/30 text-orange-300">Frame {'>'} 20 ms</span>
             )}
           </div>
         </div>
+        
+        {/* Transport & Timing */}
+        <div className="px-3 py-2 border-t border-gray-700 text-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-gray-300 font-medium">Transport & Timing</span>
+            <button
+              onClick={handleTransportToggle}
+              className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                transport.activeTransport === 'ws' && transport.wsAvailable
+                  ? 'bg-green-600/30 text-green-300 hover:bg-green-600/40'
+                  : 'bg-orange-600/30 text-orange-300 hover:bg-orange-600/40'
+              }`}
+              title="Toggle between WebSocket and REST transport"
+            >
+              {transport.activeTransport === 'ws' && transport.wsAvailable ? 'WS' : 'REST'}
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-gray-300">Active Transport</div>
+              <div className="text-sm font-mono">{transport.activeTransport}</div>
+            </div>
+            <div>
+              <div className="text-gray-300">WS Available</div>
+              <div className="text-sm font-mono">{transport.wsAvailable ? 'Yes' : 'No'}</div>
+            </div>
+            <div>
+              <div className="text-gray-300">Next Reconnect</div>
+              <div className="text-sm font-mono">{reconnectInfo?.nextDelayMs ? `${Math.round(reconnectInfo.nextDelayMs)} ms` : '—'}</div>
+            </div>
+            <div>
+              <div className="text-gray-300">Coalescing Window</div>
+              <div className="text-sm font-mono">{`${coalesceWindowMs} ms (estimated)`}</div>
+            </div>
+            <div>
+              <div className="text-gray-300">Update Rate Limit</div>
+              <div className="text-sm font-mono">{rateLimiterInfo?.minIntervalMs ? `≥ ${rateLimiterInfo.minIntervalMs} ms` : '—'}</div>
+            </div>
+          </div>
+        </div>
+        
         <div className="px-3 py-2 border-t border-gray-700 text-[11px] text-gray-300">
           <div className="flex items-center justify-between">
             <span>Tips: Alt+D toggles HUD</span>

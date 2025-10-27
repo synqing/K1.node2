@@ -28,6 +28,14 @@ export class K1Client {
   private _ws: WebSocket | null = null
   private _lastWSError: Error | null = null
   private _pollTimer: ReturnType<typeof setInterval> | null = null
+  // Reconnect/backoff and polling cooldown
+  private _reconnectAttempts: number = 0
+  private _reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private _backoffBaseMs: number = 500
+  private _backoffMaxMs: number = 30000
+  private _pollCooldownTimer: ReturnType<typeof setTimeout> | null = null
+  // Parameter update rate limiting
+  private _lastParamUpdateAt: number = 0
 
   on(event: string, handler: (payload: any) => void) {
     if (!this._listeners.has(event)) this._listeners.set(event, new Set())
@@ -138,6 +146,10 @@ export class K1Client {
       }
       this._wsAvailable = false
       this._activeTransport = 'rest'
+      // Clear any pending reconnect or cooldown
+      if (this._reconnectTimer) { clearTimeout(this._reconnectTimer); this._reconnectTimer = null }
+      if (this._pollCooldownTimer) { clearTimeout(this._pollCooldownTimer); this._pollCooldownTimer = null }
+      this._reconnectAttempts = 0
       this.startPolling()
     } else {
       // Try to (re)connect WS
@@ -158,6 +170,28 @@ export class K1Client {
       restAvailable: true,
       activeTransport: this._activeTransport,
       lastWSError: this._lastWSError,
+    }
+  }
+
+  getReconnectInfo(): { attempts: number; nextDelayMs: number; maxDelayMs: number; isActive: boolean } {
+    const base = this._backoffBaseMs * Math.pow(2, this._reconnectAttempts)
+    const nextDelayMs = Math.min(base, this._backoffMaxMs)
+    const isActive = this._wsEnabled && this._isConnected && !this._wsAvailable && this._activeTransport !== 'ws'
+    return {
+      attempts: this._reconnectAttempts,
+      nextDelayMs,
+      maxDelayMs: this._backoffMaxMs,
+      isActive,
+    }
+  }
+
+  getRateLimiterInfo(): { lastUpdateAt: number; minIntervalMs: number; activeTransport: 'ws' | 'rest' } {
+    const isWs = this._activeTransport === 'ws' && this._wsAvailable
+    const minIntervalMs = isWs ? 60 : 120
+    return {
+      lastUpdateAt: this._lastParamUpdateAt,
+      minIntervalMs,
+      activeTransport: this._activeTransport,
     }
   }
 
@@ -213,6 +247,29 @@ export class K1Client {
     }
   }
 
+  private startPollingWithCooldown(delayMs: number = 800) {
+    if (this._pollCooldownTimer) return
+    this._pollCooldownTimer = setTimeout(() => {
+      this._pollCooldownTimer = null
+      if (!this._wsAvailable && this._activeTransport !== 'ws') {
+        this.startPolling()
+      }
+    }, Math.max(0, delayMs))
+  }
+
+  private scheduleReconnect(onData: (data: any) => void, onStatus: (status: any) => void) {
+    if (!this._wsEnabled || !this._isConnected) return
+    if (this._reconnectTimer) return
+    const jitter = Math.floor(Math.random() * 250)
+    const base = this._backoffBaseMs * Math.pow(2, this._reconnectAttempts)
+    const delay = Math.min(base + jitter, this._backoffMaxMs)
+    this._reconnectAttempts = Math.min(this._reconnectAttempts + 1, 16)
+    this._reconnectTimer = setTimeout(() => {
+      this._reconnectTimer = null
+      this.connectWebSocket(onData, onStatus)
+    }, delay)
+  }
+
   connectWebSocket(onData: (data: any) => void, onStatus: (status: any) => void): void {
     if (!this._wsEnabled) {
       this._wsAvailable = false
@@ -245,6 +302,9 @@ export class K1Client {
       ws.onopen = () => {
         this._wsAvailable = true
         this._lastWSError = null
+        this._reconnectAttempts = 0
+        if (this._reconnectTimer) { clearTimeout(this._reconnectTimer); this._reconnectTimer = null }
+        if (this._pollCooldownTimer) { clearTimeout(this._pollCooldownTimer); this._pollCooldownTimer = null }
         this.stopPolling()
         this.emit('transportChanged', { transport: 'ws', available: true })
         onStatus({ wsAvailable: true, activeTransport: 'ws' })
@@ -279,16 +339,23 @@ export class K1Client {
       ws.onclose = () => {
         this._wsAvailable = false
         this._activeTransport = 'rest'
-        this.startPolling()
         this.emit('transportChanged', { transport: 'rest', available: true })
         onStatus({ wsAvailable: false, activeTransport: 'rest' })
+        // Start REST polling with a short cooldown to avoid thrashing
+        this.startPollingWithCooldown(800)
+        // Schedule reconnect with exponential backoff
+        this.scheduleReconnect(onData, onStatus)
       }
     } catch (err: any) {
       this._lastWSError = err
       this._wsAvailable = false
       this._activeTransport = 'rest'
-      this.startPolling()
+      this.emit('transportChanged', { transport: 'rest', available: true })
       onStatus({ wsAvailable: false, activeTransport: 'rest', error: err?.message })
+      // Start REST polling with cooldown
+      this.startPollingWithCooldown(1000)
+      // Schedule reconnect
+      this.scheduleReconnect(onData, onStatus)
     }
   }
 
@@ -370,10 +437,20 @@ export class K1Client {
   }
 
   async updateParameters(params: Partial<K1Parameters>): Promise<K1ApiResponse<{ params: K1Parameters }>> {
+    // Enforce minimal interval between parameter updates (transport-aware)
+    const now = Date.now();
+    const isWs = this._activeTransport === 'ws' && this._wsAvailable;
+    const minIntervalMs = isWs ? 60 : 120;
+    const elapsed = now - (this._lastParamUpdateAt || 0);
+    if (elapsed < minIntervalMs) {
+      await new Promise((resolve) => setTimeout(resolve, minIntervalMs - elapsed));
+    }
+    this._lastParamUpdateAt = Date.now();
+
     // Convert UI 0–100% values to firmware 0.0–1.0 floats
     const scaleKeys: (keyof K1Parameters)[] = [
       'brightness', 'softness', 'color', 'color_range', 'saturation',
-      'warmth', 'background', 'speed', 'custom_param_1', 'custom_param_2', 'custom_param_3'
+      'warmth', 'background', 'dithering', 'speed', 'custom_param_1', 'custom_param_2', 'custom_param_3'
     ];
 
     const body: Record<string, number> = {};
@@ -428,6 +505,7 @@ export class K1Client {
       color: toPercent(data.color),
       color_range: toPercent(data.color_range),
       background: toPercent(data.background),
+      dithering: toPercent(data.dithering),
       palette_id: Number(data.palette_id ?? 0),
       custom_param_1: toPercent(data.custom_param_1),
       custom_param_2: toPercent(data.custom_param_2),

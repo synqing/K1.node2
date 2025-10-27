@@ -1,0 +1,65 @@
+{
+  "name": "Predictive Beat Flash",
+  "description": "Zero-latency beat flash using tempo confidence prediction. Instant white flash on beat detection with exponential decay.",
+  "artistic_intent": "Leverages 15-20ms latency for perceptually instant beat response. Center-origin flash radiates outward.",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [20, 100, 0, 100],
+    [64, 255, 0, 255],
+    [128, 255, 100, 255],
+    [192, 255, 255, 255],
+    [255, 255, 255, 255]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "CENTER-ORIGIN: distance from center (0 at center, 1 at edges)"
+    },
+    {
+      "id": "beat_confidence",
+      "type": "beat",
+      "parameters": { "tempo_bin": -1 },
+      "description": "Auto-detect strongest beat with high sensitivity"
+    },
+    {
+      "id": "beat_squared",
+      "type": "multiply",
+      "inputs": ["beat_confidence", "beat_confidence"],
+      "description": "Square beat signal for sharper attack"
+    },
+    {
+      "id": "beat_cubed",
+      "type": "multiply",
+      "inputs": ["beat_squared", "beat_confidence"],
+      "description": "Cube for explosive flash (x^3 response curve)"
+    },
+    {
+      "id": "position_scaled",
+      "type": "scale",
+      "inputs": ["position"],
+      "parameters": { "factor": 0.3 },
+      "description": "Compress position range for tighter flash radius"
+    },
+    {
+      "id": "flash_position",
+      "type": "add",
+      "inputs": ["position_scaled", "beat_cubed"],
+      "description": "Beat flash intensity radiates from center"
+    },
+    {
+      "id": "output",
+      "type": "palette_interpolate",
+      "inputs": ["flash_position"],
+      "description": "White flash at center, purple decay at edges"
+    }
+  ],
+  "wires": [
+    { "from": "position", "to": "position_scaled" },
+    { "from": "beat_confidence", "to": "beat_squared" },
+    { "from": "beat_squared", "to": "beat_cubed" },
+    { "from": "position_scaled", "to": "flash_position" },
+    { "from": "beat_cubed", "to": "flash_position" },
+    { "from": "flash_position", "to": "output" }
+  ]
+}

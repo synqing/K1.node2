@@ -3,19 +3,35 @@ import { Card } from '../ui/card';
 import { Slider } from '../ui/slider';
 import { Label } from '../ui/label';
 import { useCoalescedParams } from '../../hooks/useCoalescedParams';
+import { Switch } from '../ui/switch';
+import { useK1State } from '../../providers/K1Provider';
 
 interface GlobalSettingsProps {
   disabled: boolean;
 }
 
 export function GlobalSettings({ disabled }: GlobalSettingsProps) {
+  const state = useK1State();
+  const params = state.parameters;
+
   // Brightness is unified under Color Management; keep local for display only
-  const [brightness, setBrightness] = useState(90);
-  const [softness, setSoftness] = useState(50);
-  const [warmth, setWarmth] = useState(50);
-  const [background, setBackground] = useState(10);
+  const [brightness, setBrightness] = useState(params.brightness);
+  const [softness, setSoftness] = useState(params.softness);
+  const [warmth, setWarmth] = useState(params.warmth);
+  const [background, setBackground] = useState(params.background);
+  const [ditheringEnabled, setDitheringEnabled] = useState((params.dithering ?? 100) >= 50);
 
   const { queue } = useCoalescedParams();
+
+  // Sync local UI state whenever provider parameters change (e.g., external updates)
+  useEffect(() => {
+    setBrightness(params.brightness);
+    setSoftness(params.softness);
+    setWarmth(params.warmth);
+    setBackground(params.background);
+    setDitheringEnabled((params.dithering ?? 100) >= 50);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.brightness, params.softness, params.warmth, params.background, params.dithering]);
 
   // Remove brightness dispatches to avoid duplicate control
   useEffect(() => {
@@ -115,6 +131,31 @@ export function GlobalSettings({ disabled }: GlobalSettingsProps) {
           }}
           disabled={disabled}
           className="w-full"
+        />
+      </div>
+
+      {/* Dithering Toggle */}
+      <div className="mt-6 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Label className="text-[var(--k1-text)]">Dithering</Label>
+          <span
+            className={`text-[10px] px-2 py-0.5 rounded font-[family-name:var(--k1-code-family)] ${ditheringEnabled 
+              ? 'bg-[var(--k1-accent)]/20 text-[var(--k1-accent)]'
+              : 'bg-[var(--k1-bg)] text-[var(--k1-text-dim)] border border-[var(--k1-border)]'}`}
+          >
+            {ditheringEnabled ? 'On' : 'Off'}
+          </span>
+        </div>
+        <Switch
+          checked={ditheringEnabled}
+          onCheckedChange={(enabled: boolean) => {
+            setDitheringEnabled(enabled);
+            if (!disabled) {
+              queue({ dithering: enabled ? 100 : 0 });
+            }
+          }}
+          disabled={disabled}
+          aria-label="Toggle Dithering"
         />
       </div>
     </Card>

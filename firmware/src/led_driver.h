@@ -7,6 +7,7 @@
 #include <esp_log.h>
 #include "types.h"
 #include "profiler.h"
+#include "parameters.h"  // Access get_params() for dithering flag
 
 #define LED_DATA_PIN ( 5 )
 
@@ -160,7 +161,8 @@ IRAM_ATTR static inline void transmit_leds() {
 	// This allows the 8-bit LEDs to emulate the look of a higher bit-depth using persistence of vision tricks
 	// The contents of the floating point CRGBF "leds" array are downsampled into alternating ways hundreds of
 	// times per second to increase the effective bit depth
-	quantize_color(true);
+	bool temporal_dithering = (get_params().dithering >= 0.5f);
+	quantize_color(temporal_dithering);
 
 	// Transmit to LEDs
 	uint32_t t_tx0 = micros();

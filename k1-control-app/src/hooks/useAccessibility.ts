@@ -3,7 +3,7 @@
  * Implements Phase 1 Week 3: Easy-to-use accessibility features for components
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
   AriaUtils,
   KeyboardKeys,
@@ -271,16 +271,12 @@ export function useFocusRestoration() {
 export function useSkipLink(
   targetId: string,
 ): {
-  skipLink: JSX.Element;
+  skipLink: React.ReactElement;
 } {
-  const skipLink = (
-    <a
-      href={`#${targetId}`}
-      className="absolute left-0 top-0 bg-blue-600 text-white px-4 py-2 -translate-y-full focus:translate-y-0 transition-transform"
-    >
-      Skip to main content
-    </a>
-  );
+  const skipLink = React.createElement('a', {
+    href: `#${targetId}`,
+    className: 'absolute left-0 top-0 bg-blue-600 text-white px-4 py-2 -translate-y-full focus:translate-y-0 transition-transform',
+  }, 'Skip to main content');
 
   return { skipLink };
 }

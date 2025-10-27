@@ -627,13 +627,25 @@ void broadcast_realtime_data() {
     performance["memory_percent"] = (float)(ESP.getHeapSize() - ESP.getFreeHeap()) / ESP.getHeapSize() * 100.0f;
     performance["memory_free_kb"] = ESP.getFreeHeap() / 1024;
     
-    // Current parameters (subset for real-time updates)
+    // Current parameters (full set for real-time updates)
     const PatternParameters& params = get_params();
     JsonObject parameters = doc.createNestedObject("parameters");
     parameters["brightness"] = params.brightness;
-    parameters["speed"] = params.speed;
+    parameters["softness"] = params.softness;
+    parameters["color"] = params.color;
+    parameters["color_range"] = params.color_range;
     parameters["saturation"] = params.saturation;
+    parameters["warmth"] = params.warmth;
+    parameters["background"] = params.background;
+    parameters["dithering"] = params.dithering;
+    parameters["speed"] = params.speed;
     parameters["palette_id"] = params.palette_id;
+    parameters["custom_param_1"] = params.custom_param_1;
+    parameters["custom_param_2"] = params.custom_param_2;
+    parameters["custom_param_3"] = params.custom_param_3;
+
+    // Current pattern selection for UI sync
+    doc["current_pattern"] = g_current_pattern_index;
     
     String message;
     serializeJson(doc, message);

@@ -1,0 +1,23 @@
+{
+  "name": "Bass Pulse",
+  "description": "Global brightness pulsing with bass energy and beat gate",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [128, 255, 120, 30],
+    [255, 255, 255, 255]
+  ],
+  "nodes": [
+    { "id": "bass", "type": "spectrum_range", "parameters": { "band": "low" } },
+    { "id": "beat", "type": "beat", "parameters": { "tempo_bin": -1 } },
+    { "id": "mod", "type": "multiply", "inputs": ["bass", "beat"] },
+    { "id": "clamped", "type": "clamp", "parameters": { "min": 0, "max": 1 }, "inputs": ["mod"] },
+    { "id": "out", "type": "palette_interpolate", "inputs": ["clamped"] }
+  ],
+  "wires": [
+    { "from": "bass", "to": "mod" },
+    { "from": "beat", "to": "mod" },
+    { "from": "mod", "to": "clamped" },
+    { "from": "clamped", "to": "out" }
+  ]
+}
+
