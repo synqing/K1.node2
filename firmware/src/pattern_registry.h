@@ -26,7 +26,15 @@ extern uint8_t g_current_pattern_index;
 
 // Initialize pattern system (call once in setup())
 inline void init_pattern_registry() {
-    g_current_pattern_index = 0;  // Start with first pattern
+    // Start with the first audio-reactive pattern, never a static one
+    // Fallback to index 0 only if none are audio-reactive
+    g_current_pattern_index = 0;  // default
+    for (uint8_t i = 0; i < g_num_patterns; i++) {
+        if (g_pattern_registry[i].is_audio_reactive) {
+            g_current_pattern_index = i;
+            break;
+        }
+    }
 }
 
 // Switch to pattern by index (validates bounds)

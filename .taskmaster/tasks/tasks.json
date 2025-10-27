@@ -1,5 +1,1196 @@
 {
   "master": {
-    "tasks": []
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Codebase audit and foundations confirmation",
+        "description": "Explore repository to confirm React/TypeScript app foundation, K1Client (REST/WebSocket), existing Emotiscope components, and data definitions (K1_PATTERNS, K1_PALETTES).",
+        "details": "- Inspect project structure (src, config), build tool (Vite/Webpack), and TypeScript strictness.\n- Locate K1Client implementation and confirm methods: selectPattern, updateParameters, WebSocket subscribe, discovery (if any).\n- Identify Emotiscope 2.0 components analogous to EffectSelector, EffectParameters, ColorManagement for reuse/refactor.\n- Determine global state pattern (Context, Zustand, Redux, Recoil) and app entry points (App.tsx, providers).\n- Note any API endpoints or WS URLs configured via env.\n- Outcome: a short architecture note to guide subsequent tasks.",
+        "testStrategy": "- Static analysis: run tsc --noEmit; ensure no TypeScript errors.\n- Grep for K1Client, K1_PATTERNS, K1_PALETTES to confirm presence and exported types.\n- Open key files (App.tsx, main.tsx, K1Client.ts) to verify current patterns and compatibility.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Inventory project structure and build tooling (React/TypeScript, Vite/Webpack)",
+            "description": "Scan the repository to confirm React + TypeScript foundations and identify the build tool.",
+            "dependencies": [],
+            "details": "List key files and directories (src, public, config). Identify presence of package.json, tsconfig.json, vite.config.* or webpack.*. Locate app entry (src/main.tsx or src/index.tsx) and App.tsx. Record findings for later tasks.",
+            "status": "done",
+            "testStrategy": "Use rg to list files: rg --files; search for vite.config|webpack: rg -n \"vite.config|webpack\"; verify React/TS via dependencies in package.json and entry files.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-26T21:28:22.191Z"
+          },
+          {
+            "id": 2,
+            "title": "Assess TypeScript configuration and strictness; run typecheck",
+            "description": "Determine TypeScript compiler options and strictness level; run a no-emit typecheck.",
+            "dependencies": [
+              1
+            ],
+            "details": "Open tsconfig.json to confirm strict, noImplicitAny, noUncheckedIndexedAccess, moduleResolution, and path aliases. Note any tsconfig.* extends. Execute tsc --noEmit to gauge type health and capture errors count.\n<info added on 2025-10-27T02:52:51.203Z>\nTypeScript config audit complete (k1-control-app/tsconfig.json). Confirmed: strict: true; noUnusedLocals: true; noUnusedParameters: true; noFallthroughCasesInSwitch: true; moduleResolution: bundler; jsx: react-jsx; baseUrl: .; paths: @/* → ./src/*; noImplicitAny implied by strict; noUncheckedIndexedAccess not enabled; no extends; uses project references to tsconfig.node.json (moduleResolution: bundler, composite: true). Vite alias also maps @ to ./src in vite.config.ts; vitest.config.ts mirrors alias and sets globals with setup file.\n\ntsc --noEmit (package.json script: npm run type-check) results: 102 errors. Key issues grounded in repo:\n1) styled-jsx not configured: <style jsx> blocks present in src/components/k1/K1Button.tsx, src/components/k1/K1Card.tsx, src/components/k1/K1Input.tsx, src/components/k1/K1Modal.tsx, src/components/k1/K1Toast.tsx; package.json has no styled-jsx dependency or SWC/Babel plugin. Since tailwindcss is present (src/index.css, devDependency), prefer refactor to Tailwind/CSS modules or add styled-jsx with appropriate Vite/SWC plugin.\n2) Unused variables/imports: ~40 across src; strict linting flags legit cleanup candidates.\n3) Missing/inconsistent types:\n   - telemetryManager.recordError is referenced in src/hooks/useErrorHandler.tsx, src/components/ErrorProvider.tsx, src/components/ErrorBoundary.tsx but K1TelemetryManager (src/utils/telemetry-manager.ts) does not implement recordError; add recordError(error, context) delegating to handleError or update callers to handleError.\n   - Discovery events: K1DiscoveryCallbacks (src/services/discovery-service.ts) defines onX callbacks but on/off use event strings ('devices-found', etc.). Align types by introducing an EventMap with keys 'devices-found' | 'discovery-started' | 'discovery-completed' | 'discovery-error' | 'device-updated' and overloading on/off accordingly, or rename callbacks to match keys to remove any casts.\n4) Test setup types: src/test/setup.ts uses beforeEach without import; with vitest globals enabled at runtime, TS still needs types. Fix by importing beforeEach from vitest or adding /// <reference types=\\\"vitest/globals\\\" /> and compilerOptions.types: [\\\"vitest/globals\\\"].\n5) JSX parsing: src/hooks/useAccessibility.ts verified non-JSX usage via React.createElement, avoiding .tsx requirement.\n\nRecommendations prioritized:\n- Resolve styling approach: remove styled-jsx blocks or install and configure styled-jsx for Vite/SWC; refactor is preferred given Tailwind is already integrated.\n- Implement telemetryManager.recordError or update call sites to handleError to satisfy types.\n- Fix discovery service event typings to match actual event names and remove any casts.\n- Import beforeEach in test setup or add Vitest global types; keep globals: true in vitest.config.ts.\n- Sweep unused imports/vars and re-run type-check until zero errors.\n\nSeverity: Medium. Configuration is solid; main blockers are styling plugin mismatch and a few missing/inconsistent types.\n</info added on 2025-10-27T02:52:51.203Z>",
+            "status": "done",
+            "testStrategy": "Inspect tsconfig.json and any extended configs; run `tsc --noEmit` to ensure zero or acceptable errors; note strict flags present/absent.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-26T21:30:47.790Z"
+          },
+          {
+            "id": 3,
+            "title": "Locate and verify K1Client transports and core methods",
+            "description": "Identify K1Client implementation files and confirm required methods and transports.",
+            "dependencies": [
+              1
+            ],
+            "details": "Search for K1Client and related files (e.g., K1Client.ts, transports). Verify methods: selectPattern, updateParameters, WebSocket subscribe, and discover (if available). Note REST endpoints and WS URLs used by the client.\n<info added on 2025-10-27T02:57:43.525Z>\nVerified K1Client implementation in k1-control-app/src/api/k1-client.ts (628 lines). Class-based, no singleton; named export only.\n\nCore methods and endpoints:\n- connect uses GET /api/patterns with withRetry (3 attempts, 1000ms base delay) and emits open on success (k1-control-app/src/api/k1-client.ts:75). Errors mapped via K1Error.fromUnknown.\n- getPatterns returns minimal stub (k1-control-app/src/api/k1-client.ts:329).\n- selectPattern POSTs {index: parseInt(patternId)} to /api/select and returns K1ApiResponse with pattern info (k1-control-app/src/api/k1-client.ts:346).\n- updateParameters scales 0–100 UI values to 0.0–1.0 for brightness, speed, saturation, warmth, softness, color, color_range, background, dithering, custom_param_1/2/3; passes palette_id as number; POST /api/params; then re-reads via getParameters (k1-control-app/src/api/k1-client.ts:372, 411).\n- setPalette POSTs {palette_id} to /api/params (k1-control-app/src/api/k1-client.ts:439).\n- getDeviceInfo returns mocked info when connected (k1-control-app/src/api/k1-client.ts:313).\n- disconnect cleans up WS/polling and emits close (k1-control-app/src/api/k1-client.ts:295).\n\nTransports:\n- WebSocket URL derived via buildWsUrl converting http(s) → ws(s) and appending /ws (k1-control-app/src/api/k1-client.ts:164).\n- connectWebSocket establishes WS, emits transportChanged, parses JSON frames, and emits realtimeData, performanceData, audioData; on failure/close falls back to REST (k1-control-app/src/api/k1-client.ts:216).\n- REST fallback polling at ~20Hz (50ms) via startPolling (k1-control-app/src/api/k1-client.ts:173, 176).\n- Transport helpers: setWebSocketEnabled (130), isWebSocketEnabled (150), getTransportStatus (154).\n\nEvents and errors:\n- Event API on/off/emit with events: open, close, transportChanged, realtimeData, performanceData, audioData (k1-control-app/src/api/k1-client.ts:32–48).\n- Error system in k1-control-app/src/utils/error-types.ts with codes including CONNECTION_FAILED, CONNECTION_TIMEOUT, NETWORK_ERROR; retry utility in k1-control-app/src/utils/retry.ts (exponential backoff).\n\nTypes:\n- k1-control-app/src/types/k1-types.ts defines K1Pattern, K1Parameters, K1AudioData (spectrum, chromagram, vu_level, tempo_confidence, novelty_curve), K1PerformanceData, K1RealtimeData, K1DeviceInfo, K1ApiResponse, K1EventMap, K1_DEFAULTS, K1_STORAGE_KEYS.\n\nDiscovery:\n- Static K1Client.discover(timeout) returns mock devices (k1-control-app/src/api/k1-client.ts:596) and is used by discovery service (k1-control-app/src/services/discovery-service.ts) and hook (k1-control-app/src/hooks/useAutoDiscovery.ts).\n\nIntegration notes:\n- No default export or src/services/k1-client-service.ts singleton; K1Client is constructed where needed.\n- K1Provider constructs per-endpoint instances and wires actions: new K1Client (k1-control-app/src/providers/K1Provider.tsx:311, 339), connect (316, 343), selectPattern (371, 375), updateParameters (390, 394), setPalette (409, 413).\n\nTransport endpoints confirmed:\n- REST: GET /api/patterns, GET/POST /api/params, POST /api/select\n- WebSocket: ws(s)://<endpoint>/ws\n\nRelated data sources for downstream UI:\n- Pattern and palette metadata: k1-control-app/src/api/k1-data.ts\n</info added on 2025-10-27T02:57:43.525Z>",
+            "status": "done",
+            "testStrategy": "rg -n \"K1Client|selectPattern|updateParameters|subscribe|discover|WebSocket\"; open matches to verify method signatures, params, and return types; confirm exports and default instances.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Catalog Emotiscope-like components and global state pattern",
+            "description": "Inventory components analogous to EffectSelector, EffectParameters, and ColorManagement; identify state management approach.",
+            "dependencies": [
+              1
+            ],
+            "details": "Search components for Emotiscope 2.0 analogs and related types. Determine global state (Context, Zustand, Redux, Recoil) and locate providers/stores. Identify app providers and composition in App.tsx or root layout.\n<info added on 2025-10-27T03:03:13.534Z>\nCOMPLETED: Emotiscope-like Components & State Pattern Audit\n\nGlobal State Management:\n- Pattern: React Context + useReducer (no Zustand/Redux/Recoil)\n- Provider: src/providers/K1Provider.tsx (createContext at 228, provider export at 244)\n- Context: K1Context with value { state, actions, config }\n- State shape: K1ProviderState (connection, deviceInfo, transport, reconnect, selectedPatternId, parameters, activePaletteId, lastError, errorHistory, featureFlags, telemetry, recording) in src/types/k1-types.ts:210\n- Reducer: k1Reducer with 16 actions (SET_CONNECTION_STATE, SET_DEVICE_INFO, SET_SELECTED_PATTERN, SET_PARAMETERS, UPDATE_PARAMETERS, SET_PALETTE, SET_ERROR, CLEAR_ERROR, CLEAR_ERROR_HISTORY, SET_TRANSPORT_FLAGS, SET_RECONNECT_STATE, SET_FEATURE_FLAG, INCREMENT_TELEMETRY, UPDATE_TELEMETRY, SET_RECORDING, RESET_STATE)\n- Hooks: useK1/useK1State/useK1Actions/exported in src/providers/K1Provider.tsx:582, 593, 600\n\nComponent Inventory:\n- Control (src/components/control):\n  - EffectSelector.tsx: 9 effects (analog, spectrum, octave, metronome, spectronome, hype, bloom, pulse, sparkle); lucide-react icons + tooltips\n  - EffectParameters.tsx: real-time params; uses hooks/useCoalescedParams for ~80ms coalescing; emits via actions.updateParameters\n  - ColorManagement.tsx: 4 tabs (palette, motion, manual, audio) with subcomponents:\n    - color/ColorPaletteSelector.tsx (grid + tooltip preview)\n    - color/BasicColorControls.tsx (hue/saturation/brightness sliders)\n    - color/ColorMotionControls.tsx (mode/speed/intensity)\n    - Integrates audio-reactive presets\n    - Local state: activeTab, tabOrder, colorMode, motionSpeed; persistence keys k1:v1:ui:colorTabOrder and k1:v1:ui:colorTabActive\n    - Uses useK1Actions().setPalette and useCoalescedParams().queue\n  - GlobalSettings.tsx: device-wide controls (softness, warmth, background, dithering); uses useCoalescedParams().queue\n  - StatusBar.tsx: connection status + FPS/CPU/memory mock display\n- Audio (src/components/audio):\n  - AudioPermissionHandler.tsx: microphone permission UX\n  - AudioReactivePresets.tsx: presets mapping audio features to lighting; throttled to ~30 FPS\n- Layout/Views:\n  - TopNav.tsx, Sidebar.tsx\n  - views/ControlPanelView.tsx (composes Effect/Params/Color/Global)\n  - views/DebugView.tsx, views/ProfilingView.tsx, views/TerminalView.tsx\n- Debug (src/components/debug):\n  - DebugHUD.tsx, DevDebugPanel.tsx, AudioReactiveDebug.tsx, PatternPerformanceMonitor.tsx, ParameterHistory.tsx, HMRDelayOverlay.tsx\n- Design System (src/components/k1):\n  - K1Button.tsx, K1Input.tsx, K1Card.tsx, K1Modal.tsx, K1Toast.tsx (exported via index.ts; ready for adoption)\n- Error Handling:\n  - ErrorBoundary.tsx (logs to telemetry), ErrorProvider.tsx (context + toasts), ErrorToast.tsx\n- UI Library:\n  - src/components/ui: 40+ shadcn/Radix components (button, input, card, dialog, slider, tabs, sidebar, etc.)\n\nData & Constants:\n- src/api/k1-data.ts: K1_PALETTES exported (palette definitions with gradient previews; see line ~128)\n- src/types/k1-types.ts: K1_DEFAULTS and K1_STORAGE_KEYS (PARAMS, PALETTE, PATTERN, ENDPOINT, FEATURE_FLAGS, TRANSPORT_PREFS, METADATA)\n\nHooks and Services:\n- hooks/useCoalescedParams.ts: coalesces rapid updates; default 80ms; calls actions.updateParameters\n- hooks/useErrorHandler.tsx: global error API via ErrorProvider\n- hooks/useK1Realtime.ts: subscription/polling helper (see note below)\n- hooks/useAutoDiscovery.ts + services/discovery-service.ts: mDNS/subnet hybrid discovery; K1Client.discover integration path stubbed\n- hooks/useAccessibility.ts and utils/accessibility.ts: focus/ARIA helpers\n\nData Flow Architecture:\n1) App.tsx creates K1Client on connectionIP change and wraps app in K1Provider initialEndpoint\n2) K1Provider manages state via k1Reducer and exposes actions via Context\n3) Components read state via useK1State and dispatch via useK1Actions (selectPattern, updateParameters, setPalette)\n4) K1Client transports: REST endpoints (/api/select, /api/params) and WS (/ws) with polling fallback\n5) Realtime events: K1Client emits realtimeData, performanceData, audioData\n6) Provider persistence: utils/persistence.ts saves endpoint, per-pattern params/palette using K1_STORAGE_KEYS\n7) Telemetry: utils/telemetry-manager.ts and utils/session-recorder.ts track events and recording\n8) Subscribe methods exposed in provider (subscribeRealtime/Audio/Performance; currently no-ops pending WS wiring)\n\nStorage Strategy:\n- UI preferences via localStorage (k1:v1:ui:colorTabOrder, k1:v1:ui:colorTabActive)\n- Provider persistence for endpoint, parameters, palette (utils/persistence.ts; uses K1_STORAGE_KEYS)\n- Device stores parameters; provider reloads/saves per-pattern parameters\n\nEmotiscope 2.0 Analogs:\n- EffectSelector → Pattern selection UI\n- EffectParameters → Parameter tuning interface\n- ColorManagement → Palette/color control\n- GlobalSettings → Device-wide controls\n- AudioReactiveDebug → Audio input visualization\n\nIntegration Notes:\n- State stack is pure React Context/useReducer; strongly typed via src/types/k1-types.ts\n- Design tokens applied globally (src/styles/design-tokens-v2.css; imported in src/main.tsx)\n- New K1 components (buttons, inputs, cards, modals, toasts) available for incremental migration\n- App.tsx exposes devApiBase via VITE_API_BASE; provider initialEndpoint is driven by connectionIP and persisted via utils/persistence.saveEndpoint\n\nCodebase-specific caveat:\n- hooks/useK1Realtime.ts currently destructures isConnected from useK1State (line 39), but K1ProviderState exposes connection: K1ConnectionState. Use (useK1State().connection === 'connected') or extend provider to expose an isConnected boolean for alignment.\n</info added on 2025-10-27T03:03:13.534Z>",
+            "status": "done",
+            "testStrategy": "rg -n \"EffectSelector|EffectParameters|ColorManagement|Palette|Pattern|Emotiscope\"; search for imports: rg -n \"zustand|redux|recoil|context\"; inspect App.tsx and provider files for store wiring.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Map env-configured endpoints and produce architecture note",
+            "description": "Collect API/WS endpoints from environment config and write a concise architecture note with file paths and key decisions.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Gather endpoints from .env* and config (VITE_/REACT_APP_/NEXT_PUBLIC_). Summarize build tool, TS strictness, K1Client methods/transports, component inventory, state pattern, and endpoints. Save note to docs/architecture/k1-foundations.md for downstream tasks.\n<info added on 2025-10-27T03:07:47.484Z>\nCOMPLETED: Environment Configuration and Architecture Documentation\n\nEnvironment variables found and usage:\n- VITE_K1_HMR_DELAY_MS (number) used in k1-control-app/src/providers/K1Provider.tsx:260 and k1-control-app/src/components/debug/HMRDelayOverlay.tsx:38\n- VITE_K1_DEBUG_ABORTS (boolean) used in k1-control-app/src/providers/K1Provider.tsx:262 and k1-control-app/src/utils/error-utils.ts:74\n- VITE_DEBUG_ABORTS (boolean) fallback in k1-control-app/src/providers/K1Provider.tsx:262 and k1-control-app/src/utils/error-utils.ts:75\n- VITE_API_BASE (string) used in k1-control-app/src/App.tsx:82 for dev header only\n\nConfiguration cascade verified:\n1) devConfig prop to K1Provider (debugAborts, hmrDelayMs)\n2) URL query param (debugAborts, hmrOverlay)\n3) localStorage (k1.debugAborts, k1.hmrOverlay)\n4) environment (VITE_K1_DEBUG_ABORTS or VITE_DEBUG_ABORTS, VITE_K1_HMR_DELAY_MS)\n5) default/undefined\nDebug abort routing set centrally via setAbortLoggingEnabled in K1Provider; error-utils honors the resolved state.\n\nHardcoded endpoints and ports:\n- Default device IP 192.168.1.103 in k1-control-app/src/App.tsx and as K1Provider initialEndpoint default\n- REST: /api/patterns, /api/select, /api/params (k1-control-app/src/api/k1-client.ts)\n- WebSocket: /ws constructed from http/https to ws/wss in buildWsUrl()\n- Dev server port 3000 in k1-control-app/vite.config.ts\n\nK1Client implementation aligned:\n- Dual transport: WebSocket with exponential backoff (base 500ms, cap 30000ms) and REST polling fallback at ~20Hz\n- Key methods: connect, selectPattern, updateParameters, setPalette, getTransportStatus, backupConfig, restoreConfig\n- Connection test via GET /api/patterns; realtime combined payloads over WS and polling\n\nState pattern and components:\n- React Context + useReducer with 16 action types in k1-control-app/src/providers/K1Provider.tsx\n- Component inventory captured; 80+ TSX components total with 40+ in components/ui\n\nArchitecture note created:\n- Saved to docs/architecture/k1-control-app-foundations.md as the single source of truth\n- Includes build and runtime stack, K1Client transports and retry, state management, component architecture, persistence (utils/persistence), configuration cascades, known issues (102 TypeScript errors and styled-jsx blocks noted), integration points, and Phase 2+ recommendations\n\nArtifacts ready for downstream tasks:\n- Architecture source of truth\n- API contract documented (REST endpoints and response shapes)\n- State management patterns documented\n- Component inventory and responsibilities\n- Known issues and technical debt catalog\n- Integration points and referenced type definitions\n\nNote: original target path mentioned k1-foundations.md; primary doc written to k1-control-app-foundations.md. Cross-link or alias as needed.\n</info added on 2025-10-27T03:07:47.484Z>",
+            "status": "done",
+            "testStrategy": "rg -n \"VITE_|REACT_APP_|NEXT_PUBLIC_|WS|http\" across config and source; verify usage sites. Validate note includes paths and decisions impacting Tasks 2–6.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "Explore the repo using glob/grep to locate React/TypeScript foundations, K1Client transport(s), Emotiscope-like components, state management, and env-configured endpoints. Summarize findings with file paths and key decisions affecting subsequent tasks.",
+        "updatedAt": "2025-10-26T21:30:47.790Z"
+      },
+      {
+        "id": 2,
+        "title": "K1 connection state and provider",
+        "description": "Create a centralized connection layer exposing device status, pattern, parameters, and palette with reconnection/backoff policies.",
+        "details": "- Implement `K1Provider` + `useK1()` (or align with existing store) holding: connection state (connected, connecting, disconnected), device info, selected pattern, parameters, active palette, errors.\n- Encapsulate K1Client instance and methods: connect(auto), disconnect, selectPattern(id), updateParameters(partial), setPalette(paletteId).\n- Add exponential backoff reconnect strategy (0.5s → 1s → 2s → 4s → 8s, cap 30s) with jitter; reset on success.\n- Persist last good device endpoint and last known parameters/palette in localStorage.\n- Gracefully degrade when WS unavailable: flag and route updates via REST.",
+        "testStrategy": "- Unit tests with mocked K1Client: verify action calls and state transitions.\n- Fake timers to test exponential backoff and auto-reconnect.\n- Persistence tests: simulate reload to restore device and settings.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "completed",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define K1 domain types, enums, and event map",
+            "description": "Create TypeScript models for K1 device, patterns, parameters, palettes, and connection/transport enums plus a typed client event map.",
+            "dependencies": [],
+            "details": "Introduce a types module declaring K1ConnectionState ('connected'|'connecting'|'disconnected), K1Transport ('ws'|'rest'), K1Params, K1Palette, K1Pattern, K1DeviceInfo, and K1EventMap (open, close, error, paramsUpdated, paletteUpdated, patternSelected, deviceInfoUpdated). Include JSDoc and narrow unions for safe transitions.",
+            "status": "pending",
+            "testStrategy": "Type-only tests (tsd or ts-jest) to assert event payload shapes and assignability; compile smoke test.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Select/align state container and define K1 slice contract",
+            "description": "Audit repository state management and choose integration path; formalize K1 state slice shape and actions.",
+            "dependencies": [
+              1
+            ],
+            "details": "If an app-wide store exists (e.g., Redux Toolkit, Zustand, Context+Reducer), integrate by defining a K1 slice with shape: connection, deviceInfo, selectedPatternId, params, activePaletteId, errors, featureFlags, transport, reconnectAttempt. Provide action creators/selectors and initial state aligned with repo patterns.",
+            "status": "pending",
+            "testStrategy": "Reducer/selector unit tests verifying initial state, updates for each action, and memoization (if applicable).",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement K1Provider and useK1 hook owning K1Client lifecycle",
+            "description": "Create a React provider encapsulating a single K1Client instance and exposing state and actions via a useK1 hook.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Provider constructs K1Client (optionally from last endpoint), subscribes to typed events, updates the store, and exposes connect(auto), disconnect, selectPattern(id), updateParameters(partial), setPalette(paletteId). Manage mount/unmount cleanup and guard against duplicate in-flight operations.",
+            "status": "pending",
+            "testStrategy": "React Testing Library with a mocked K1Client: assert lifecycle wiring (mount/connect/unmount), state updates on emitted events, and action method calls.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Add exponential backoff auto‑reconnect with jitter and cancellation",
+            "description": "Implement reconnect policy (0.5s→1s→2s→4s→8s, cap 30s) with ±20% jitter, reset on success, and cancellation on manual disconnect.",
+            "dependencies": [
+              3
+            ],
+            "details": "Introduce a backoff scheduler tracking attempt count; compute delay=min(30000, base*2^n) and apply random jitter band; ensure single active timer and cancel via an AbortController flag. Surface attemptCount and nextDelay in state for observability; stop when user disconnects.",
+            "status": "pending",
+            "testStrategy": "Jest fake timers to validate delay schedule within jitter bounds, reset after successful open, cancellation on manual disconnect, and no overlapping timers.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Implement WS‑preferred / REST‑fallback routing with feature flags",
+            "description": "Prefer WebSocket transport when available; gracefully route operations via REST when WS is unavailable or disabled by flags.",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Add a transport router that selects 'ws' when socket is open and allowWS flag is true; otherwise route to REST client with compatible method signatures. Track wsUnavailable/restAvailable flags and update state on transitions; ensure idempotent routing for retries and degraded features.",
+            "status": "pending",
+            "testStrategy": "Unit tests with mocked WS and REST clients toggling availability/flags; assert correct path selection and state flag transitions across failures and recoveries.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Persist endpoint and last‑known parameters/palette with rehydration",
+            "description": "Save last good endpoint and per‑pattern params/palette to localStorage and restore them during initialization.",
+            "dependencies": [
+              3,
+              5
+            ],
+            "details": "Create a persistence utility with versioned keys (e.g., k1:v1:endpoint, k1:v1:params:{patternId}, k1:v1:palette:{patternId}); validate on load, sanitize bad data, and write-through after successful updates. Rehydrate on provider init and listen to storage events for cross‑tab sync.",
+            "status": "pending",
+            "testStrategy": "Jest with jsdom localStorage: simulate saves, reload provider to verify rehydration, and dispatch storage events to confirm cross‑tab synchronization.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "Add error surfaces, classification, and telemetry hooks",
+            "description": "Unify error types, surface user‑facing messages, and add telemetry hooks for reliability metrics and diagnostics.",
+            "dependencies": [
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "Define K1Error categories (connect_error, reconnect_giveup, ws_send_error, rest_error, validation_error); centralize error creation and store lastError/recentErrorLog. Integrate toast notifications or UI indicators and expose an optional telemetry/reporting interface for attempts, outcomes, and timings.",
+            "status": "pending",
+            "testStrategy": "Unit tests that inject failures to assert error classification, state updates, toast/notification invocations, and telemetry payload contents.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 8,
+            "title": "Comprehensive unit tests with fake timers and a fully mocked K1Client",
+            "description": "Write end‑to‑end style unit tests for provider state transitions, reconnection, routing, persistence, and error handling.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "details": "Build a test‑only MockK1Client (event emitter) and use Jest fake timers with deterministic RNG for jitter. Verify connect/disconnect flows, reconnection attempts and resets, WS→REST fallback, persistence rehydration, and error/telemetry reporting. Target high coverage and deterministic timing.",
+            "status": "pending",
+            "testStrategy": "Jest + React Testing Library using modern fake timers; seed Math.random or inject jitter function for determinism; assert final store state and client call sequences.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 8,
+        "expansionPrompt": "Create subtasks for: (1) define K1 domain types and events; (2) select state container aligned with repo; (3) implement K1Provider/useK1 with lifecycle; (4) reconnect/backoff with jitter (+ tests); (5) WS vs REST routing and feature flags; (6) persistence (endpoints, params, palette); (7) error surfaces and telemetry; (8) unit tests with fake timers and mocked K1Client."
+      },
+      {
+        "id": 3,
+        "title": "Device discovery and manual connection UI",
+        "description": "Implement professional device management to discover K1 on LAN, allow manual IP entry, show status, and auto-reconnect.",
+        "details": "- Component `DeviceManager` with sections: Discovery (list), Manual Connect (IP input), Status (connected device info, firmware, uptime).\n- Discovery: use K1Client.discover() if present; otherwise probe via mDNS or lightweight subnet scan utility with timeout; deduplicate and sort by last seen.\n- Manual fallback: validate IP/host, save to localStorage, invoke provider connect.\n- Visual indicators: Connected/Connecting/Disconnected; errors with retry action.\n- Hooks into backoff from provider; auto-connect to last known device on startup.",
+        "testStrategy": "- Mock discovery returning devices and empty results; assert UI renders lists and empty state.\n- Simulate connection failures and recovery; verify status changes and retries.\n- E2E smoke: manual IP -> connected -> refresh -> auto-reconnect.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "in-progress",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement discovery abstraction with K1Client or fallback scanner",
+            "description": "Create a discovery service that prefers K1Client.discover with fallbacks.",
+            "dependencies": [],
+            "details": "Design a typed `discoverDevices()` that returns normalized device summaries. Prefer `K1Client.discover()` when available; otherwise use an mDNS or lightweight subnet probe with a bounded timeout. Include cancellation, debounce for rapid updates, and an event/observable for results.\n<info added on 2025-10-27T03:40:18.476Z>\nCOMPLETED: Implemented DeviceDiscoveryAbstraction in k1-control-app/src/services/device-discovery.ts. Prefers K1Client.discover and falls back to K1DiscoveryService.discoverDevices, with normalization and caching. Exposes discover(options) with default 300ms debounce, cancel to clear pending runs, getLastDiscovery, getCachedDevices with lastSeen sorting, setDebounceDelay, and clearCache. Normalizes to NormalizedDevice (id, name, ip, port, mac, firmware, lastSeen, discoveryMethod, rssi, discoveryCount) and returns DiscoveryResult (devices, method mdns or scan or hybrid, duration, errors, cancelled). Maintains an in-memory cache keyed by id that increments discoveryCount and tracks last seen. Provides singleton helpers getDeviceDiscovery and resetDeviceDiscovery. Integration: DeviceManager already imports getDeviceDiscovery and NormalizedDevice at k1-control-app/src/components/DeviceManager.tsx:20; you can call getDeviceDiscovery().discover({ timeout: 3000–5000 }) and render result.devices. For event-driven updates and manual device addition continue using k1-control-app/src/services/discovery-service.ts (the abstraction delegates to it on fallback). Aligned with types in k1-control-app/src/types/k1-types.ts and K1Client static discovery. Status: ready for production with no external dependencies.\n</info added on 2025-10-27T03:40:18.476Z>",
+            "status": "done",
+            "testStrategy": "Unit tests: mock K1Client.discover for success/empty/error; simulate fallback scanner with fake timers; verify normalized shape and cancellation behavior.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Scaffold DeviceManager UI with Discovery, Manual Connect, and Status panels",
+            "description": "Build the React component layout and placeholders for the device management UI.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add `DeviceManager.tsx` containing three sections: Discovery list (binds to discovery stream), Manual Connect input (IP/host field with submit), and Status panel (shows state, firmware, uptime placeholders). Include responsive layout, accessible labels, and skeleton placeholders for loading.\n<info added on 2025-10-27T03:43:42.007Z>\nENHANCED DeviceManager UI implemented in k1-control-app/src/components/DeviceManager.tsx (615 lines). Connection Status Panel shows real-time state from providers/K1Provider (useK1State/useK1Actions), renders deviceInfo (device, firmware, ip, mac, uptime, latency), surfaces lastError, and includes Disconnect. Manual Connection uses a labeled form (inputs manual-ip and manual-port) with Enter-to-submit; builds endpoint and calls actions.connect, disables during connecting, persists last endpoint via K1Provider (utils/persistence.saveEndpoint) and stores last device via hooks/useAutoDiscovery.saveLastConnectedDevice. Device Discovery integrates services/discovery-service.useDeviceDiscovery (callbacks: devices-found, discovery-started, discovery-completed), provides a Discover button with spinner, device list with last-seen and Connect, plus auto-discovery on mount via hooks/useAutoDiscovery (quick-connect suggestion and refresh); deduplication handled internally by services/device-discovery.DeviceDiscoveryAbstraction (discoveryCount tracked); clear-cache available via getDeviceDiscovery().clearCache() or discoveryService.cleanup(). Responsive grid layout (1 → 3 columns), accessible labels, keyboard submit, and visual feedback (spinners/icons). Status: enhanced and ready; uses the new discovery abstraction and prepared to integrate utils/endpoint-validation (validateEndpoint, isEndpointReachable) in Subtask 3.3.\n</info added on 2025-10-27T03:43:42.007Z>",
+            "status": "done",
+            "testStrategy": "Component smoke tests validating sections render with correct headings and roles; basic layout snapshots.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add manual IP/host validation, persistence, and connect action",
+            "description": "Validate user input, persist last entry, and trigger provider connection.",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement robust IP/hostname validation (IPv4/IPv6/hostname). Show inline errors and disable submit when invalid. On submit, persist the last successful endpoint to localStorage with timestamp and call the provider connect callback. Prevent duplicate concurrent connect attempts.\n<info added on 2025-10-27T03:47:34.467Z>\nCompleted validation utility is added at k1-control-app/src/utils/endpoint-validation.ts:1. Integrate it into manual connect by importing validateEndpoint, isEndpointReachable, and sanitizeEndpointForDisplay in k1-control-app/src/components/DeviceManager.tsx:12. In ManualConnectPanel (k1-control-app/src/components/DeviceManager.tsx:430), add local state for endpointError and isValid; on IP or Port change, build a candidate string as follows: if manualIp includes “:” and does not start with “[”, wrap it with brackets before appending the port (e.g., `[${manualIp}]`), then compose `${maybeBracketedIp}${manualPort ? ':' + manualPort : ''}` and call validateEndpoint(candidate). Render endpointError inline under the IP field using the returned error string and disable the Connect button when !isValid or k1State.connection === 'connecting' (update the existing disabled expression at k1-control-app/src/components/DeviceManager.tsx:487). In handleManualConnect (k1-control-app/src/components/DeviceManager.tsx:94), guard against duplicate attempts by early-returning when k1State.connection === 'connecting'; re-run validateEndpoint on submit and use result.normalizedEndpoint with k1Actions.connect(result.normalizedEndpoint). After a successful connect, persist to localStorage: keep compatibility by continuing to rely on K1Provider’s saveEndpoint call (k1-control-app/src/providers/K1Provider.tsx:320, k1-control-app/src/providers/K1Provider.tsx:349) which writes to K1_STORAGE_KEYS.ENDPOINT (k1-control-app/src/types/k1-types.ts:333), and additionally write a timestamp under k1:v1:endpoint:ts via localStorage.setItem('k1:v1:endpoint:ts', String(Date.now())). Optionally, perform a non-blocking preflight check with isEndpointReachable(result.normalizedEndpoint, 1500) to show a soft “Device not reachable” inline hint without blocking submit. To deduplicate validation logic, update k1-control-app/src/utils/persistence.ts:221 to import and use validateEndpoint from k1-control-app/src/utils/endpoint-validation.ts for normalization rather than its internal regex, keeping the stored value as the normalized endpoint string. Add tests in k1-control-app/src/test/DeviceManager.test.tsx to assert: invalid inputs show the specific messages from endpoint-validation (e.g., “Invalid port number: …”), IPv6 bracket handling disables submit until valid, and submit remains disabled while connecting.\n</info added on 2025-10-27T03:47:34.467Z>",
+            "status": "done",
+            "testStrategy": "Unit tests for validation edge cases, persistence to localStorage, and button enable/disable logic; ensure connect is called with sanitized endpoint.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Wire provider connect/disconnect and auto-reconnect/backoff integration",
+            "description": "Connect UI to K1Provider, reflect statuses, and enable auto-reconnect.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Use `useK1()` (or equivalent) to read `connected/connecting/error` and call `connect`/`disconnect`. On mount, auto-connect to the last known device with exponential backoff and jitter from the provider. Reset backoff on success and clean up subscriptions/effects on unmount.",
+            "status": "in-progress",
+            "testStrategy": "Integration tests with mocked provider and fake timers to verify backoff schedule, auto-connect on reload, and state transitions (connecting→connected→disconnected).",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Implement error states, retry UX, and visual status indicators",
+            "description": "Show statuses and actionable error feedback with a retry control.",
+            "dependencies": [
+              2,
+              4
+            ],
+            "details": "Add clear visual indicators: badges/spinner for Connecting, success state for Connected, and a prominent Disconnected state. Display provider error messages safely with a Retry action that re-invokes connect. Disable conflicting actions while connecting and ensure keyboard-accessible controls.",
+            "status": "pending",
+            "testStrategy": "Component tests simulating provider errors to verify indicators, error messages, and Retry triggering connect; confirm disabled states during in-flight operations.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Deduplicate and sort discovered devices by last seen time",
+            "description": "Merge duplicates and order the discovery list by most recent activity.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Introduce a normalization layer that keys devices by stable identifier (ip/deviceId), merges fields, tracks `lastSeen`, and sorts descending by recency. Debounce list updates to avoid UI thrash, cap list size, and expose utilities to format relative timestamps for display.",
+            "status": "pending",
+            "testStrategy": "Unit tests ensuring duplicates collapse correctly and sorting updates when `lastSeen` changes; component test verifying list renders in expected order.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "Tests for discovery states, manual connect recovery, and auto-reconnect",
+            "description": "End-to-end-like tests covering empty discovery, failures, retries, and recovery.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "Use React Testing Library + Jest with mocked K1Client and provider. Scenarios: empty discovery → manual connect fail → retry success, discovery device connect success, refresh triggers auto-reconnect to last device. Assert UI states, persistence usage, and backoff-driven retries.",
+            "status": "pending",
+            "testStrategy": "E2E-style component tests with mocked network/provider and fake timers; verify state transitions, persistence, and retry flows; minimal snapshots for structure only.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 7,
+        "expansionPrompt": "Split into: (1) discovery abstraction (prefer K1Client.discover or stub), (2) DeviceManager UI scaffolding, (3) manual IP validation and storage, (4) provider connect/autoreconnect wiring, (5) error/retry UX and statuses, (6) dedupe/sort by last seen, (7) tests for discovery states and recovery paths."
+      },
+      {
+        "id": 4,
+        "title": "PatternSelector grid (11 patterns)",
+        "description": "Replace Emotiscope EffectSelector with K1 PatternSelector showing categories, icons, descriptions, and fast one-click activation.",
+        "details": "- Use K1_PATTERNS: {id, name, category: Static|Audio-Reactive|Beat-Reactive, icon, description}.\n- Grid grouped by category with section headers; accessible keyboard navigation; tooltips.\n- On click: optimistic activate (UI highlight), call `K1Client.selectPattern(id)`, rollback on error; show inline loading for selected card.\n- Prevent duplicate requests while in-flight; ensure activation <2s end-to-end.\n- Style for professional look (consistent spacing, contrast, focus, hover states).",
+        "testStrategy": "- Component tests: renders 11 patterns, grouped by categories; click triggers selectPattern with correct id.\n- Error simulation: server error rolls back selection and shows toast.\n- Interaction perf: keep render work under 16ms/frame while navigating.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define K1 pattern data types and category grouping utilities",
+            "description": "Create TypeScript types and helpers to group 11 patterns by category.",
+            "dependencies": [],
+            "details": "Introduce a Pattern type mirroring K1_PATTERNS ({id, name, category, icon, description}); define a Category union; add pure functions to group patterns by category and stable-sort by name; export ID lookup helpers for UI rendering.",
+            "status": "pending",
+            "testStrategy": "Unit tests validating grouping counts, order stability, and ID lookups for known samples.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Build PatternSelector grid UI with accessible navigation and tooltips",
+            "description": "Render grouped sections with headers and pattern cards including icons, names, and descriptions, with keyboard support.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement a React PatternSelector component: render sections with semantic headers and a grid/list role; each pattern card is a focusable button with aria-label and tooltip on hover/focus; support arrow keys, Home/End for moving focus within the grid; ensure tab order and focus management integrate with the app.",
+            "status": "pending",
+            "testStrategy": "RTL asserts 11 cards render under correct headers; keyboard navigation moves focus predictably; tooltips appear on hover/focus.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add optimistic selection state and in-flight request guard",
+            "description": "On card click, optimistically highlight selection and block duplicate requests while pending.",
+            "dependencies": [
+              2
+            ],
+            "details": "Manage local state: previousActiveId, activeId, pendingId; on click, if pendingId exists or clicked equals pendingId, ignore; otherwise set pendingId and visually mark selected card with inline loading indicator; finalize activeId on success handler; ensure re-entrancy guards prevent rapid double activation.",
+            "status": "pending",
+            "testStrategy": "Simulate rapid double-clicks; verify only one request issues, spinner shows during pending, and selection commits once resolved.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Wire K1Client.selectPattern with rollback, timeout, and abort",
+            "description": "Call client API with a 2s budget and revert optimistic UI on failure or timeout.",
+            "dependencies": [
+              3
+            ],
+            "details": "Integrate K1Client.selectPattern(id) wrapped with a 2s timeout; on success clear pending; on error/timeout restore previousActiveId, clear pending, and show user feedback (toast/inline error); use AbortController or a cancellable token to abort outdated requests when the user selects a different card.",
+            "status": "pending",
+            "testStrategy": "Mock successes, failures, and timeouts: ensure rollback occurs, error surfaced, and outdated requests get aborted without clobbering state.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Polish styling, focus/hover states, and responsive layout",
+            "description": "Apply professional styles: spacing, contrast, focus rings, hover/press feedback, and responsive columns.",
+            "dependencies": [
+              2,
+              4
+            ],
+            "details": "Use design tokens or CSS variables; implement consistent spacing scale, card elevation, and shadows; ensure 4.5:1 text contrast, 2px high-visibility focus ring; hover and pressed states with motion-safe transitions; responsive grid breakpoints; loading overlay for the pending card; ensure reduced-motion preference is respected.",
+            "status": "pending",
+            "testStrategy": "A11y checks for contrast/focus visibility; snapshot tests for hover/focus/loading states; viewport-based assertions for responsive column counts.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Add component tests, error simulations, and perf checks",
+            "description": "Cover rendering, interactions, rollbacks, duplicate-guard behavior, and basic performance expectations.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "details": "Write comprehensive component tests: renders 11 patterns grouped by category; clicking a card calls selectPattern with correct id; simulate server error/timeout to verify rollback and re-enable interactions; verify duplicate clicks are ignored while pending; include simple performance assertions (profiling or fake timers) to keep interaction work under ~16ms/frame.",
+            "status": "pending",
+            "testStrategy": "End-to-end component tests via RTL with mocked K1Client; timed interactions using fake timers; include axe checks for roles/labels.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 6,
+        "expansionPrompt": "Plan: (1) pattern data model + grouping; (2) grid UI with a11y/keyboard; (3) optimistic select + in-flight guard; (4) service call + rollback on error; (5) professional styling and focus/hover; (6) component tests and error simulations."
+      },
+      {
+        "id": 5,
+        "title": "Real-time parameter controls (<100ms)",
+        "description": "Implement six 0–100% sliders (brightness, speed, saturation, warmth, softness, background) with numeric readouts, debounce/coalescing, reset, and persistence.",
+        "details": "- Slider component: high-perf (e.g., Radix Slider); step=1; value labels; keyboard accessible.\n- Debounce: leading-edge send immediately; trailing consolidation at ~80ms; coalesce rapid changes into a single payload `{brightness, speed, ...}`.\n- Transport: prefer WS parameter channel; fallback to REST `updateParameters`.\n- Persist per-pattern parameter values in localStorage; `Reset` button restores defaults for current pattern.\n- Pseudo:\n  const pending = useRef<Partial<Params>>({});\n  function onChange(key,v){ setUI(key,v); pending.current[key]=v; scheduleSend(); }\n  function scheduleSend(){ rafThrottle+setTimeout(send,80); }\n  async function send(){ if(!pending) return; const body={...current, ...pending}; pending={}; await K1Client.updateParameters(body); }",
+        "testStrategy": "- Timer-based unit tests: during rapid slider drags, assert <=2 API calls per 500ms and first call within ~100ms.\n- Verify per-pattern persistence on pattern switch and reload.\n- Use React Profiler to confirm smooth 60fps while dragging.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define Params schema/types and defaults (0–100%) for six controls",
+            "description": "Create a typed Params model and safe defaults for all sliders.",
+            "dependencies": [],
+            "details": "Add a TypeScript Params interface {brightness,speed,saturation,warmth,softness,background:number}. Provide DEFAULT_PARAMS with 0–100 values, clamp helpers, and formatting utilities for numeric readouts. Include mergeParams(current,pending) to coalesce partials and ensure step=1, min=0, max=100.",
+            "status": "pending",
+            "testStrategy": "Unit tests validate defaults, clamping at 0/100, and mergeParams correctness.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Build high‑performance, accessible slider components with numeric readouts",
+            "description": "Implement reusable sliders with step=1, labels, and keyboard support.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create ParamSlider (Radix Slider or custom) with 0–100 range, step=1, live percentage readout, and aria labels. Optimize re-renders via React.memo and value-only props, use pointer events for smooth drag, and expose onChange/onCommit callbacks compatible with coalescing logic.",
+            "status": "pending",
+            "testStrategy": "Component tests for keyboard and pointer interactions, readout accuracy, and accessibility roles/aria.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement debounce/coalescing utilities with leading/trailing behavior (~80ms)",
+            "description": "Create timing utilities to send immediately then consolidate updates.",
+            "dependencies": [
+              1
+            ],
+            "details": "Provide useCoalescedParamsSender with pendingRef to store partial updates. On first change, send immediately (leading edge); subsequently coalesce rapid changes and dispatch one trailing send after ~80ms using raf throttle + setTimeout. Expose scheduleSend, flush, and teardown on unmount to avoid leaks.",
+            "status": "pending",
+            "testStrategy": "Fake‑timer tests verify immediate first call, trailing consolidation, and merged payloads.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Add WS/REST transport bridge for parameter updates with fallback",
+            "description": "Route coalesced payloads over WS when available, else REST.",
+            "dependencies": [
+              1,
+              3
+            ],
+            "details": "Implement sendParameters(body) that prefers an open WS parameter channel and falls back to K1Client.updateParameters REST. Handle connection state, in‑flight dedupe, simple retry/backoff on transient errors, and map payload from Params precisely. Emit success/error signals to callers.",
+            "status": "pending",
+            "testStrategy": "Mock WS open/closed to assert selection of channel; verify REST fallback and payload integrity on both paths.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Per‑pattern persistence and Reset to defaults via localStorage",
+            "description": "Persist values per pattern and provide a Reset action.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create usePatternParamsPersistence keyed as k1:params:{patternId}. On pattern switch, load saved values or DEFAULT_PARAMS. Save on commit/end of drag. Implement Reset to restore defaults for current pattern and re‑render sliders and store state accordingly.",
+            "status": "pending",
+            "testStrategy": "Tests simulate pattern switch, reload, and Reset; assert values load/save correctly and revert to defaults.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Provider/store binding to wire sliders, coalescer, persistence, and transport",
+            "description": "Integrate UI with state store and sending pipeline.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "details": "Introduce ParametersProvider or extend existing store to hold current Params and patternId. Wire ParamSlider onChange to update UI state immediately and scheduleSend, and onCommit to persist. Ensure a single source of truth, minimal re-renders, and correct handoff to sendParameters.",
+            "status": "pending",
+            "testStrategy": "Integration tests with mocked K1Client assert store updates, scheduled sends, and persistence calls occur as expected.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "Profiling hooks for render cost, FPS, and send latency",
+            "description": "Add lightweight telemetry for performance visibility during drags.",
+            "dependencies": [
+              3,
+              4,
+              6
+            ],
+            "details": "Add React Profiler around sliders and parameter panel. Use performance.mark/measure around sendParameters for RTT. Include a dev‑only RAF-based FPS sampler during active drags. Surface metrics in console/dev overlay to confirm <100ms first send and smooth 60fps.",
+            "status": "pending",
+            "testStrategy": "Manual/dev tests using Profiler output and logged measures; verify no measurable jank while dragging.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 8,
+            "title": "Timer‑based integration tests for call rate, latency, and persistence",
+            "description": "Verify end‑to‑end behavior meets latency and coalescing goals.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "details": "Write tests simulating rapid drag sequences with fake timers: assert first outbound call occurs within ~100ms and no more than two calls per 500ms window with merged payloads. Validate per‑pattern persistence on switch and reload, and Reset restoring defaults.",
+            "status": "pending",
+            "testStrategy": "Jest + @testing-library with fake timers; assert outbound call timing/counts, payload coalescing, persistence load/save, and Reset behavior.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 8,
+        "expansionPrompt": "Define: (1) params schema/defaults; (2) perf slider components; (3) debounce/coalescing utilities with leading/trailing behavior; (4) WS/REST bridge; (5) per-pattern persistence and reset; (6) provider/store binding; (7) profiling hooks; (8) timer-based unit tests verifying call rate and latency."
+      },
+      {
+        "id": 6,
+        "title": "Palette selection (33 palettes) with search/filter",
+        "description": "Expand ColorManagement to present a searchable, categorized grid of 33 palettes with gradient previews and instant LED updates via palette_id.",
+        "details": "- Use K1_PALETTES: {id, name, category, swatches[]}.\n- Display cards with CSS linear-gradient preview; indicate selected palette.\n- Search input filters by name; category chips filter by warm/cool/vibrant/vintage/artistic.\n- On select: call parameter update with `{palette_id}`; update UI; fallback REST if WS absent.\n- Remember last palette per pattern; aria-live for selection confirmations.",
+        "testStrategy": "- Unit tests for search/filter logic and selection state.\n- DOM style assertions that preview gradients include expected color stops.\n- Error path: simulate update failure -> revert active palette and show toast.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define palette types, constants, and 33-item fixtures",
+            "description": "Create strict types and add the full K1_PALETTES fixture with 33 entries.",
+            "dependencies": [],
+            "details": "Introduce TypeScript interfaces (Palette, PaletteCategory, Swatch), enumerate categories warm|cool|vibrant|vintage|artistic, and export K1_PALETTES: {id, name, category, swatches[]}. Add a gradient util that builds CSS linear-gradient from swatches, and validate uniqueness of ids and minimal swatch count.",
+            "status": "pending",
+            "testStrategy": "Unit tests for type guard/validator, uniqueness of ids, and gradient util producing expected CSS strings for sample palettes.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Build searchable, filterable PaletteGrid with gradient previews",
+            "description": "Implement a responsive grid with search and category filters.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a React PaletteGrid component rendering cards with gradient previews via inline CSS. Add a search input (case-insensitive, debounced) and chip filters for categories. Support controlled selection via selectedPaletteId prop and onSelect callback, display selected state, and ensure responsive layout for 33 items.",
+            "status": "pending",
+            "testStrategy": "Component tests to assert search matches by name, chip filters by category, gradient preview style includes expected color stops, and selected card reflects state.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement selection state and per-pattern persistence",
+            "description": "Remember last selected palette per pattern and restore on load.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "In ColorManagement, manage selected palette state keyed by current patternId. Persist to localStorage (e.g., k1:pattern:{id}:palette_id) on change and read on mount or pattern switch. Provide helpers getPersistedPalette(patternId) and setPersistedPalette(patternId, paletteId) and keep UI in sync.",
+            "status": "pending",
+            "testStrategy": "Unit tests with mocked localStorage: select palette -> stored; switch pattern -> different selection; reload -> restores last palette for each pattern.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Integrate provider updates with WS primary and REST fallback",
+            "description": "Send palette_id updates to device with optimistic UI and rollback.",
+            "dependencies": [
+              3
+            ],
+            "details": "Wire onSelect to call provider setPalette(paletteId) using WS channel when available and fallback to REST (e.g., updateParameters({palette_id})). Show inline loading and prevent duplicate in-flight requests. On failure, revert UI to previous palette, revert persistence, and show toast. Add timeout and error handling with clear user feedback.",
+            "status": "pending",
+            "testStrategy": "Mock provider to force WS success, WS absence -> REST path, and failures. Assert correct method chosen, optimistic UI applied, and rollback + toast on error with previous selection restored.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Add a11y announcements and full keyboard support",
+            "description": "Provide aria-live confirmations and robust keyboard navigation.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Add an aria-live=polite region that announces palette selection (name and category). Implement roving tabindex and arrow-key navigation across grid items, with Enter/Space to select. Apply appropriate roles/attributes (e.g., grid/gridcell or listbox/option), aria-selected on active, labeled search input and chip buttons with pressed state.",
+            "status": "pending",
+            "testStrategy": "Keyboard interaction tests: arrow navigation moves focus predictably; Enter/Space selects; aria-selected updates; aria-live text updates on selection; search and chips are reachable and labeled.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Author tests for filters, CSS styles, persistence, and rollback",
+            "description": "Cover filter logic, gradient styles, persistence, and error recovery.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "details": "Create comprehensive Jest/RTL tests: case-insensitive search and category filtering; DOM style matchers verifying linear-gradient contains swatch colors in order; per-pattern persistence across pattern switches and reload; provider error sim causing UI/persistence rollback and toast; aria-live announcement content assertions.",
+            "status": "pending",
+            "testStrategy": "Component and unit tests with RTL and fake timers where needed; mock provider and storage; verify DOM styles via getComputedStyle or style attribute; assert rollback behavior and announcement text.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 6,
+        "expansionPrompt": "Break into: (1) palette data/types/fixtures; (2) searchable/filterable grid with gradient previews; (3) selection and persistence per-pattern; (4) provider integration and WS/REST update; (5) a11y announcements; (6) tests for filter logic, DOM styles, and error rollback."
+      },
+      {
+        "id": 7,
+        "title": "Realtime LED visualization (virtual 180 LEDs)",
+        "description": "Create a live preview with center-origin mirroring, fed by WebSocket LED data, with zoom/pan controls.",
+        "details": "- WebSocket: subscribe via K1Client; define frame type: Uint8Array RGB or packed; handle backpressure (drop old frames if lagging).\n- Render: Canvas/WebGL loop using requestAnimationFrame; map 180 indices to mirrored positions around center; efficient batched draws.\n- Controls: wheel to zoom, drag to pan; pause/resume stream toggle; FPS monitor.\n- Fallback: simulated preview using last parameters at reduced FPS when WS unavailable.\n- Isolate rendering from React state to avoid re-renders.",
+        "testStrategy": "- Unit tests for index↔position mapping and mirroring math.\n- Mock WS feed to push frames; assert no memory growth over time and stable FPS >=60.\n- Visual regression snapshot of initial layout and disabled state.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define WebSocket frame protocol and K1Client subscription API",
+            "description": "Specify binary frame format and create the subscription API to receive LED frames from K1 over WebSocket.",
+            "dependencies": [],
+            "details": "Define a fixed-length 540-byte RGB frame (180 LEDs × 3 bytes) with optional small header for version/type; create TypeScript types and a `subscribeLedFrames(client: K1Client)` helper that sets `binaryType='arraybuffer'`, validates frame length/type, exposes `start()`, `stop()`, and `onFrame` registration, handles heartbeat/ping and basic reconnect hooks, and surfaces errors via events.",
+            "status": "pending",
+            "testStrategy": "Unit tests with a mocked K1Client: feed valid/invalid ArrayBuffers, assert decoding, validation, and reconnect callbacks fire as expected.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement index↔position mapping with center-origin mirroring for 180 LEDs",
+            "description": "Provide pure mapping utilities that produce 2D positions for each LED index and allow reverse lookup, ensuring symmetry around the center.",
+            "dependencies": [],
+            "details": "Implement `computePositions(count=180, radius, center)` generating precomputed Float32Array x/y buffers on a circle/arc; ensure central axis at 89.5 yields mirrored positions (i and 179−i); add `indexMirror(i)` and `indexToPos(i)` helpers, plus `posToIndex(x,y)` with nearest-neighbor snapping; expose parameters for spacing, angle offset, and orientation (CW/CCW); no React dependencies.",
+            "status": "pending",
+            "testStrategy": "Property tests for mirror invariants (distance and angle symmetry), round-trip checks for representative indices, and bounds/parameter validation.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Build decoupled Canvas/WebGL render engine and draw pipeline",
+            "description": "Create a renderer class that draws LED frames on a canvas using requestAnimationFrame, independent of React state.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create `LedPreviewRenderer(canvas, positions, getLatestFrame)` using Canvas2D initially (WebGL-ready API surface), batching circle draws via a single path per frame; compute colors from the latest frame without allocations; support start/stop, resize, and `setTransform(zoom, pan)`; keep internal state and DOM event binding isolated from React to avoid component re-renders.",
+            "status": "pending",
+            "testStrategy": "Render to an OffscreenCanvas in tests, feed synthetic frames, and assert no thrown errors, stable timing callbacks, and correct pixel updates at a few sampling points.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Integrate backpressure handling with frame queue and drop-oldest policy",
+            "description": "Prevent lag by buffering only the most recent frames and dropping stale ones when the consumer cannot keep up.",
+            "dependencies": [
+              1,
+              3
+            ],
+            "details": "Implement a lock-free `FrameQueue` with capacity 2–3 that keeps the latest ArrayBuffer/Uint8Array; `push()` overwrites oldest when full; renderer's rAF loop calls `popLatest()`; maintain counters (received, rendered, dropped) for stats; reuse preallocated buffers to prevent GC churn; document and expose drop policy control.",
+            "status": "pending",
+            "testStrategy": "Use fake timers to push frames at 120fps and render at 60fps; assert the queue stays bounded, latest frame is rendered, and drop counters match expectations.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Add zoom, pan, and pause/resume controls on the canvas",
+            "description": "Implement wheel-to-zoom around cursor, drag-to-pan interactions, and a toggle to pause/resume frame consumption.",
+            "dependencies": [
+              3
+            ],
+            "details": "Attach pointer/wheel listeners to the canvas; implement clamped exponential zoom with focus at cursor; pan via pointer capture with inertia disabled; maintain a transform matrix and apply it during draw; add `pause()`/`resume()` that halts consumption but keeps UI responsive; persist last viewport in localStorage.",
+            "status": "pending",
+            "testStrategy": "Simulate wheel and drag events; assert transform changes, clamping, and that paused state freezes frame index while interactions still update viewport.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Implement FPS and stats overlay (render, drop, memory)",
+            "description": "Display real-time metrics including FPS, received/rendered/dropped frames, and approximate memory usage.",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Add a lightweight overlay layer rendered via a small HUD canvas or DOM element; compute FPS with a sliding window; read counters from `FrameQueue`; sample memory via `performance.memory` when available; expose `toggleStats()` and styling that avoids impacting main render performance.",
+            "status": "pending",
+            "testStrategy": "Use fake timers to achieve deterministic FPS; assert overlay updates at ~1 Hz, counters increment correctly, and rendering cost stays below a configured threshold.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "Provide simulated fallback renderer when WebSocket is unavailable",
+            "description": "Generate synthetic frames at reduced FPS using last-known parameters to keep the preview usable during disconnects.",
+            "dependencies": [
+              1,
+              3,
+              4
+            ],
+            "details": "Implement a `SimulatedSource` that emits Uint8Array RGB frames (e.g., gradient, comet, noise) at 20–30fps; auto-switch when WS not connected and revert when it reconnects; reuse the same `FrameQueue` and renderer; parameterize patterns and seed with last known settings; ensure teardown frees timers.",
+            "status": "pending",
+            "testStrategy": "Force WS offline in mocks; assert fallback starts, frames are rendered at target FPS, and auto-recovery switches back to WS without leaks.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 8,
+            "title": "Add performance and memory guards, pooling, and lifecycle cleanup",
+            "description": "Harden the system against leaks and jank with buffer pooling, visibility throttling, and thorough cleanup.",
+            "dependencies": [
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "details": "Introduce typed-array pooling for frame buffers, avoid per-frame allocations, and clamp max zoom/pan; pause rAF when tab is hidden via Page Visibility; throttle expensive overlay updates; ensure all event listeners, timers, and rAF handles are cleaned up on dispose; add asserts/guards for unexpected frame sizes.",
+            "status": "pending",
+            "testStrategy": "Long-running test with synthetic frames over minutes using jsdom fake timers; assert memory snapshot deltas are small, no listener leaks, and rAF stops/starts on visibility toggles.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 9,
+            "title": "Write unit and integration tests for mapping and stream stability",
+            "description": "Cover mapping math correctness and verify end-to-end stream stability under load and during pause/fallback.",
+            "dependencies": [
+              2,
+              4,
+              7,
+              8
+            ],
+            "details": "Add Jest tests for mirror invariants and round-trips; stress-test `FrameQueue` under bursty input with fake timers; exercise pause/resume and fallback transitions; include a visual snapshot of initial layout via simple pixel probes to catch regressions.",
+            "status": "pending",
+            "testStrategy": "Property-based tests for mapping and deterministic timer-driven integration tests to validate no unbounded memory growth and stable rendering cadence.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 9,
+        "expansionPrompt": "Create: (1) frame protocol and WS subscription; (2) render engine (Canvas/WebGL) decoupled from React; (3) index↔position mapping with mirroring; (4) backpressure/drop strategy; (5) zoom/pan controls; (6) FPS/stats overlay; (7) simulated fallback renderer; (8) perf/memory guards; (9) unit tests for mapping and stream stability."
+      },
+      {
+        "id": 8,
+        "title": "Audio dashboard (spectrum, beat, VU, chromagram)",
+        "description": "Add Web Audio-based visualization: 64-bin spectrum, beat indicators with tempo confidence, VU meters, mic gain control, and chromagram.",
+        "details": "- Setup: getUserMedia(mic); AudioContext; AnalyserNode (fftSize 2048); smoothTimeConstant tuned for responsiveness.\n- Spectrum: aggregate frequency data to 64 bins; draw bars with Canvas; animate at rAF.\n- Beat detection: energy-based over sub-bass/bass bands with adaptive threshold; compute tempo estimate and confidence.\n- VU: compute RMS from time-domain; stereo if available; gain control via GainNode UI slider.\n- Chromagram: constant-Q approximation or tuned filterbank across 12 semitones x octaves; ensure CPU <20%; update ~30fps.\n- Graceful fallback if mic perm denied: show instructions and disable features.",
+        "testStrategy": "- DSP unit tests for RMS, binning, beat detection using synthetic test tones/impulses.\n- Permission handling tests simulate denied/allowed paths.\n- Perf profiling to maintain 60fps spectrum and stable CPU usage.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Microphone capture and permission handling module",
+            "description": "Implement mic capture via getUserMedia with clear permission flow and robust error handling.",
+            "dependencies": [],
+            "details": "Create a capture service that requests an audio stream with sensible constraints; track permission states (prompt, granted, denied); create/resume AudioContext on user gesture; normalize and surface errors; provide disposal and retry hooks.",
+            "status": "pending",
+            "testStrategy": "Mock navigator.mediaDevices.getUserMedia to return a MediaStream or throw NotAllowedError/NotFoundError; verify state transitions, retries, and teardown; snapshot fallback messages.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Audio graph setup: AudioContext, MediaStreamSource, AnalyserNode, GainNode",
+            "description": "Build the Web Audio graph and expose analyzers for frequency and time-domain data.",
+            "dependencies": [
+              1
+            ],
+            "details": "Instantiate the AudioContext lazily; wire MediaStreamSource → pre-GainNode → AnalyserNode (fftSize=2048, smoothingTimeConstant tuned 0.6–0.8); expose typed buffers for frequency/time data; split channels if stereo; ensure proper cleanup and reconnection.",
+            "status": "pending",
+            "testStrategy": "Use Web Audio shims/mocks to assert node creation order, analyser properties (fftSize, smoothing), and that disconnect/close tears down nodes cleanly.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "64-bin spectrum aggregation",
+            "description": "Aggregate raw FFT magnitude bins into a stable 64-bin spectrum for rendering.",
+            "dependencies": [
+              2
+            ],
+            "details": "Precompute 64 target bin edges (linear or logarithmic) from frequencyBinCount and sampleRate; map source bins to targets with energy-preserving sums/averages; add per-bin EMA smoothing and noise floor clamping; reuse typed arrays to avoid GC.",
+            "status": "pending",
+            "testStrategy": "Feed synthetic FFT arrays with single-bin impulses and assert a single peak in the expected 64-bin index; verify linear vs log modes; confirm energy conservation within tolerance and no buffer churn.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Canvas renderer and animation loop",
+            "description": "Render spectrum bars and overlays in a high-DPI Canvas at 60 fps.",
+            "dependencies": [
+              3
+            ],
+            "details": "Create a high-DPI Canvas and rAF loop; draw 64 bars with gradients, axes, and labels; expose hooks for beat/VU overlays; throttle using Page Visibility; avoid React re-renders via imperative ref; support OffscreenCanvas when available.",
+            "status": "pending",
+            "testStrategy": "Use OffscreenCanvas for pixel sampling to verify bar positions and colors; snapshot initial layout; mock visibility change to confirm the loop pauses/resumes.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Beat detection and tempo/confidence computation",
+            "description": "Detect beats using bass-band energy with adaptive thresholds; estimate BPM and confidence.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Compute band-limited energy from 64-bin groups (sub-bass and bass); apply adaptive threshold using rolling mean/variance; detect onsets, build IOI histogram (60–180 BPM), select tempo peak, and compute normalized confidence; output beat flag and tempo/confidence.",
+            "status": "pending",
+            "testStrategy": "Generate 120 BPM impulse trains and expect 118–122 BPM with high confidence; add noise to verify confidence decreases appropriately; ensure constant tones do not produce beats.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "VU meters and RMS computation (stereo-aware)",
+            "description": "Compute calibrated RMS from time-domain buffers and render VU with ballistic smoothing.",
+            "dependencies": [
+              2,
+              4
+            ],
+            "details": "Read time-domain samples per channel; compute RMS and convert to dBFS; apply attack (~10 ms) and release (~300 ms) smoothing with peak hold; detect mono/stereo via channel splitter; render meters using the renderer API with left/right scales.",
+            "status": "pending",
+            "testStrategy": "Feed known sine amplitudes and verify dBFS (e.g., sine amplitude 0.5 ≈ -9.03 dBFS RMS); test stereo paths; validate envelope timing using fake timers.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "Mic gain control UI and GainNode integration",
+            "description": "Add accessible UI to control mic gain with decibel scale and persistence.",
+            "dependencies": [
+              2
+            ],
+            "details": "Provide an accessible slider/knob controlling the pre-GainNode; show -24 to +24 dB scale mapped to linear gain; smooth updates with setTargetAtTime; persist the last value; support keyboard input and aria-live announcements; keep meters in sync.",
+            "status": "pending",
+            "testStrategy": "Simulate UI input and assert GainNode.gain.value changes correctly; verify persisted value reload; check focus order and keyboard operability.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 8,
+            "title": "Chromagram computation and heatmap visualization (optimized)",
+            "description": "Compute a 12xN chromagram using constant-Q/filterbank and draw a scrolling heatmap near 30 fps.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Precompute filterbank kernels for 12 pitch classes across octaves and project FFT magnitudes; normalize per-frame and across time; pool across octaves; reuse typed arrays; draw a rolling heatmap; decimate updates to maintain CPU <20%; allow disabling when under load.",
+            "status": "pending",
+            "testStrategy": "Use synthetic tones (e.g., A4, C#3) to assert the correct pitch-class peaks within tolerance; measure update cadence and ensure it remains near 30 fps on sample data.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 9,
+            "title": "Permission-denied UX and graceful fallback",
+            "description": "Show clear guidance and safe UI state when microphone permission is denied.",
+            "dependencies": [
+              1
+            ],
+            "details": "Detect denial and present instructions, a retry button, and a link to browser help; disable visualizers/controls; optionally enable a demo mode with simulated data; ensure states revert once permission is granted.",
+            "status": "pending",
+            "testStrategy": "E2E: mock denial to verify instructions and disabled features; confirm retry re-invokes capture flow; perform a11y checks for focus order and ARIA labeling.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 10,
+            "title": "DSP unit tests and fixtures",
+            "description": "Create fixtures and unit tests for RMS, binning, beat detection, and chromagram.",
+            "dependencies": [
+              2,
+              3,
+              4,
+              5,
+              7,
+              8
+            ],
+            "details": "Prepare synthetic fixtures (sines at known amplitudes, impulse trains for tempos, pink noise); implement Jest tests for RMS dBFS, 64-bin mapping, beat BPM estimation with confidence, and chromagram pitch-class mapping; mock Web Audio where needed; wire into CI with thresholds.",
+            "status": "pending",
+            "testStrategy": "Run deterministic unit tests on fixtures with numeric tolerances; enforce coverage thresholds on DSP helpers; include regressions for edge tempos and near-bin-boundary tones.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 10,
+        "expansionPrompt": "Outline: (1) capture/permission module; (2) analyser + 64-bin aggregation; (3) Canvas renderer; (4) beat detection + tempo/confidence; (5) RMS/VU meters; (6) gain control UI; (7) chromagram computation optimized; (8) performance tuning/worklet option; (9) permission-denied UX; (10) DSP unit tests with fixtures."
+      },
+      {
+        "id": 9,
+        "title": "Robust error handling and performance hardening",
+        "description": "Introduce error boundaries, retry/backoff wrappers, toast notifications, code-splitting, and enforce startup/memory budgets.",
+        "details": "- Global ErrorBoundary and per-action try/catch with typed errors; user-friendly messages.\n- Toast/notification system for success/failure/information; consistent placement and timeouts.\n- Network resilience: `fetchWithRetry` in K1Client (if missing) with exponential backoff and jitter; unify error codes.\n- Performance: route-based code-splitting for advanced views; memoize heavy lists; avoid unnecessary state churn in render loops.\n- Runtime guards: coalesce param updates; drop WS frames when rendering stalls; measure startup and mem usage; log metrics.",
+        "testStrategy": "- Simulate API/WS failures to confirm retries and user feedback.\n- Measure bundle size and TTI; ensure startup <3s.\n- Leak checks: connect/disconnect cycles show stable heap; no retained listeners.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement global ErrorBoundary and typed error model",
+            "description": "Add a top-level ErrorBoundary and define a typed error taxonomy to standardize error handling and user messaging across the app.",
+            "dependencies": [],
+            "details": "Create GlobalErrorBoundary wrapping the app root with fallback UI and telemetry hooks. Define AppError union types (NetworkError, TimeoutError, ValidationError, UnknownError) and a normalizeError utility to convert thrown values and HTTP/WS failures into typed errors with user-safe messages and codes.",
+            "status": "pending",
+            "testStrategy": "Unit tests: simulate component throws and verify fallback renders, telemetry logged, and typed error mapping returns expected message/code.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Introduce toast/notification system with consistent UX",
+            "description": "Provide an accessible toast system for success, info, and error states with consistent placement, durations, and deduping.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement ToastProvider with portal, ARIA live region, queueing, dedupe by key, and API (showToast/hideToast). Support variants, icons, durations (info/success auto-dismiss, error sticky), max concurrent toasts, and theme-consistent styling.",
+            "status": "pending",
+            "testStrategy": "Render tests: enqueue multiple toasts, verify order, auto-dismiss timing, focus handling, ARIA announcements, and dedupe behavior.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add fetchWithRetry with exponential backoff and jitter",
+            "description": "Harden network requests by adding a retry wrapper with exponential backoff, jitter, abort support, and unified error codes.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement fetchWithRetry in K1Client (or net utils) with configurable retries, base/backoff factor, full jitter, timeout via AbortController, and retryOn filters (network/5xx/429). Map failures to typed errors; expose metrics (attempts, delays) and respect idempotency hints.",
+            "status": "pending",
+            "testStrategy": "Mock fetch with fake timers: assert retry counts, delay schedule with jitter bounds, abort behavior, 4xx non-retry, and normalized AppError output.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Enable route-level code-splitting for heavy views",
+            "description": "Reduce initial bundle by lazy-loading advanced/rarely used routes with Suspense fallbacks and prefetch hints.",
+            "dependencies": [
+              1
+            ],
+            "details": "Convert heavy routes to React.lazy with named chunk hints. Add Suspense boundaries and lightweight skeletons. Add hover/intent-based prefetch for likely next routes. Verify router integration and error boundaries around lazy imports.",
+            "status": "pending",
+            "testStrategy": "Bundle analysis before/after; navigation tests verify fallback shown then hydrated view; ensure chunk names emitted and no hydration errors.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Audit and optimize memoization and state churn",
+            "description": "Profile re-render hotspots, memoize heavy lists/components, and reduce unnecessary state updates and prop changes.",
+            "dependencies": [
+              4
+            ],
+            "details": "Use React Profiler to find hotspots. Apply React.memo/useMemo/useCallback with stable deps, selector-based state subscriptions, and batched updates. Virtualize large lists. Remove derived state where possible and avoid inline lambdas in hot paths.",
+            "status": "pending",
+            "testStrategy": "Profiler-driven benchmarks: compare render counts and commit time before/after; list virtualization maintains FPS under large datasets.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Add runtime guards for WS frames and parameter coalescing",
+            "description": "Introduce backpressure and coalescing to keep UI responsive: drop stale WS frames and batch parameter updates safely.",
+            "dependencies": [
+              5
+            ],
+            "details": "Implement param update coalescer (debounce/throttle + merge) to limit network chatter. For WS, track queue length and event loop lag; apply drop-old policy for non-critical frames, with metrics. Use requestIdleCallback/rAF for low-priority work and ensure critical control messages bypass drops.",
+            "status": "pending",
+            "testStrategy": "Flood tests: rapid param changes coalesce into fewer sends; WS storm results in bounded queue and dropped non-critical frames while UI stays responsive.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "Instrument startup time and memory budgets with logging",
+            "description": "Measure cold start and heap usage, set thresholds, and report metrics for observability and local enforcement.",
+            "dependencies": [
+              4,
+              5
+            ],
+            "details": "Use Performance API marks/measures for key milestones and Long Task signals as TTI proxy; sample memory where supported. Define budgets (e.g., TTI <3s) and log/report via telemetry and dev warnings. Store metrics for comparisons; integrate bundle size check into CI artifacts.",
+            "status": "pending",
+            "testStrategy": "Automated metrics capture in CI/dev: assert TTI proxy and bundle size within budgets; repeated connect/disconnect cycles show stable heap samples.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 8,
+            "title": "Build failure simulations and performance checks",
+            "description": "Create a fault-injection and perf harness to simulate errors, latency, drops, and CPU stress to validate resilience.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "details": "Add dev toggles to inject fetch errors/latency, WS storms/disconnects, and component throws; include CPU throttling hooks. Verify boundaries, toasts, retries/backoff, guards, and budgets. Document scenarios and wire key ones into CI smoke tests.",
+            "status": "pending",
+            "testStrategy": "End-to-end scenarios: verify user messaging, retry/backoff effectiveness, guard behavior under load, and that performance budgets are not violated.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 8,
+        "expansionPrompt": "Add: (1) global ErrorBoundary + typed errors; (2) toast/notification system; (3) retry/backoff fetch wrapper; (4) route-level code-splitting; (5) memoization/state churn audits; (6) runtime guards for WS/params; (7) startup/memory metrics; (8) failure simulations and perf checks."
+      },
+      {
+        "id": 10,
+        "title": "Documentation and test suite finalization",
+        "description": "Document architecture and flows, add coverage for core logic, and provide user/developer guides aligned to success criteria.",
+        "details": "- Update README: setup, run, device connection steps, latency guarantees, troubleshooting.\n- ADRs: state management choice, debouncing strategy, WS fallback, visualization architecture.\n- Expand unit/integration tests: selectors, reducers, K1Client mocks, UI interactions for pattern/params/palettes.\n- Add lightweight E2E smoke tests (Playwright/Cypress) for core flows.\n- Provide fixtures for patterns/palettes and sample WS frames for deterministic tests.",
+        "testStrategy": "- CI runs strict TypeScript, linter, unit, and E2E smoke.\n- Coverage: target >80% for core store and utilities; deterministic tests for param debouncing and WS handling.\n- Manual checklist mapped to PRD success criteria, executed before release.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update README with setup, run flows, device connection, latency guarantees, and troubleshooting",
+            "description": "Create a comprehensive README covering setup, local run steps, device connection, latency guarantees, and troubleshooting guidance.",
+            "dependencies": [],
+            "details": "Structure sections: Quickstart, prerequisites, environment variables, install/build/run commands, K1 device connection (endpoints and discovery), expected latency guarantees and assumptions, known limitations, troubleshooting matrix, and contribution notes. Include command examples and cross-links to ADRs.",
+            "status": "pending",
+            "testStrategy": "Manually follow Quickstart on a clean environment; verify commands work, links resolve, and latency/troubleshooting sections reflect current behavior.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Author ADRs for state management, debouncing strategy, WebSocket fallback, and visualization architecture",
+            "description": "Document key architectural decisions with context, options, decisions, and consequences for core areas.",
+            "dependencies": [],
+            "details": "Create ADRs using a consistent template covering: chosen state management approach, parameter debouncing strategy and timings, transport fallback hierarchy (WS→SSE→polling), and LED visualization architecture (render loop, mirroring, isolation from React). Reference source files, alternatives considered, and trade-offs.",
+            "status": "pending",
+            "testStrategy": "Peer review for clarity and correctness; ensure ADRs link from README and are discoverable in docs index.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Expand unit tests for store selectors, reducers, utilities, and K1Client behavior",
+            "description": "Increase unit test coverage of core logic to target thresholds with deterministic behavior.",
+            "dependencies": [
+              2
+            ],
+            "details": "Add tests for selectors/reducers (pattern, parameters, palettes), utility functions (index mapping, debouncing, WS handling), and K1Client methods via mocks. Use fake timers to validate debouncing/backoff. Include deterministic fixtures for patterns/palettes and sample WS frames to remove flakiness.",
+            "status": "pending",
+            "testStrategy": "Run unit suite with coverage; assert >80% coverage for store and utilities; verify deterministic tests for debouncing and WS reconnection logic.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Implement integration tests for UI interactions across pattern, parameter, and palette flows",
+            "description": "Cover cross-component interactions and state updates in the UI using realistic mocks.",
+            "dependencies": [
+              3
+            ],
+            "details": "Write integration tests (e.g., React Testing Library) simulating user flows: selecting patterns, adjusting parameters, switching palettes, and verifying derived UI state. Mock K1Client/WS as needed and reuse fixtures for stable assertions. Focus on accessibility-friendly, stable selectors.",
+            "status": "pending",
+            "testStrategy": "Execute integration tests locally; ensure stability with fake timers where needed and confirm DOM reflects expected outcomes across flows.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Add E2E smoke tests with Playwright/Cypress and deterministic fixtures for core flows",
+            "description": "Create minimal, fast E2E specs validating critical paths using stable fixtures.",
+            "dependencies": [
+              4
+            ],
+            "details": "Set up Playwright/Cypress for headless CI runs with environment config and artifacts. Implement smoke specs for app load, pattern selection, parameter adjustments, and palette changes. Provide fixtures for patterns/palettes and sample WS frames to simulate device data. Use stable selectors and tight time budgets.",
+            "status": "pending",
+            "testStrategy": "Run E2E smoke locally; verify specs complete within time budget and produce screenshots/videos on failure; confirm tests pass without real device.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Configure CI to run type checks, linter, unit/integration, E2E smoke, and enforce coverage thresholds",
+            "description": "Establish automated pipelines with quality gates and artifacts on every PR.",
+            "dependencies": [
+              3,
+              4,
+              5
+            ],
+            "details": "Update CI (e.g., GitHub Actions) to run strict TypeScript checks, linting, unit and integration tests with coverage, plus E2E smoke. Add caching and parallel jobs, upload test/coverage artifacts, and enforce coverage thresholds (>80% for core store/utilities). Fail builds on threshold or test failures.",
+            "status": "pending",
+            "testStrategy": "Open a test PR to observe pipeline; intentionally lower coverage in a branch to confirm gating and artifact uploads.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "Produce final release checklist mapped to PRD success criteria",
+            "description": "Create a sign-off checklist aligning docs, tests, and UX to PRD criteria.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "Draft an actionable checklist mapping each PRD success criterion to verification steps and evidence: docs present and accurate, coverage and CI status, latency guarantees validated, and key manual scenarios. Include owners, statuses, and sign-off instructions; store in repo root or docs.",
+            "status": "pending",
+            "testStrategy": "Dry-run the checklist before release; ensure each item links to concrete evidence (reports, ADRs, README, CI runs).",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 7,
+        "expansionPrompt": "Split into: (1) README with setup/flows/latency/troubleshooting; (2) ADRs for state/transport/visualization; (3) unit tests for store/client utilities; (4) integration tests for UI flows; (5) E2E smoke tests with fixtures; (6) CI config and thresholds; (7) final release checklist mapped to PRD."
+      },
+      {
+        "id": 11,
+        "title": "Comprehensive Architecture Docs for K1 Control App",
+        "description": "Author end-to-end documentation for the React/TypeScript + Vite K1 Control App, including project structure, build pipeline, component hierarchy, state management, data flows, Mermaid diagrams, developer workflows, and actionable quality recommendations.",
+        "details": "Scope and deliverables\n- Create a new documentation section at `docs/architecture/control-app/` with the following files:\n  - `OVERVIEW.md`: High-level architecture, system context, and technology stack\n  - `PROJECT_STRUCTURE.md`: Complete directory map with roles and conventions\n  - `BUILD_PIPELINE.md`: Vite config, aliases, environment, build targets and outputs\n  - `STATE_AND_DATA_FLOW.md`: State model, connection lifecycle, param update flows, and reconnection/backoff\n  - `COMPONENT_HIERARCHY.md`: App → Views → Controls → UI atoms, with responsibilities and data boundaries\n  - `K1_INTEGRATION.md`: API surface, types, REST endpoints, WebSocket strategy, and mapping UI↔firmware params\n  - `DEVELOPMENT_WORKFLOWS.md`: Dev setup, scripts, branching, local testing, debugging, profiling\n  - `QUALITY_PLAYBOOK.md`: Testing, linting, code style, performance budgets, and CI recommendations\n  - `DIAGRAMS.md`: Mermaid diagrams (overview, component tree, param flow, connection state machine, build pipeline)\n  - Optional ADR: `docs/adr/ADR-0004-state-management-choice.md` (Context vs external store for K1 provider) to align with Task 2\n\nTechnology and code references to align docs with current implementation\n- Toolchain and runtime\n  - Vite config: `k1-control-app/vite.config.ts:1` (plugin `@vitejs/plugin-react-swc`, alias map including version-pinned libs, build target `esnext`, server port 3000, outDir `build`)\n  - Package scripts: `k1-control-app/package.json:1` (`dev`, `build`, `preview`, `type-check`)\n  - Styling: Tailwind v4 classes in `k1-control-app/src/index.css:1` and design tokens in `k1-control-app/src/styles/globals.css:1`\n- App entry and top-level composition\n  - Render root: `k1-control-app/src/main.tsx:1`\n  - App shell and connection state: `k1-control-app/src/App.tsx:13` (`useState` for `connectionStatus`, `connectionIP`, `K1Client` instantiation at `:20–:23`, connection test `:32–:43`)\n  - Views and major components: `TopNav` (`k1-control-app/src/components/TopNav.tsx:1`), `Sidebar` (`k1-control-app/src/components/Sidebar.tsx:1`), `ControlPanelView` (`k1-control-app/src/components/views/ControlPanelView.tsx:1`), `ProfilingView` (`k1-control-app/src/components/views/ProfilingView.tsx:1`), `TerminalView` (`k1-control-app/src/components/views/TerminalView.tsx:1`)\n- K1 device integration and types\n  - Types: `k1-control-app/src/types/k1-types.ts:1` (parameters, patterns, connection status, API response shapes)\n  - Client: `k1-control-app/src/api/k1-client.ts:18` class surface (REST: `testConnection :37`, `getPatterns :51`, `updateParameters :94`, conversion `firmwareToUI :238`; WS: `connectWebSocket :179` with exponential backoff at `:208–:214`)\n  - Static data: `k1-control-app/src/api/k1-data.ts:1` (pattern and 33 palette definitions)\n- UI atoms and libraries\n  - Shadcn/Radix-based components under `k1-control-app/src/components/ui/*` (sliders, selects, dialogs, menus, toasts, charts)\n\nContent outlines per file\n- OVERVIEW.md\n  - Purpose, scope, non-goals\n  - Stack summary: React 18, TypeScript 5, Vite 6 (SWC), Tailwind, Radix/shadcn, Recharts, Sonner\n  - System context: Browser → Control App → `K1Client` → K1 device (REST/WS)\n- PROJECT_STRUCTURE.md\n  - Full tree of `k1-control-app/` with brief purpose for each folder/file, cross-linking to existing docs: `k1-control-app/README.md:1`, `k1-control-app/DEVELOPMENT.md:1`, `k1-control-app/src/DESIGN_SPECS.md:1`\n  - Call out aliases (`@` → `src/`) and build output `build/`\n- BUILD_PIPELINE.md\n  - Vite plugin setup, hot reload, dev server settings, aliasing rationale, asset handling\n  - Build targets and bundling; suggestions for code-splitting by view to reduce TTI\n  - Environment strategy and how to parameterize device IP if needed\n- STATE_AND_DATA_FLOW.md\n  - Current state model (local `useState` in `App.tsx:13–:17`)\n  - Proposed central provider (Task 2): `K1Provider` + `useK1` managing: connection status, device info, selected pattern, params, palette, errors\n  - Connection lifecycle/state machine (connecting → connected → disconnected/error) and reconnection/backoff with jitter and caps\n  - Parameter update path: UI sliders → debounce/coalesce → `K1Client.updateParameters` → device; persistence recommendations per pattern\n- COMPONENT_HIERARCHY.md\n  - Tree and responsibilities:\n    - App shell → `TopNav`, `Sidebar`, `main` area\n    - Views: ControlPanel → EffectSelector, EffectParameters, ColorManagement, GlobalSettings, StatusBar\n    - Profiling: Filters, Charts, LiveStatistics\n    - Terminal: Output, Input, History\n  - Data boundaries: what props/state pass where; which pieces should move to provider/store\n- K1_INTEGRATION.md\n  - REST endpoints in use; UI↔firmware param mapping via `firmwareToUI` (`k1-control-app/src/api/k1-client.ts:238`)\n  - WebSocket plan: `connectWebSocket` (`:179`) with reconnection (`:208–:214`), recommendations for jitter, cap, and backpressure handling (drop old frames)\n  - Discovery: `discoverDevices()` stub and future mDNS plan\n- DEVELOPMENT_WORKFLOWS.md\n  - Onboarding: Node/npm versions, install, `npm run dev`, `npm run build`, `npm run preview`\n  - Live device testing workflow and troubleshooting (CORS, IP validation)\n  - Debugging tips: Network tab, React DevTools, console flags (as referenced in `k1-control-app/DEVELOPMENT.md`)\n- QUALITY_PLAYBOOK.md (actionable recommendations)\n  - TypeScript: Add `k1-control-app/tsconfig.json` with `\"strict\": true`, path alias for `@/*`\n  - Linting/formatting: add ESLint (`@typescript-eslint`), Prettier; scripts: `lint`, `lint:fix`, `format`\n  - Unit/integration testing: Vitest + Testing Library; MSW for API mocks; coverage via `c8`; suggested targets (>80% for store and utilities)\n  - E2E: Playwright or Cypress for core flows (connect, select pattern, adjust params, palette)\n  - Performance: code-splitting by route/view, memoization of heavy lists, isolate rAF loops from React state, drop-late WS frames, bundle size budget\n  - CI: node matrix, `type-check`, `lint`, `test`, `build`; pre-commit via Husky + lint-staged\n- DIAGRAMS.md (include Mermaid snippets)\n  - System overview\n    ```mermaid\n    flowchart LR\n      User --> UI[React App]\n      UI -->|REST| K1Client\n      UI -->|WS| K1Client\n      K1Client --> Device[K1 Device]\n    ```\n  - Component tree (simplified)\n    ```mermaid\n    graph TD\n      App --> TopNav\n      App --> Sidebar\n      App --> Main\n      Main --> ControlPanelView --> EffectSelector & EffectParameters & ColorManagement & GlobalSettings & StatusBar\n      Main --> ProfilingView --> ProfilingFilters & ProfilingCharts & LiveStatistics\n      Main --> TerminalView\n    ```\n  - Parameter update flow\n    ```mermaid\n    sequenceDiagram\n      participant UI as Slider/Controls\n      participant Provider as K1Provider (Task 2)\n      participant Client as K1Client\n      participant Dev as K1 Device\n      UI->>Provider: onChange (debounced/coalesced ~80–150ms)\n      Provider->>Client: updateParameters(partial)\n      Client->>Dev: POST /api/params\n      Dev-->>Client: 200 OK {params}\n      Client-->>Provider: normalized params\n      Provider-->>UI: state update (clamped?)\n    ```\n  - Connection state machine\n    ```mermaid\n    stateDiagram-v2\n      [*] --> Disconnected\n      Disconnected --> Connecting: connect()\n      Connecting --> Connected: testConnection ok\n      Connecting --> Error: network/api failure\n      Error --> Connecting: backoff+jitter\n      Connected --> Disconnected: disconnect() or WS close\n    ```\n  - Build pipeline\n    ```mermaid\n    flowchart LR\n      Dev[Developer] -->|npm run dev| Vite\n      Vite --> HMR[React SWC + HMR]\n      Dev -->|npm run build| Vite\n      Vite --> Bundle[esnext build -> build/]\n    ```\n\nCross-links to existing docs\n- Reference and link from new docs to:\n  - `k1-control-app/README.md:1`, `k1-control-app/DEVELOPMENT.md:1`, `k1-control-app/src/DESIGN_SPECS.md:1`\n  - Firmware API reference `docs/api/K1_FIRMWARE_API.md:1`\n\nEditorial and conventions\n- Use consistent headings, callouts for “Current” vs “Planned (Task 2/5/7/9/10)”\n- Include code references with clickable file paths and start lines as shown above\n- Prefer concise diagrams; keep each under ~30 nodes for readability\n\nAcceptance criteria\n- All files under `docs/architecture/control-app/` exist with the content outlined above\n- Each doc includes at least one relevant Mermaid diagram (renderable on GitHub)\n- All file references resolve within the repo\n- Recommendations in QUALITY_PLAYBOOK.md are concrete (packages, scripts, config snippets) and mapped to this codebase\n- Onboarding steps work against `k1-control-app/package.json` scripts and `vite.config.ts`\n",
+        "testStrategy": "Verification checklist\n- Structure\n  - Confirm the new directory `docs/architecture/control-app/` exists and contains: OVERVIEW.md, PROJECT_STRUCTURE.md, BUILD_PIPELINE.md, STATE_AND_DATA_FLOW.md, COMPONENT_HIERARCHY.md, K1_INTEGRATION.md, DEVELOPMENT_WORKFLOWS.md, QUALITY_PLAYBOOK.md, DIAGRAMS.md\n  - Optional: ADR file `docs/adr/ADR-0004-state-management-choice.md` present if added\n- Content accuracy\n  - Every document contains file references that resolve (open each `k1-control-app/...` path and ensure correctness)\n  - Cross-check API methods and line references in `k1-control-app/src/api/k1-client.ts` (e.g., connectWebSocket at :179, backoff at :208–:214)\n  - Component hierarchy matches actual files in `src/components` and `src/components/views`\n  - Build details match `k1-control-app/vite.config.ts` (aliases, target, outDir, server.port)\n- Diagrams\n  - Open Markdown files on a Mermaid-capable viewer (e.g., GitHub) to ensure diagrams render without syntax errors\n  - Validate that sequence and state diagrams reflect current and planned flows (noting Task 2 proposals)\n- Workflows\n  - Follow `DEVELOPMENT_WORKFLOWS.md` onboarding steps on a fresh clone: `npm install`, `npm run dev` (port 3000), `npm run build`, `npm run preview`\n  - Confirm `npm run type-check` passes or note gaps if tsconfig is introduced as a recommendation\n- Quality recommendations\n  - QUALITY_PLAYBOOK.md includes concrete package lists and scripts for ESLint/Prettier/Vitest/Playwright and performance budgets\n  - Recommendations map to current code (e.g., debouncing in parameter flows, isolating rAF loops from React state)\n- Signoff\n  - Run a link checker (manual or script) to verify all intra-repo links\n  - Quick peer review for completeness and clarity; ensure “Current vs Planned” labels are present\n",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Audit repository and verify all referenced files/paths for architecture docs",
+            "description": "Scan the codebase to confirm existence and locations of all files referenced in the docs scope and capture line anchors for key code references.",
+            "dependencies": [],
+            "details": "- Use ripgrep to list files and locate: vite.config.ts, package.json, main.tsx, App.tsx, components, views, k1-types.ts, k1-client.ts, k1-data.ts, ui atoms, Tailwind CSS files, and existing docs (README, DEVELOPMENT, DESIGN_SPECS, firmware API).\n- Record start lines for each referenced file for clickable anchors.\n- Note patterns and conventions (aliases, build outDir, server port).",
+            "status": "done",
+            "testStrategy": "All referenced files exist and open with expected content; line anchors collected for cited files.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-26T20:54:10.604Z"
+          },
+          {
+            "id": 2,
+            "title": "Create docs skeleton under docs/architecture/control-app/ with all required files",
+            "description": "Scaffold the documentation directory and stub every required Markdown file with headings and TODO sections.",
+            "dependencies": [
+              1
+            ],
+            "details": "- Add directory docs/architecture/control-app/.\n- Create: OVERVIEW.md, PROJECT_STRUCTURE.md, BUILD_PIPELINE.md, STATE_AND_DATA_FLOW.md, COMPONENT_HIERARCHY.md, K1_INTEGRATION.md, DEVELOPMENT_WORKFLOWS.md, QUALITY_PLAYBOOK.md, DIAGRAMS.md.\n- Optionally add docs/adr/ADR-0004-state-management-choice.md placeholder.\n- Include standard header, \"Current vs Planned\" callouts, and cross-link placeholders.",
+            "status": "done",
+            "testStrategy": "Directory exists with all files; each file has a top-level header and placeholder sections; links resolve locally.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-26T21:06:40.345Z"
+          },
+          {
+            "id": 3,
+            "title": "Draft OVERVIEW, PROJECT_STRUCTURE, BUILD_PIPELINE with concrete repo-aligned details",
+            "description": "Author the first three docs using verified code references and toolchain specifics from the repo.",
+            "dependencies": [
+              2
+            ],
+            "details": "- OVERVIEW.md: purpose, scope, system context, stack list; embed Mermaid system overview.\n- PROJECT_STRUCTURE.md: generate tree for k1-control-app with brief purposes; note aliases (@ -> src), build output build/; cross-link existing docs.\n- BUILD_PIPELINE.md: explain Vite plugins, dev server port, HMR, alias map, environment handling, targets, bundling; include build pipeline Mermaid; add code-splitting suggestions.\n- Include clickable file paths with start line anchors as verified.",
+            "status": "done",
+            "testStrategy": "Open each doc; verify references match actual files; Mermaid snippets render on GitHub; suggestions applicable to current vite.config.ts and scripts.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-26T21:09:32.534Z"
+          },
+          {
+            "id": 4,
+            "title": "Document state/data flow, component hierarchy, and K1 integration with diagrams",
+            "description": "Write STATE_AND_DATA_FLOW.md, COMPONENT_HIERARCHY.md, and K1_INTEGRATION.md grounded in App.tsx and k1-client.ts behavior.",
+            "dependencies": [
+              3
+            ],
+            "details": "- STATE_AND_DATA_FLOW.md: current useState model in App.tsx, proposed K1Provider + useK1, connection lifecycle with backoff; parameter update path with debounce/coalesce; include state machine and sequence Mermaid diagrams.\n- COMPONENT_HIERARCHY.md: map App shell to TopNav/Sidebar and views; define data boundaries and props vs provider.\n- K1_INTEGRATION.md: REST endpoints, firmwareToUI mapping, WS reconnection strategy; discovery stub and future mDNS.\n- Ensure code references use verified line anchors.",
+            "status": "done",
+            "testStrategy": "Docs reference actual symbols and lines in k1-client.ts and components; diagrams remain under ~30 nodes and render; flows align with observed code.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-26T21:13:59.473Z"
+          },
+          {
+            "id": 5,
+            "title": "Add development workflows, quality playbook, and diagrams; cross-link and validate",
+            "description": "Complete DEVELOPMENT_WORKFLOWS.md, QUALITY_PLAYBOOK.md, and DIAGRAMS.md; ensure cross-links and acceptance criteria are met.",
+            "dependencies": [
+              4
+            ],
+            "details": "- DEVELOPMENT_WORKFLOWS.md: onboarding, scripts (dev/build/preview/type-check), live device testing, debugging tips.\n- QUALITY_PLAYBOOK.md: strict tsconfig, ESLint/Prettier configs, Vitest/RTL/MSW, E2E tool suggestion, performance budgets, CI plan; include concrete package names and script snippets tailored to this repo.\n- DIAGRAMS.md: include all required Mermaid diagrams (overview, component tree, param flow, connection state, build pipeline).\n- Validate all links to repo files and existing docs; run checklist against acceptance criteria.",
+            "status": "done",
+            "testStrategy": "All files exist with at least one Mermaid diagram; links resolve; recommendations are concrete and mapped to current package.json and vite.config.ts; checklist passes.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-26T21:24:49.010Z"
+          }
+        ],
+        "updatedAt": "2025-10-26T21:24:49.010Z",
+        "complexity": 7,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "Author the specified docs under docs/architecture/control-app/ using current repo files as references, ensuring all code paths and line references resolve and diagrams render on GitHub."
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2025-10-26T21:30:47.791Z",
+      "taskCount": 11,
+      "completedCount": 1,
+      "tags": [
+        "master"
+      ],
+      "created": "2025-10-27T01:48:04.300Z",
+      "description": "Tasks for master context",
+      "updated": "2025-10-27T03:47:47.807Z"
+    }
   }
 }

@@ -2,9 +2,7 @@
 // Prevents crashes from NaN/Inf/overflow in web API inputs
 
 #include "parameters.h"
-
-// Number of available palettes (must match pattern_registry palettes)
-#define NUM_PALETTES 8
+#include "palettes.h"  // Use central NUM_PALETTES definition from palettes.h
 
 // Validate and clamp parameters to safe ranges
 // Returns true if any parameter was clamped (indicates invalid input)
@@ -30,6 +28,7 @@ bool validate_and_clamp(PatternParameters& params) {
     validate_float_0_1(params.saturation, 0.75f);     // Default: 0.75
     validate_float_0_1(params.warmth, 0.0f);          // Default: 0.0
     validate_float_0_1(params.background, 0.25f);     // Default: 0.25
+    validate_float_0_1(params.dithering, 1.0f);       // Default: 1.0 (enabled)
 
     // Pattern-specific controls
     validate_float_0_1(params.speed, 0.5f);           // Default: 0.5

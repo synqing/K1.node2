@@ -17,6 +17,7 @@ struct PatternParameters {
     float saturation;          // 0.0 - 1.0 (color intensity)
     float warmth;              // 0.0 - 1.0 (incandescent filter amount)
     float background;          // 0.0 - 1.0 (ambient background level)
+    float dithering;           // 0.0 - 1.0 (temporal dithering enable: 0=off, 1=on)
 
     // Pattern-specific controls
     float speed;               // 0.0 - 1.0 (animation speed multiplier)
@@ -39,6 +40,7 @@ inline PatternParameters get_default_params() {
     params.saturation = 0.75f;     // Emotiscope: saturation default = 0.75
     params.warmth = 0.0f;          // Emotiscope: warmth default = 0.0
     params.background = 0.25f;     // Emotiscope: DEFAULT_BACKGROUND = 0.25 (production mode)
+    params.dithering = 1.0f;       // Temporal dithering enabled by default
     // Pattern-specific
     params.speed = 0.5f;           // Emotiscope: speed default = 0.5
     params.palette_id = 0;         // Will be set per-pattern

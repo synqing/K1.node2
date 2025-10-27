@@ -1,0 +1,96 @@
+{
+  "name": "Beat-Locked Grid",
+  "description": "Tempo-synchronized grid pattern. Grid cells advance only on beat detection, eliminating floating sensation.",
+  "artistic_intent": "CENTER-ORIGIN beat grid: locked to detected tempo. Uses time modulo beat period for perfect sync.",
+  "palette_data": [
+    [0, 0, 0, 50],
+    [32, 50, 0, 100],
+    [64, 100, 0, 150],
+    [96, 150, 50, 200],
+    [128, 200, 100, 255],
+    [160, 255, 150, 255],
+    [192, 255, 200, 200],
+    [255, 255, 255, 150]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "CENTER-ORIGIN: grid origin at center"
+    },
+    {
+      "id": "time_flow",
+      "type": "time",
+      "description": "Time scaled by params.speed"
+    },
+    {
+      "id": "beat_signal",
+      "type": "beat",
+      "parameters": { "tempo_bin": -1 },
+      "description": "Beat detection for grid lock"
+    },
+    {
+      "id": "beat_gate",
+      "type": "multiply",
+      "inputs": ["time_flow", "beat_signal"],
+      "description": "Gate time progression with beat signal"
+    },
+    {
+      "id": "grid_phase",
+      "type": "modulo",
+      "inputs": ["beat_gate"],
+      "parameters": { "divisor": 1.0 },
+      "description": "Wrap time to 0-1 for grid cell repeat"
+    },
+    {
+      "id": "position_quantized",
+      "type": "scale",
+      "inputs": ["position"],
+      "parameters": { "factor": 4.0 },
+      "description": "Scale position for 4 grid cells from center to edge"
+    },
+    {
+      "id": "position_wrapped",
+      "type": "modulo",
+      "inputs": ["position_quantized"],
+      "parameters": { "divisor": 1.0 },
+      "description": "Wrap position for repeating grid cells"
+    },
+    {
+      "id": "grid_intensity",
+      "type": "multiply",
+      "inputs": ["position_wrapped", "grid_phase"],
+      "description": "Grid cells pulse with beat"
+    },
+    {
+      "id": "bass_boost",
+      "type": "spectrum_range",
+      "parameters": { "band": "low" },
+      "description": "Bass energy boosts center cells"
+    },
+    {
+      "id": "final_position",
+      "type": "add",
+      "inputs": ["grid_intensity", "bass_boost"],
+      "description": "Combine grid with bass energy"
+    },
+    {
+      "id": "output",
+      "type": "palette_interpolate",
+      "inputs": ["final_position"],
+      "description": "Blue center cells to white beat flash"
+    }
+  ],
+  "wires": [
+    { "from": "time_flow", "to": "beat_gate" },
+    { "from": "beat_signal", "to": "beat_gate" },
+    { "from": "beat_gate", "to": "grid_phase" },
+    { "from": "position", "to": "position_quantized" },
+    { "from": "position_quantized", "to": "position_wrapped" },
+    { "from": "position_wrapped", "to": "grid_intensity" },
+    { "from": "grid_phase", "to": "grid_intensity" },
+    { "from": "grid_intensity", "to": "final_position" },
+    { "from": "bass_boost", "to": "final_position" },
+    { "from": "final_position", "to": "output" }
+  ]
+}

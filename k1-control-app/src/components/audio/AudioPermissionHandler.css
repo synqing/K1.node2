@@ -1,0 +1,306 @@
+/**
+ * Audio Permission Handler Styling
+ * Clean, trustworthy UI for microphone permission requests
+ */
+
+.audio-permission-handler {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: 24px;
+}
+
+.permission-request,
+.permission-denied,
+.permission-requesting,
+.permission-unavailable {
+  max-width: 480px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 40px 32px;
+  backdrop-filter: blur(10px);
+}
+
+.permission-icon {
+  font-size: 64px;
+  margin-bottom: 24px;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.permission-request h3,
+.permission-denied h3,
+.permission-requesting h3,
+.permission-unavailable h3 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 16px;
+}
+
+.permission-request p,
+.permission-denied p,
+.permission-requesting p,
+.permission-unavailable p {
+  font-size: 16px;
+  color: #a0a0a0;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+/* Features preview for initial request */
+.features-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 24px 0;
+  padding: 20px;
+  background: rgba(0, 122, 255, 0.1);
+  border: 1px solid rgba(0, 122, 255, 0.2);
+  border-radius: 12px;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.feature-icon {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+}
+
+/* Buttons */
+.enable-button {
+  background: linear-gradient(135deg, #007aff, #5856d6);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 16px;
+  width: 100%;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+}
+
+.enable-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+}
+
+.enable-button:active {
+  transform: translateY(0);
+}
+
+.skip-button,
+.manual-mode-button {
+  background: transparent;
+  color: #a0a0a0;
+  border: 1px solid rgba(160, 160, 160, 0.3);
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin: 0 8px;
+}
+
+.skip-button:hover,
+.manual-mode-button:hover {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.retry-button {
+  background: rgba(0, 122, 255, 0.2);
+  color: #007aff;
+  border: 1px solid rgba(0, 122, 255, 0.4);
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin: 0 8px;
+}
+
+.retry-button:hover {
+  background: rgba(0, 122, 255, 0.3);
+  border-color: rgba(0, 122, 255, 0.6);
+}
+
+/* Permission help section */
+.permission-help {
+  margin: 24px 0;
+  text-align: left;
+}
+
+.help-button {
+  background: transparent;
+  color: #007aff;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto;
+}
+
+.help-button:hover {
+  color: #5856d6;
+}
+
+.explanation {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(0, 122, 255, 0.05);
+  border: 1px solid rgba(0, 122, 255, 0.1);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.explanation ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.explanation li {
+  margin: 4px 0;
+  color: #a0a0a0;
+}
+
+/* Browser instructions */
+.browser-instructions,
+.browser-recommendations {
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(255, 149, 0, 0.1);
+  border: 1px solid rgba(255, 149, 0, 0.2);
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.browser-instructions strong,
+.browser-recommendations strong {
+  color: #ff9500;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.browser-instructions ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.browser-instructions li,
+.browser-recommendations li {
+  margin: 4px 0;
+  color: #a0a0a0;
+}
+
+.browser-recommendations ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(0, 122, 255, 0.3);
+  border-top: 3px solid #007aff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 16px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Permission actions */
+.permission-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 24px 0;
+  flex-wrap: wrap;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .audio-permission-handler {
+    padding: 16px;
+    min-height: 300px;
+  }
+  
+  .permission-request,
+  .permission-denied,
+  .permission-requesting,
+  .permission-unavailable {
+    padding: 24px 20px;
+    max-width: 100%;
+  }
+  
+  .permission-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  
+  .features-preview {
+    padding: 16px;
+  }
+  
+  .permission-actions {
+    flex-direction: column;
+  }
+  
+  .retry-button,
+  .manual-mode-button {
+    margin: 4px 0;
+    width: 100%;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation: none;
+  }
+  
+  .enable-button:hover {
+    transform: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .permission-request,
+  .permission-denied,
+  .permission-requesting,
+  .permission-unavailable {
+    border-color: #ffffff;
+    background: rgba(0, 0, 0, 0.8);
+  }
+  
+  .features-preview,
+  .explanation,
+  .browser-instructions,
+  .browser-recommendations {
+    border-color: #ffffff;
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "name": "Audio Test - Beat and Spectrum Interpolate",
+  "description": "Test beat detection and spectrum interpolate across LED strip",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [85, 255, 0, 127],
+    [170, 0, 255, 255],
+    [255, 255, 255, 255]
+  ],
+  "nodes": [
+    {
+      "id": "spectrum_sweep",
+      "type": "spectrum_interpolate",
+      "description": "Map LED positions to frequency bins 0-63",
+      "parameters": {
+        "start_bin": 0,
+        "end_bin": 63
+      }
+    },
+    {
+      "id": "beat_pulse",
+      "type": "beat",
+      "description": "Auto-detect strongest beat for optimal responsiveness",
+      "parameters": {
+        "tempo_bin": -1
+      }
+    },
+    {
+      "id": "modulated",
+      "type": "multiply",
+      "description": "Modulate spectrum by beat",
+      "inputs": ["spectrum_sweep", "beat_pulse"]
+    },
+    {
+      "id": "palette_output",
+      "type": "palette_interpolate",
+      "description": "Map to color palette",
+      "inputs": ["modulated"],
+      "parameters": {
+        "palette": "beat_reactive"
+      }
+    },
+    {
+      "id": "final_output",
+      "type": "output",
+      "description": "Final LED output"
+    }
+  ],
+  "wires": [
+    {
+      "from": "spectrum_sweep",
+      "to": "modulated"
+    },
+    {
+      "from": "beat_pulse",
+      "to": "modulated"
+    },
+    {
+      "from": "modulated",
+      "to": "palette_output"
+    },
+    {
+      "from": "palette_output",
+      "to": "final_output"
+    }
+  ]
+}

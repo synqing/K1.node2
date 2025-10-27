@@ -1,0 +1,79 @@
+{
+  "name": "Spectral Mirror",
+  "description": "Symmetrical spectrum display mirrored from center. Bass at center, treble radiates to edges with perfect bilateral symmetry.",
+  "artistic_intent": "CENTER-ORIGIN spectrum mirror: balanced aesthetic with symmetric frequency distribution from center point.",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [36, 100, 0, 0],
+    [72, 200, 50, 0],
+    [108, 255, 100, 0],
+    [144, 255, 200, 0],
+    [180, 200, 255, 100],
+    [216, 100, 200, 255],
+    [255, 50, 100, 255]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "CENTER-ORIGIN: perfect symmetry point"
+    },
+    {
+      "id": "spectrum_full",
+      "type": "spectrum_interpolate",
+      "parameters": { "start_bin": 0, "end_bin": 63 },
+      "description": "Full 64-bin spectrum mapped to position"
+    },
+    {
+      "id": "bass_center",
+      "type": "spectrum_range",
+      "parameters": { "band": "low" },
+      "description": "Bass energy at center"
+    },
+    {
+      "id": "mid_ring",
+      "type": "spectrum_range",
+      "parameters": { "band": "mid" },
+      "description": "Mid frequencies in middle ring"
+    },
+    {
+      "id": "treble_edge",
+      "type": "spectrum_range",
+      "parameters": { "band": "high" },
+      "description": "Treble at outer edges"
+    },
+    {
+      "id": "position_scaled",
+      "type": "multiply",
+      "inputs": ["position", "spectrum_full"],
+      "description": "Scale spectrum by radial position"
+    },
+    {
+      "id": "center_bass_boost",
+      "type": "scale",
+      "inputs": ["bass_center"],
+      "parameters": { "factor": 0.5 },
+      "description": "Boost bass presence at center"
+    },
+    {
+      "id": "mirror_position",
+      "type": "add",
+      "inputs": ["position_scaled", "center_bass_boost"],
+      "description": "Combine radial spectrum with bass center"
+    },
+    {
+      "id": "output",
+      "type": "palette_interpolate",
+      "inputs": ["mirror_position"],
+      "description": "Red bass center to blue treble edges"
+    }
+  ],
+  "wires": [
+    { "from": "position", "to": "position_scaled" },
+    { "from": "spectrum_full", "to": "position_scaled" },
+    { "from": "bass_center", "to": "center_bass_boost" },
+    { "from": "position_scaled", "to": "mirror_position" },
+    { "from": "center_bass_boost", "to": "mirror_position" },
+    { "from": "mirror_position", "to": "output" }
+  ]
+}

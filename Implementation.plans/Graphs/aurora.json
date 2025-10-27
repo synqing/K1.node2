@@ -1,0 +1,81 @@
+{
+  "name": "Aurora",
+  "description": "Animated aurora effect - position scrolls with gentle sinusoidal motion. Uses Departure palette for beautiful earth-to-emerald transition.",
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "CENTER-ORIGIN: Distance from center (0.0 at center → 1.0 at edges) for radial aurora effect"
+    },
+    {
+      "id": "time_node",
+      "type": "time",
+      "description": "Current animation time in seconds"
+    },
+    {
+      "id": "sin_time",
+      "type": "sin",
+      "inputs": ["time_node"],
+      "parameters": {},
+      "description": "Convert time to smooth oscillation (0-1 range)"
+    },
+    {
+      "id": "animated_position",
+      "type": "add",
+      "inputs": ["position", "sin_time"],
+      "description": "Add time-varying oscillation to position"
+    },
+    {
+      "id": "palette",
+      "type": "palette_interpolate",
+      "inputs": ["animated_position"],
+      "description": "Interpolate through Departure palette based on animated position"
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "description": "Write to LED array"
+    }
+  ],
+  "wires": [
+    {
+      "from": "position",
+      "to": "animated_position",
+      "description": "Position flow"
+    },
+    {
+      "from": "time_node",
+      "to": "sin_time",
+      "description": "Time to oscillation"
+    },
+    {
+      "from": "sin_time",
+      "to": "animated_position",
+      "description": "Oscillation to position modifier"
+    },
+    {
+      "from": "animated_position",
+      "to": "palette",
+      "description": "Animated position to palette"
+    },
+    {
+      "from": "palette",
+      "to": "output",
+      "description": "Colors to LEDs"
+    }
+  ],
+  "palette_data": [
+    [0, 8, 3, 1],
+    [21, 23, 8, 1],
+    [42, 74, 38, 5],
+    [63, 169, 99, 39],
+    [85, 214, 169, 120],
+    [106, 255, 255, 255],
+    [127, 135, 255, 137],
+    [149, 23, 255, 23],
+    [170, 0, 255, 0],
+    [191, 0, 136, 0],
+    [212, 0, 56, 0],
+    [234, 0, 56, 0]
+  ]
+}

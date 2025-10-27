@@ -1,0 +1,51 @@
+{
+  "name": "Lava",
+  "description": "Primal intensity and transformation. Black → deep red → bright orange → white hot. Represents passion, heat, and raw energy.",
+  "palette": "lava",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [46, 18, 0, 0],
+    [96, 113, 0, 0],
+    [108, 142, 3, 1],
+    [119, 175, 17, 1],
+    [146, 213, 44, 2],
+    [174, 255, 82, 4],
+    [188, 255, 115, 4],
+    [202, 255, 156, 4],
+    [218, 255, 203, 4],
+    [234, 255, 255, 4],
+    [244, 255, 255, 71],
+    [255, 255, 255, 255]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "Maps LED position (0 to 1) across the strip"
+    },
+    {
+      "id": "palette",
+      "type": "palette_interpolate",
+      "parameters": {
+        "palette": "lava"
+      },
+      "description": "Interpolates color from lava palette based on position"
+    },
+    {
+      "id": "output",
+      "type": "output"
+    }
+  ],
+  "wires": [
+    {
+      "from": "position",
+      "to": "palette",
+      "description": "Feed position into palette"
+    },
+    {
+      "from": "palette",
+      "to": "output",
+      "description": "Output interpolated colors"
+    }
+  ]
+}
