@@ -327,7 +327,26 @@ export class K1DiscoveryService {
     }
 
     try {
-      const devices = await K1Client.discover(timeout);
+      const discoveryPromise = K1Client.discover(timeout);
+
+      if (this._abortController) {
+        const signal = this._abortController.signal;
+        const abortPromise = new Promise<never>((_, reject) => {
+          const onAbort = () => {
+            signal.removeEventListener('abort', onAbort);
+            reject(new Error('Discovery cancelled'));
+          };
+          signal.addEventListener('abort', onAbort);
+        });
+
+        const devices = await Promise.race([discoveryPromise, abortPromise]);
+        return (devices as K1DiscoveredDevice[]).map((device) => ({
+          ...device,
+          discoveryMethod: 'mdns' as const,
+        }));
+      }
+
+      const devices = await discoveryPromise;
       return devices.map((device) => ({
         ...device,
         discoveryMethod: 'mdns' as const,

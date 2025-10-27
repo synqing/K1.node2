@@ -3,6 +3,7 @@ firmware/.pio/
 firmware/.vscode/
 codegen/dist/
 codegen/node_modules/
+layer3_dsp_desktop/build/
 *.bin
 *.elf
 

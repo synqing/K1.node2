@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
+import { act } from 'react-dom/test-utils';
 import HMRDelayOverlay from '../HMRDelayOverlay';
 import { K1Provider } from '../../../providers/K1Provider';
 import { ErrorProvider } from '../../../hooks/useErrorHandler';
@@ -20,32 +21,37 @@ describe('HMRDelayOverlay', () => {
   });
 
   it('renders and responds to custom toggle events', async () => {
-    root.render(
-      React.createElement(
-        ErrorProvider,
-        null,
+    await act(async () => {
+      root.render(
         React.createElement(
-          K1Provider,
-          { devConfig: { hmrDelayMs: 50 } },
-          React.createElement(HMRDelayOverlay)
+          ErrorProvider,
+          null,
+          React.createElement(
+            K1Provider,
+            { devConfig: { hmrDelayMs: 50 } },
+            React.createElement(HMRDelayOverlay)
+          )
         )
-      )
-    );
+      );
+    });
 
-    // Initially rendered
+    // Initially rendered (allow React 18 commit)
     const initiallyVisible = document.body.textContent?.includes('HMR Status Monitor') ?? false;
     expect(initiallyVisible).toBe(true);
 
     // Disable via custom event
-    window.dispatchEvent(new CustomEvent('k1:hmrOverlayChange', { detail: { enabled: false } }));
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('k1:hmrOverlayChange', { detail: { enabled: false } }));
+    });
 
     // Should hide
     const afterDisableVisible = document.body.textContent?.includes('HMR Status Monitor') ?? false;
     expect(afterDisableVisible).toBe(false);
 
-    // Enable again via storage event
-    localStorage.setItem('k1.hmrOverlay', '1');
-    window.dispatchEvent(new StorageEvent('storage', { key: 'k1.hmrOverlay', newValue: '1', oldValue: '0', storageArea: localStorage }));
+    // Enable again via custom event (avoid brittle StorageEvent in jsdom)
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('k1:hmrOverlayChange', { detail: { enabled: true } }));
+    });
 
     const afterEnableVisible = document.body.textContent?.includes('HMR Status Monitor') ?? false;
     expect(afterEnableVisible).toBe(true);

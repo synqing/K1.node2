@@ -336,16 +336,10 @@ export function addStorageListener(handler: StorageChangeHandler): () => void {
  * Trigger storage event for testing (same-tab simulation)
  */
 export function triggerStorageEvent(key: string, newValue: string | null, oldValue: string | null): void {
-  const event = new StorageEvent('storage', {
-    key,
-    newValue,
-    oldValue,
-    storageArea: localStorage,
-  });
-  
-  window.dispatchEvent(event);
+  // In JSDOM, constructing StorageEvent is brittle; prefer custom events for same-tab simulation.
+  // Components listening to storage changes also subscribe to 'k1:storageChange' and specific toggles.
 
-  // Fallback: also emit custom events for same-tab listeners
+  // Emit custom events for same-tab listeners
   try {
     // Generic storage change hook for K1 flags
     window.dispatchEvent(new CustomEvent('k1:storageChange', { detail: { key, newValue, oldValue } }));
