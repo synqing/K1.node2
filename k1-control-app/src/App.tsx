@@ -6,9 +6,11 @@ import { ProfilingView } from './components/views/ProfilingView';
 import { TerminalView } from './components/views/TerminalView';
 import { DebugView } from './components/views/DebugView';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ErrorProvider } from './hooks/useErrorHandler';
+import { DeviceDiscoveryModal } from './components/DeviceDiscoveryModal';
 import { Toaster } from './components/ui/sonner';
 import { K1Client } from './api/k1-client';
-import { ConnectionStatus } from './types/k1-types';
+import { ConnectionStatus, K1DiscoveredDevice } from './types/k1-types';
 import { K1Provider } from './providers/K1Provider';
 import { K1StatusTest } from './components/K1StatusTest';
 import { DebugHUD } from './components/debug/DebugHUD';
@@ -69,12 +71,18 @@ export default function App() {
     await testConnection();
   };
 
+  const handleDiscoveryComplete = async (device: K1DiscoveredDevice) => {
+    setConnectionIP(`${device.ip}:${device.port}`);
+    // Connection will be tested automatically by useEffect
+  };
+
   const isConnected = connectionStatus === 'connected';
   const devApiBase = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:8000';
 
   return (
-    <ErrorBoundary>
-      <K1Provider initialEndpoint={connectionIP}>
+    <ErrorProvider>
+      <ErrorBoundary>
+        <K1Provider initialEndpoint={connectionIP}>
         <div className="h-screen w-screen flex flex-col bg-[var(--k1-bg)] text-[var(--k1-text)] overflow-hidden">
           {(import.meta as any).env?.DEV && (
             <div className="px-3 py-1 text-xs bg-[var(--k1-panel)] text-[var(--k1-text-dim)] border-b border-[var(--k1-border)] flex items-center justify-between">
@@ -138,6 +146,13 @@ export default function App() {
             <DebugHUD k1Client={k1Client} isConnected={isConnected} onClose={() => setShowDebugHUD(false)} />
           )}
 
+          {/* Device Discovery Modal (Phase 1 Week 1) */}
+          <DeviceDiscoveryModal
+            isOpen={!isConnected}
+            isConnected={isConnected}
+            onDiscoveryComplete={handleDiscoveryComplete}
+          />
+
           {/* Toast Notifications */}
           <Toaster />
           {(import.meta as any).env?.DEV && (
@@ -146,5 +161,6 @@ export default function App() {
         </div>
       </K1Provider>
     </ErrorBoundary>
+  </ErrorProvider>
   );
 }

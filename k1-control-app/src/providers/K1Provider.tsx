@@ -21,6 +21,7 @@ import {
 } from '../types/k1-types';
 import { K1Telemetry, telemetryManager } from '../utils/telemetry-manager';
 import { sessionRecorder } from '../utils/session-recorder';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 import {
   savePatternParameters,
   loadPatternParameters,
