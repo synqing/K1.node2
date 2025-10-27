@@ -88,7 +88,7 @@
         "testStrategy": "- Unit tests with mocked K1Client: verify action calls and state transitions.\n- Fake timers to test exponential backoff and auto-reconnect.\n- Persistence tests: simulate reload to restore device and settings.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "completed",
         "subtasks": [
           {
             "id": 1,

@@ -230,6 +230,7 @@ export interface K1ProviderState {
   
   // Enhanced telemetry with detailed metrics
   telemetry: K1TelemetryState;
+  recording: boolean;
 }
 
 /**
@@ -243,24 +244,18 @@ export interface K1ProviderActions {
   // Pattern control
   selectPattern: (patternId: string) => Promise<void>;
   
-  // Parameter control
   updateParameters: (params: Partial<K1Parameters>) => Promise<K1ApiResponse<{ params: K1Parameters }>>;
   
-  // Palette control
   setPalette: (paletteId: number) => Promise<void>;
   
-  // Error handling
   clearError: () => void;
   clearErrorHistory: () => void;
   
-  // Feature flags
   setFeatureFlag: (flag: keyof K1ProviderState['featureFlags'], value: boolean) => void;
   
-  // Reconnection control
   startReconnection: () => void;
   stopReconnection: () => void;
   
-  // Transport control
   setWebSocketEnabled: (enabled: boolean) => void;
   getTransportStatus: () => {
     wsAvailable: boolean;
@@ -271,11 +266,9 @@ export interface K1ProviderActions {
   };
   testTransportRouting: () => Promise<K1ApiResponse<{ params: K1Parameters }>>;
   
-  // Configuration backup/restore
   backupConfig: () => Promise<K1ConfigBackup>;
   restoreConfig: (config: K1ConfigBackup) => Promise<K1ConfigRestoreResponse>;
   
-  // Storage management
   getStorageInfo: () => {
     totalKeys: number;
     k1Keys: number;
@@ -289,12 +282,19 @@ export interface K1ProviderActions {
   exportStorageData: () => { success: boolean; data?: any; error?: string };
   importStorageData: (data: any) => { success: boolean; imported: string[]; errors: string[] };
   
-  // Enhanced telemetry and error surfaces
   getTelemetryState: () => K1TelemetryState;
   resetTelemetry: () => void;
   registerTelemetryHook: (hook: K1TelemetryHook) => () => void; // Returns unregister function
   setErrorSurfaceConfig: (config: Partial<K1ErrorSurfaceConfig>) => void;
   getErrorSurfaceConfig: () => K1ErrorSurfaceConfig;
+
+  // Realtime subscriptions
+  subscribeRealtime: (handler: (data: K1RealtimeData) => void) => () => void;
+  subscribeAudio: (handler: (data: K1AudioData) => void) => () => void;
+  subscribePerformance: (handler: (data: K1PerformanceData) => void) => () => void;
+  startSessionRecording: () => void;
+  stopSessionRecording: () => void;
+  exportSessionRecording: () => { success: boolean; data?: any; error?: string };
 }
 
 /**
@@ -527,6 +527,34 @@ export interface K1TransportPreferences {
   wsEnabled: boolean;
   preferredTransport: K1Transport;
   autoReconnect: boolean;
+}
+
+/**
+ * Device discovery types
+ */
+export interface K1DiscoveredDevice {
+  id: string;
+  name: string;
+  ip: string;
+  port: number;
+  mac: string;
+  firmware: string;
+  lastSeen: Date;
+  rssi?: number; // Signal strength
+  discoveryMethod: 'mdns' | 'scan' | 'manual';
+}
+
+export interface K1DiscoveryOptions {
+  timeout?: number;
+  includeOffline?: boolean;
+  preferredMethods?: ('mdns' | 'scan')[];
+}
+
+export interface K1DiscoveryResult {
+  devices: K1DiscoveredDevice[];
+  method: 'mdns' | 'scan' | 'hybrid';
+  duration: number;
+  errors?: string[];
 }
 
 /**

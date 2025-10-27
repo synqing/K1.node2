@@ -1,183 +1,93 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
-import { Slider } from '../ui/slider';
 import { Label } from '../ui/label';
-import { Input } from '../ui/input';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { useCoalescedParams } from '../../hooks/useCoalescedParams';
 import { useK1Actions, useK1State } from '../../providers/K1Provider';
-import { K1_PALETTES, K1_PATTERNS } from '../../api/k1-data';
-import { K1_PATTERN_HINTS, K1_HINTS_CONFIG } from '../../api/k1-hints';
-import { savePatternPreset, loadPatternPreset } from '../../utils/persistence';
+import { ColorPaletteSelector } from './color/ColorPaletteSelector';
+import { BasicColorControls } from './color/BasicColorControls';
+import { ColorMotionControls } from './color/ColorMotionControls';
+import { K1_PALETTES } from '../../api/k1-data';
 
 interface ColorManagementProps {
   disabled: boolean;
 }
 
-// Modes for color motion behavior
-const COLOR_MODES = [
-  { key: 'static', label: 'Static' },
-  { key: 'jitter', label: 'Jitter' },
-  { key: 'travel', label: 'Travel' },
-  { key: 'harmonic', label: 'Harmonic' },
-  { key: 'range', label: 'Hue Range' },
-] as const;
+type TabType = 'palette' | 'motion' | 'manual';
+type ColorMode = 'static' | 'flow' | 'pulse' | 'rainbow';
 
 export function ColorManagement({ disabled }: ColorManagementProps) {
+  const [activeTab, setActiveTab] = useState<TabType>('palette');
   const [selectedPalette, setSelectedPalette] = useState<number>(K1_PALETTES[0]?.id ?? 0);
-
-  // Anchors & HSV
+  
+  // Basic color controls
   const [hue, setHue] = useState(180);
   const [saturation, setSaturation] = useState(70);
-  const [value, setValue] = useState(90);
-
-  // Color Motion
-  const [mode, setMode] = useState<typeof COLOR_MODES[number]['key']>('static');
-  const [randomness, setRandomness] = useState(30); // reused as color_range amplitude
-  const [motionSpeed, setMotionSpeed] = useState(40); // custom_param_3
-  const [accentProb, setAccentProb] = useState(10); // custom_param_2 (probability)
-  const [harmonicSet, setHarmonicSet] = useState<'complementary' | 'triad' | 'tetrad'>('complementary');
-
-  // Hue Range fallback controls
-  const [startHue, setStartHue] = useState(0);
-  const [endHue, setEndHue] = useState(180);
-  const [activePreset, setActivePreset] = useState<string | null>(null);
-
-  // Track last applied preset params for divergence detection
-  const lastPresetParamsRef = useRef<Record<string, number> | null>(null);
-  const divergenceTimerRef = useRef<number | null>(null);
-  const toleranceDefaultsRef = useRef<Record<string, number>>(K1_HINTS_CONFIG.default_divergence_tolerance);
-  const divergenceToleranceRef = useRef<Record<string, number>>(toleranceDefaultsRef.current);
-  const debounceMsRef = useRef<number>(K1_HINTS_CONFIG.default_debounce_ms);
-  const [devSensitivityOn, setDevSensitivityOn] = useState<boolean>(typeof localStorage !== 'undefined' && localStorage.getItem('k1.debug.sensitivity') === '1');
+  const [brightness, setBrightness] = useState(90);
+  
+  // Motion controls
+  const [colorMode, setColorMode] = useState<ColorMode>('static');
+  const [motionSpeed, setMotionSpeed] = useState(50);
+  const [motionIntensity, setMotionIntensity] = useState(30);
+  
   const queue = useCoalescedParams();
   const actions = useK1Actions();
   const state = useK1State();
 
-  // Pattern-aware hints
-  const selectedPatternMeta = K1_PATTERNS.find(
-    (p) => p.id === state.selectedPatternId || p.index === Number(state.selectedPatternId)
-  );
+  // Handle palette changes
+  const handlePaletteChange = (paletteId: number) => {
+    if (disabled) return;
+    setSelectedPalette(paletteId);
+    actions.setPalette(paletteId).catch(console.error);
+  };
 
-  const modeCode = (mKey: typeof COLOR_MODES[number]['key']) =>
-    mKey === 'static' ? 0 : mKey === 'jitter' ? 1 : mKey === 'travel' ? 2 : mKey === 'harmonic' ? 3 : 4;
-
-  const getSuggestedModes = (category?: string) => {
-    switch (category) {
-      case 'static':
-        return ['harmonic', 'range', 'static'] as const;
-      case 'audio-reactive':
-        return ['jitter', 'travel', 'harmonic'] as const;
-      case 'beat-reactive':
-        return ['travel', 'harmonic', 'jitter'] as const;
-      case 'procedural':
-        return ['travel', 'jitter', 'range'] as const;
-      default:
-        return ['jitter', 'travel'] as const;
+  // Handle color parameter changes
+  const handleColorChange = (params: Partial<{ hue: number; saturation: number; brightness: number }>) => {
+    if (disabled) return;
+    
+    if (params.hue !== undefined) {
+      setHue(params.hue);
+      const huePct = Math.round((params.hue / 360) * 100);
+      queue({ color: huePct });
+    }
+    
+    if (params.saturation !== undefined) {
+      setSaturation(params.saturation);
+      queue({ saturation: params.saturation });
+    }
+    
+    if (params.brightness !== undefined) {
+      setBrightness(params.brightness);
+      queue({ brightness: params.brightness });
     }
   };
 
-  const suggested =
-    selectedPatternMeta && K1_PATTERN_HINTS[selectedPatternMeta.id]?.mode_order
-      ? K1_PATTERN_HINTS[selectedPatternMeta.id].mode_order
-      : getSuggestedModes(selectedPatternMeta?.category);
-
-  useEffect(() => {
-    if (!state.selectedPatternId) {
-      setActivePreset(null);
-      lastPresetParamsRef.current = null;
-      divergenceToleranceRef.current = toleranceDefaultsRef.current;
-      debounceMsRef.current = K1_HINTS_CONFIG.default_debounce_ms;
-      return;
-    }
-    const lastPreset = loadPatternPreset(state.selectedPatternId);
-    setActivePreset(lastPreset);
-    // Reset lastPresetParams on pattern change; will be set when preset applied
-    lastPresetParamsRef.current = null;
-
-    // Merge pattern-level tolerance and debounce from catalog
-    const patId = selectedPatternMeta?.id;
-    const patHints = patId ? K1_PATTERN_HINTS[patId] : undefined;
-    const patternTol = patHints?.divergence_tolerance ?? {};
-    divergenceToleranceRef.current = { ...toleranceDefaultsRef.current, ...patternTol };
-    debounceMsRef.current = patHints?.debounce_ms ?? K1_HINTS_CONFIG.default_debounce_ms;
-  }, [state.selectedPatternId]);
-
-  const hsvToHex = (h: number, s: number, v: number) => {
-    s = s / 100;
-    v = v / 100;
-    const c = v * s;
-    const hh = h / 60;
-    const x = c * (1 - Math.abs((hh % 2) - 1));
-    let r = 0, g = 0, b = 0;
-    if (hh >= 0 && hh < 1) { r = c; g = x; }
-    else if (hh >= 1 && hh < 2) { r = x; g = c; }
-    else if (hh >= 2 && hh < 3) { g = c; b = x; }
-    else if (hh >= 3 && hh < 4) { g = x; b = c; }
-    else if (hh >= 4 && hh < 5) { r = x; b = c; }
-    else { r = c; b = x; }
-    const m = v - c;
-    const toHex = (n: number) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-  };
-
-  const currentColor = hsvToHex(hue, saturation, value);
-
-  // Dispatch helpers
-  const dispatchHuePercent = (deg: number) => {
-    const huePct = Math.round((deg / 360) * 100);
-    queue({ color: huePct });
-  };
-
-  const dispatchRangeFromStartEnd = (start: number, end: number) => {
-    const widthDegRaw = (end - start + 360) % 360;
-    const widthDeg = widthDegRaw === 0 ? 360 : widthDegRaw; // 0 means full circle
-    const centerHue = (start + widthDeg / 2) % 360;
-    const colorPct = Math.round((centerHue / 360) * 100);
-    const rangePct = Math.round((widthDeg / 360) * 100);
-    queue({ color: colorPct, color_range: rangePct });
-  };
-
-  // Divergence detection with thresholds (catalog-driven)
-  const isAlmostEqual = (key: string, a: number, b: number) => {
-    if (Number.isNaN(a) || Number.isNaN(b)) return false;
-    const diff = Math.abs(a - b);
-    const tol = divergenceToleranceRef.current[key] ?? divergenceToleranceRef.current['default'] ?? 2;
-    return diff <= tol;
-  };
-
-  useEffect(() => {
-    if (!activePreset || !state.parameters || !lastPresetParamsRef.current) return;
-    if (divergenceTimerRef.current) {
-      window.clearTimeout(divergenceTimerRef.current);
-    }
-    divergenceTimerRef.current = window.setTimeout(() => {
-       const presetParams = lastPresetParamsRef.current!;
-       let diverged = false;
-       for (const [key, presetVal] of Object.entries(presetParams)) {
-         const currentVal = (state.parameters as any)[key];
-         if (typeof presetVal === 'number' && typeof currentVal === 'number') {
-           if (!isAlmostEqual(key, presetVal, currentVal)) {
-             diverged = true;
-             break;
-           }
-         } else if (presetVal !== currentVal) {
-           diverged = true;
-           break;
-         }
-       }
-       if (diverged && state.selectedPatternId) {
-         setActivePreset(null);
-         savePatternPreset(state.selectedPatternId, '');
-         lastPresetParamsRef.current = null;
-       }
-    }, debounceMsRef.current);
-    return () => {
-      if (divergenceTimerRef.current) {
-        window.clearTimeout(divergenceTimerRef.current);
-      }
+  // Handle motion parameter changes
+  const handleMotionModeChange = (mode: ColorMode) => {
+    if (disabled) return;
+    setColorMode(mode);
+    
+    // Map simplified modes to K1 parameters
+    const modeMapping = {
+      'static': 0,
+      'flow': 1,
+      'pulse': 2,
+      'rainbow': 3
     };
-  }, [activePreset, state.parameters, state.selectedPatternId]);
+    
+    queue({ custom_param_1: modeMapping[mode] });
+  };
+
+  const handleMotionSpeedChange = (speed: number) => {
+    if (disabled) return;
+    setMotionSpeed(speed);
+    queue({ speed });
+  };
+
+  const handleMotionIntensityChange = (intensity: number) => {
+    if (disabled) return;
+    setMotionIntensity(intensity);
+    queue({ color_range: intensity });
+  };
 
   return (
     <Card className="p-4 bg-[var(--k1-panel)] border-[var(--k1-border)]">
