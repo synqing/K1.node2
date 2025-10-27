@@ -417,6 +417,15 @@ git push origin feature/new-feature
 - [ ] Check accessibility with screen reader
 - [ ] Test dark/light theme switching (if implemented)
 
+#### Debug Panel Testing (Development Mode)
+- [ ] Press Alt+Shift+D to toggle DevDebugPanel visibility
+- [ ] Verify real-time metrics update correctly (subscriptions, starts, stops)
+- [ ] Test abort error logging toggle functionality
+- [ ] Monitor HMR delay measurements during hot reloads
+- [ ] Adjust summary window duration and verify changes
+- [ ] Confirm active subscription counts match component activity
+- [ ] Validate abort error statistics during navigation/HMR events
+
 ### Automated Testing (Future)
 
 #### Unit Testing Setup

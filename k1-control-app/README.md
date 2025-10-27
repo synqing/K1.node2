@@ -11,6 +11,7 @@ Professional control interface for K1.reinvented LED systems. Built with React, 
 - **Audio Visualization**: Real-time spectrum and beat detection display
 - **Device Management**: Auto-discovery and connection management
 - **Performance Monitoring**: FPS, CPU, and memory usage tracking
+- **Debug Panel**: Advanced development tools with real-time metrics (Alt+Shift+D)
 
 ## Quick Start
 
