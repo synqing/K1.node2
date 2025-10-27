@@ -364,7 +364,7 @@ function BetweennessMetricsSection({ betw, error, onFileSelected }: {
           <div style={{ marginBottom: 6 }}>
             <span style={panelStyles.label}>domain</span>{' '}
             <span style={{ fontFamily: 'monospace' }}>{betw.betweenness_domain ?? 'n/a'}</span>
-            <DomainTooltip domain={betw.betweenness_domain} />
+            <DomainTooltip domain={betw.betweenness_domain} layers={betw.layers} />
           </div>
           <div style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={panelStyles.label}>normalization</span>{' '}
@@ -674,26 +674,114 @@ function SnapshotCompareSection({ a, b }: { a: BetweennessMetrics | null; b: Bet
   );
 }
 
-function DomainTooltip({ domain }: { domain: string | undefined }) {
+function DomainTooltip({ domain, layers }: { domain: string | undefined; layers?: number }) {
   const [open, setOpen] = useState(false);
   const text = useMemo(() => {
     if (!domain) return '—';
-    // Simple parser to describe domain
-    if (domain === 'all') return 'All nodes in the graph.';
-    if (domain === 'layer0') return 'Only nodes from layer 0.';
-    if (domain.startsWith('layer:')) return 'Nodes from a specific layer index.';
-    if (domain.startsWith('layers:') && domain.includes(':step:')) return 'Inclusive layer range sampled every k layers.';
-    if (domain.startsWith('layers:')) return 'Inclusive layer range.';
-    if (domain === 'even') return 'Nodes from even-indexed layers (0-based).';
-    if (domain === 'odd') return 'Nodes from odd-indexed layers (0-based).';
-    if (domain === 'middle') return 'Nodes from the middle layer(s).';
-    if (domain.startsWith('quantile:') && domain.includes(':step:')) return 'Layers by quantile band, sampled with a step.';
-    if (domain.startsWith('quantile:')) return 'Layers selected by quantile range over [0,1].';
-    if (domain.startsWith('layer_quantile:')) return 'Layers selected by quantile of the given layer metric.';
-    if (domain.startsWith('layer_rank:')) return 'Top/bottom-k layers ranked by the given metric.';
-    if (domain.startsWith('custom:')) return 'Nodes listed in an external JSON file.';
-    return 'Domain selector';
-  }, [domain]);
+    const Linfo = typeof layers === 'number' ? ` (L=${layers})` : '';
+    const common = `Requires layered DAG for layer-dependent selectors${Linfo}.`;
+
+    if (domain === 'all') {
+      return [
+        'all — All nodes in the graph.',
+        'Example: --betweenness-domain all',
+        'Notes: fastest, no layer constraints.'
+      ].join('\n');
+    }
+    if (domain === 'layer0') {
+      return [
+        'layer0 — Only nodes from layer 0.',
+        'Example: --betweenness-domain layer0',
+        `Edge cases: ${common}`
+      ].join('\n');
+    }
+    if (domain.startsWith('layer:')) {
+      return [
+        'layer:<i> — Nodes from a specific layer index (0-based).',
+        'Example: --betweenness-domain layer:2',
+        'Edge cases: out-of-range indices are ignored/clipped; prefer 0..L-1.',
+        common
+      ].join('\n');
+    }
+    if (domain.startsWith('layers:') && domain.includes(':step:')) {
+      return [
+        'layers:<a-b>:step:<k> — Inclusive range sampled every k layers.',
+        'Example: --betweenness-domain layers:1-7:step:2',
+        'Edge cases: k>=1 integer; a and b order normalized; endpoints inclusive.',
+        common
+      ].join('\n');
+    }
+    if (domain.startsWith('layers:')) {
+      return [
+        'layers:<a-b> — Inclusive layer range.',
+        'Example: --betweenness-domain layers:2-4',
+        'Edge cases: a>b is normalized to b..a; endpoints inclusive.',
+        common
+      ].join('\n');
+    }
+    if (domain === 'even') {
+      return [
+        'even — Nodes from even-indexed layers (0-based).',
+        'Example: --betweenness-domain even',
+        common
+      ].join('\n');
+    }
+    if (domain === 'odd') {
+      return [
+        'odd — Nodes from odd-indexed layers (0-based).',
+        'Example: --betweenness-domain odd',
+        common
+      ].join('\n');
+    }
+    if (domain === 'middle') {
+      return [
+        'middle — Middle layer (odd L) or the two middle layers (even L).',
+        'Example: --betweenness-domain middle',
+        'Edge cases: L<2 → selects layer 0.',
+        common
+      ].join('\n');
+    }
+    if (domain.startsWith('quantile:') && domain.includes(':step:')) {
+      return [
+        'quantile:<q1-q2>:step:<k> — Quantile band over [0,1], sampled every k.',
+        'Example: --betweenness-domain quantile:0.25-0.75:step:2',
+        'Edge cases: q1,q2 clipped to [0,1]; endpoints inclusive; uniform mapping across layers.',
+        common
+      ].join('\n');
+    }
+    if (domain.startsWith('quantile:')) {
+      return [
+        'quantile:<q1-q2> — Layers by quantile band over [0,1].',
+        'Example: --betweenness-domain quantile:0.25-0.75',
+        'Edge cases: q1,q2 clipped to [0,1]; endpoints inclusive; uniform mapping across layers.',
+        common
+      ].join('\n');
+    }
+    if (domain.startsWith('layer_quantile:')) {
+      return [
+        'layer_quantile:<metric>:<q1-q2> — Select layers by the metric’s quantile.',
+        'Examples: layer_quantile:outdeg:0.0-0.0, layer_quantile:indeg_median:0.25-0.75',
+        'Edge cases: indices are metric-derived; band UI shows unknown indices.',
+        common
+      ].join('\n');
+    }
+    if (domain.startsWith('layer_rank:')) {
+      return [
+        'layer_rank:<metric>:<top|bottom>:<k> — Top/bottom-k layers by metric.',
+        'Example: layer_rank:outdeg:top:2',
+        'Edge cases: ties resolved stably; k clipped to [1..L]; indices metric-derived; band UI shows unknown indices.',
+        common
+      ].join('\n');
+    }
+    if (domain.startsWith('custom:')) {
+      return [
+        'custom:<path> — Nodes listed in an external JSON file.',
+        'Example: custom:metrics/custom.nodes.json (array of node ids)',
+        'Edge cases: file must be accessible by the CLI and well-formed.'
+      ].join('\n');
+    }
+    return ['Domain selector', common].join('\n');
+  }, [domain, layers]);
 
   return (
     <span
@@ -711,7 +799,7 @@ function DomainTooltip({ domain }: { domain: string | undefined }) {
         <span style={{
           position: 'absolute', transform: 'translateY(18px)',
           background: 'var(--k1-panel)', border: '1px solid var(--k1-border)',
-          borderRadius: 4, padding: '6px 8px', fontSize: 11, whiteSpace: 'nowrap'
+          borderRadius: 4, padding: '6px 8px', fontSize: 11, whiteSpace: 'pre-wrap', maxWidth: 280
         }}>{text}</span>
       )}
     </span>
