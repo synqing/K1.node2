@@ -9,6 +9,7 @@ import {
   K1DeviceInfo,
   K1TelemetryState,
   K1_DEFAULTS,
+  K1_STORAGE_KEYS,
 } from '../types/k1-types';
 import { K1Telemetry } from '../utils/telemetry-manager';
 import { sessionRecorder } from '../utils/session-recorder';
@@ -308,7 +309,72 @@ export function K1Provider({
   }, []);
 
   const k1ClientRef = useRef<K1Client | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { showError } = useErrorHandler();
+
+  // Helper to create structured provider error and update state
+  const dispatchError = useCallback((type: K1Error['type'], err: unknown, details?: string, retryAttempt?: number) => {
+    const original = err instanceof Error ? err : undefined;
+    const message = err instanceof Error ? err.message : String(err);
+    const error: K1Error = {
+      type,
+      message,
+      details,
+      timestamp: new Date(),
+      originalError: original,
+      retryAttempt,
+    };
+    dispatch({ type: 'SET_ERROR', payload: error });
+    // Telemetry manager error surfacing (toasts) disabled to avoid test-time timers
+    // Provider reducer already updates telemetry via UPDATE_FOR_ERROR
+  }, []);
+
+  // Compute next reconnection delay with exponential backoff + jitter
+  const computeNextDelay = useCallback((attempt: number) => {
+    const base = K1_DEFAULTS.RECONNECT.BASE_DELAY * Math.pow(2, Math.max(0, attempt - 1));
+    const jitterPct = K1_DEFAULTS.RECONNECT.JITTER_PERCENT / 100;
+    const jitter = base * jitterPct * (Math.random() * 2 - 1); // +/- jitter
+    return Math.min(K1_DEFAULTS.RECONNECT.MAX_DELAY, Math.max(0, Math.round(base + jitter)));
+  }, []);
+
+  // Attempt reconnect logic
+  const scheduleReconnect = useCallback((initialAttempt: number = 1) => {
+    const attempt = Math.max(1, initialAttempt);
+    const delay = computeNextDelay(attempt);
+    // Mark reconnection active and record attempt
+    dispatch({ type: 'SET_RECONNECT_STATE', payload: { isActive: true, attemptCount: attempt, nextDelay: delay, lastAttempt: new Date() } });
+    dispatch({ type: 'UPDATE_TELEMETRY', payload: K1Telemetry.updateForConnection(state.telemetry, 'reconnect_attempt') });
+    // Schedule actual reconnect
+    if (reconnectTimerRef.current) {
+      try { clearTimeout(reconnectTimerRef.current); } catch {}
+    }
+    reconnectTimerRef.current = setTimeout(async () => {
+      const client = k1ClientRef.current;
+      const endpoint = client?.getEndpoint?.();
+      if (!client || !endpoint) {
+        dispatchError('network_error', new Error('No client or endpoint for reconnect'));
+        dispatch({ type: 'SET_RECONNECT_STATE', payload: { isActive: false } });
+        return;
+      }
+      try {
+        // Attempt to reconnect
+        await client.connect(endpoint);
+        // On success, reset state
+        dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connected' });
+        dispatch({ type: 'SET_RECONNECT_STATE', payload: { isActive: false, attemptCount: 0, nextDelay: K1_DEFAULTS.RECONNECT.BASE_DELAY } });
+      } catch (err) {
+        // Failed attempt
+        const nextAttempt = attempt + 1;
+        if (nextAttempt > K1_DEFAULTS.RECONNECT.MAX_ATTEMPTS) {
+          dispatch({ type: 'SET_RECONNECT_STATE', payload: { isActive: false } });
+          dispatchError('reconnect_giveup', err as any, 'Max reconnection attempts reached', attempt);
+          return;
+        }
+        // Schedule next attempt
+        scheduleReconnect(nextAttempt);
+      }
+    }, delay);
+  }, [computeNextDelay, dispatchError, state.telemetry]);
 
   // Initialize and auto-connect K1 client when endpoint changes
   useEffect(() => {
@@ -317,9 +383,33 @@ export function K1Provider({
     const normalized = normalize(initialEndpoint);
 
     // Update connection state and build client
+    dispatch({ type: 'UPDATE_TELEMETRY', payload: K1Telemetry.updateForConnection(state.telemetry, 'attempt') });
     dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connecting' });
     const client = new K1Client(normalized);
     client.setErrorHandler(showError);
+
+    // Wire up basic event listeners for reconnection handling
+    const handleClose = () => {
+      // Begin reconnection loop
+      scheduleReconnect(1);
+    };
+    const handleOpen = ({ deviceInfo }: any) => {
+      // Successful connection via underlying transport
+      dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connected' });
+      dispatch({ type: 'SET_DEVICE_INFO', payload: deviceInfo });
+      // Cancel pending reconnection timers
+      if (reconnectTimerRef.current) {
+        try { clearTimeout(reconnectTimerRef.current); } catch {}
+        reconnectTimerRef.current = null;
+      }
+      dispatch({ type: 'SET_RECONNECT_STATE', payload: { isActive: false, attemptCount: 0, nextDelay: K1_DEFAULTS.RECONNECT.BASE_DELAY } });
+    };
+    const handleErrorEvt = ({ error }: any) => {
+      dispatchError('network_error', error);
+    };
+    (client as any).on?.('close', handleClose);
+    (client as any).on?.('open', handleOpen);
+    (client as any).on?.('error', handleErrorEvt);
 
     // Apply saved transport preference before connecting
     const prefs = loadTransportPrefs();
@@ -334,13 +424,28 @@ export function K1Provider({
       .then((deviceInfo) => {
         dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connected' });
         dispatch({ type: 'SET_DEVICE_INFO', payload: deviceInfo });
+        dispatch({ type: 'UPDATE_TELEMETRY', payload: K1Telemetry.updateForConnection(state.telemetry, 'success') });
         saveEndpoint(normalized);
       })
       .catch((error) => {
         dispatch({ type: 'SET_CONNECTION_STATE', payload: 'error' });
+        dispatchError('connect_error', error, 'Initial auto-connect failed');
         showError(error, { context: 'connection' });
       });
-  }, [initialEndpoint, showError]);
+    return () => {
+      // Cleanup listeners
+      (client as any).off?.('close', handleClose);
+      (client as any).off?.('open', handleOpen);
+      (client as any).off?.('error', handleErrorEvt);
+    };
+  }, [initialEndpoint, showError, scheduleReconnect, state.telemetry, dispatchError]);
+
+  // Persist feature flags whenever they change (and on connection transitions)
+  useEffect(() => {
+    try {
+      localStorage.setItem(K1_STORAGE_KEYS.FEATURE_FLAGS, JSON.stringify(state.featureFlags));
+    } catch {}
+  }, [state.featureFlags, state.connection]);
 
   // Actions implementation
   const actions: K1ProviderActions = {
@@ -351,10 +456,24 @@ export function K1Provider({
         const normalize = (ep: string) => ep.startsWith('http://') || ep.startsWith('https://') ? ep : `http://${ep}`;
         const normalized = normalize(targetEndpoint);
         
+        dispatch({ type: 'UPDATE_TELEMETRY', payload: K1Telemetry.updateForConnection(state.telemetry, 'attempt') });
         dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connecting' });
         
         const client = new K1Client(normalized);
         client.setErrorHandler(showError);
+
+        // Wire up reconnection listeners
+        const handleClose = () => scheduleReconnect(1);
+        const handleOpen = ({ deviceInfo }: any) => {
+          dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connected' });
+          dispatch({ type: 'SET_DEVICE_INFO', payload: deviceInfo });
+          if (reconnectTimerRef.current) { try { clearTimeout(reconnectTimerRef.current); } catch {} reconnectTimerRef.current = null; }
+          dispatch({ type: 'SET_RECONNECT_STATE', payload: { isActive: false, attemptCount: 0, nextDelay: K1_DEFAULTS.RECONNECT.BASE_DELAY } });
+        };
+        const handleErrorEvt = ({ error }: any) => dispatchError('network_error', error);
+        (client as any).on?.('close', handleClose);
+        (client as any).on?.('open', handleOpen);
+        (client as any).on?.('error', handleErrorEvt);
 
         // Apply saved transport preference before connecting
         const prefs = loadTransportPrefs();
@@ -368,16 +487,18 @@ export function K1Provider({
         
         dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connected' });
         dispatch({ type: 'SET_DEVICE_INFO', payload: deviceInfo });
+        dispatch({ type: 'UPDATE_TELEMETRY', payload: K1Telemetry.updateForConnection(state.telemetry, 'success') });
         
         // Save endpoint for persistence
         saveEndpoint(normalized);
         
       } catch (error) {
         dispatch({ type: 'SET_CONNECTION_STATE', payload: 'error' });
+        dispatchError('connect_error', error, 'Manual connect failed');
         showError(error, { context: 'connection' });
         throw error;
       }
-    }, [showError]),
+    }, [showError, scheduleReconnect, state.telemetry, dispatchError]),
 
     disconnect: useCallback(async () => {
       try {
@@ -388,6 +509,7 @@ export function K1Provider({
         dispatch({ type: 'SET_CONNECTION_STATE', payload: 'disconnected' });
         dispatch({ type: 'SET_DEVICE_INFO', payload: null });
       } catch (error) {
+        dispatchError('network_error', error, 'Disconnection failed');
         showError(error, { context: 'disconnection' });
       }
     }, [showError]),
@@ -406,6 +528,7 @@ export function K1Provider({
         }
         
       } catch (error) {
+        dispatchError('rest_error', error, 'Pattern selection failed');
         showError(error, { context: 'pattern-selection', patternId });
         throw error;
       }
@@ -416,7 +539,13 @@ export function K1Provider({
         if (!k1ClientRef.current) throw new Error('Not connected');
         
         const result = await k1ClientRef.current.updateParameters(params);
-        dispatch({ type: 'UPDATE_PARAMETERS', payload: params });
+        if (!result.success) {
+          dispatchError('rest_error', new Error(result.error?.error || 'Parameter update failed'));
+        } else {
+          dispatch({ type: 'UPDATE_PARAMETERS', payload: params });
+          // Telemetry success for parameter update
+          dispatch({ type: 'UPDATE_TELEMETRY', payload: K1Telemetry.updateForSuccess(state.telemetry, 'parameter_update') });
+        }
         
         // Save parameters for current pattern
         if (state.selectedPatternId) {
@@ -425,17 +554,23 @@ export function K1Provider({
         
         return result;
       } catch (error) {
+        dispatchError('rest_error', error, 'Parameter update threw');
         showError(error, { context: 'parameter-update', params });
         throw error;
       }
-    }, [showError, state.selectedPatternId, state.parameters]),
+    }, [showError, state.selectedPatternId, state.parameters, state.telemetry, dispatchError]),
 
     setPalette: useCallback(async (paletteId: number) => {
       try {
         if (!k1ClientRef.current) throw new Error('Not connected');
         
-        await k1ClientRef.current.setPalette(paletteId);
-        dispatch({ type: 'SET_PALETTE', payload: paletteId });
+        const res = await k1ClientRef.current.setPalette(paletteId);
+        if (!res.success) {
+          dispatchError('rest_error', new Error(res.error?.error || 'Palette update failed'));
+        } else {
+          dispatch({ type: 'SET_PALETTE', payload: paletteId });
+          dispatch({ type: 'UPDATE_TELEMETRY', payload: K1Telemetry.updateForSuccess(state.telemetry, 'palette_change') });
+        }
         
         // Save palette for current pattern
         if (state.selectedPatternId) {
@@ -443,10 +578,11 @@ export function K1Provider({
         }
         
       } catch (error) {
+        dispatchError('rest_error', error, 'Palette change threw');
         showError(error, { context: 'palette-change', paletteId });
         throw error;
       }
-    }, [showError, state.selectedPatternId]),
+    }, [showError, state.selectedPatternId, state.telemetry, dispatchError]),
 
     clearError: useCallback(() => {
       dispatch({ type: 'CLEAR_ERROR' });
@@ -461,11 +597,16 @@ export function K1Provider({
     }, []),
 
     startReconnection: useCallback(() => {
-      dispatch({ type: 'SET_RECONNECT_STATE', payload: { isActive: true } });
-    }, []),
+      // Begin manual reconnection loop
+      scheduleReconnect(1);
+    }, [scheduleReconnect]),
 
     stopReconnection: useCallback(() => {
-      dispatch({ type: 'SET_RECONNECT_STATE', payload: { isActive: false } });
+      if (reconnectTimerRef.current) {
+        try { clearTimeout(reconnectTimerRef.current); } catch {}
+        reconnectTimerRef.current = null;
+      }
+      dispatch({ type: 'SET_RECONNECT_STATE', payload: { isActive: false, attemptCount: 0, nextDelay: K1_DEFAULTS.RECONNECT.BASE_DELAY } });
     }, []),
 
     setWebSocketEnabled: useCallback((enabled: boolean) => {
@@ -504,13 +645,27 @@ export function K1Provider({
 
     backupConfig: useCallback(async () => {
       if (!k1ClientRef.current) throw new Error('Not connected');
-      return await k1ClientRef.current.backupConfig();
-    }, []),
+      try {
+        const res = await k1ClientRef.current.backupConfig();
+        dispatch({ type: 'UPDATE_TELEMETRY', payload: K1Telemetry.updateForSuccess(state.telemetry, 'backup') });
+        return res;
+      } catch (error) {
+        dispatchError('backup_error', error);
+        throw error;
+      }
+    }, [state.telemetry, dispatchError]),
 
     restoreConfig: useCallback(async (config) => {
       if (!k1ClientRef.current) throw new Error('Not connected');
-      return await k1ClientRef.current.restoreConfig(config);
-    }, []),
+      try {
+        const res = await k1ClientRef.current.restoreConfig(config);
+        dispatch({ type: 'UPDATE_TELEMETRY', payload: K1Telemetry.updateForSuccess(state.telemetry, 'restore') });
+        return res;
+      } catch (error) {
+        dispatchError('restore_error', error);
+        throw error;
+      }
+    }, [state.telemetry, dispatchError]),
 
     getStorageInfo: useCallback(() => {
       // Mock implementation - in real app this would analyze localStorage

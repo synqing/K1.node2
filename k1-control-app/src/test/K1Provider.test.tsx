@@ -23,6 +23,10 @@ vi.mock('../api/k1-client', () => {
 
 vi.mock('../components/debug/HMRDelayOverlay', () => ({ default: () => null }))
 
+// Ensure real provider and error handler are used in this suite
+vi.unmock('../providers/K1Provider')
+vi.unmock('../hooks/useErrorHandler')
+
 import { K1Provider, useK1State, useK1Actions } from '../providers/K1Provider'
 
 // Test component to access provider state and actions

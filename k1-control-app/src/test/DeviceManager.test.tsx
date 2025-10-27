@@ -9,6 +9,7 @@ import { userEvent } from '@testing-library/user-event'
 import { DeviceManager } from '../components/DeviceManager'
 import { K1Provider } from '../providers/K1Provider'
 import { K1DiscoveredDevice } from '../types/k1-types'
+import { ErrorProvider } from '../hooks/useErrorHandler'
 
 // Mock the discovery service
 vi.mock('../services/discovery-service', () => ({
