@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card } from '../ui/card';
-import { Label } from '../ui/label';
 import { useCoalescedParams } from '../../hooks/useCoalescedParams';
-import { useK1Actions, useK1State } from '../../providers/K1Provider';
+import { useK1Actions } from '../../providers/K1Provider';
 import { ColorPaletteSelector } from './color/ColorPaletteSelector';
 import { BasicColorControls } from './color/BasicColorControls';
 import { ColorMotionControls } from './color/ColorMotionControls';
@@ -31,7 +30,6 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
   
   const queue = useCoalescedParams();
   const actions = useK1Actions();
-  const state = useK1State();
 
   // Handle palette changes
   const handlePaletteChange = (paletteId: number) => {
@@ -80,13 +78,13 @@ export function ColorManagement({ disabled }: ColorManagementProps) {
   const handleMotionSpeedChange = (speed: number) => {
     if (disabled) return;
     setMotionSpeed(speed);
-    queue({ speed });
+    queue.queue({ speed });
   };
 
   const handleMotionIntensityChange = (intensity: number) => {
     if (disabled) return;
     setMotionIntensity(intensity);
-    queue({ color_range: intensity });
+    queue.queue({ color_range: intensity });
   };
 
   return (

@@ -80,10 +80,10 @@ export default function App() {
   const devApiBase = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:8000';
 
   return (
-    <ErrorProvider>
-      <ErrorBoundary>
+    <ErrorBoundary>
+      <ErrorProvider>
         <K1Provider initialEndpoint={connectionIP}>
-        <div className="h-screen w-screen flex flex-col bg-[var(--k1-bg)] text-[var(--k1-text)] overflow-hidden">
+          <div className="h-screen w-screen flex flex-col bg-[var(--k1-bg)] text-[var(--k1-text)] overflow-hidden">
           {(import.meta as any).env?.DEV && (
             <div className="px-3 py-1 text-xs bg-[var(--k1-panel)] text-[var(--k1-text-dim)] border-b border-[var(--k1-border)] flex items-center justify-between">
               <span>Dev API base: {devApiBase}</span>
@@ -153,14 +153,14 @@ export default function App() {
             onDiscoveryComplete={handleDiscoveryComplete}
           />
 
-          {/* Toast Notifications */}
-          <Toaster />
-          {(import.meta as any).env?.DEV && (
-            <DevDebugPanel collapsedInitially={true} />
-          )}
-        </div>
-      </K1Provider>
+            {/* Toast Notifications */}
+            <Toaster />
+            {(import.meta as any).env?.DEV && (
+              <DevDebugPanel collapsedInitially={true} />
+            )}
+          </div>
+        </K1Provider>
+      </ErrorProvider>
     </ErrorBoundary>
-  </ErrorProvider>
   );
 }
