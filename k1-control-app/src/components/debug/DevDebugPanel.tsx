@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useK1Config } from '../../providers/K1Provider';
 import { getAbortStats, setAbortLoggingEnabled, setAbortWindowMs, isAbortLoggingEnabled } from '../../utils/error-utils';
-import { getRealtimeMetrics, MetricType } from '../../utils/realtime-metrics';
+import { getRealtimeMetrics, getActiveCounts, MetricType } from '../../utils/realtime-metrics';
 
 // Constants
 const HOTKEY_COMBINATION = { alt: true, shift: true, key: 'KeyD' };
@@ -148,12 +148,7 @@ export function DevDebugPanel({ collapsedInitially = true }: DevDebugPanelProps)
   }, [stats.lastWindowStartedAt]);
 
   const effectiveLogging = isAbortLoggingEnabled();
-  
-  const activeCounts = useMemo(() => ({
-    realtime: rtm.starts.realtime - rtm.stops.realtime,
-    audio: rtm.starts.audio - rtm.stops.audio,
-    performance: rtm.starts.performance - rtm.stops.performance,
-  }), [rtm]);
+  const activeCounts = getActiveCounts();
 
   // Don't render in production
   if (!(import.meta as any).env?.DEV) return null;
