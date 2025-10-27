@@ -1,0 +1,16 @@
+{
+  "directed": true,
+  "N": 60,
+  "M": 275,
+  "outdegree": { "min": 0, "max": 5, "avg": 4.58333 },
+  "isDag": true,
+  "betweenness_sample_count": 12,
+  "betweenness_domain": "quantile:0.25-0.75",
+  "betweenness_top_k": 6,
+  "betweenness_normalized": true,
+  "betweenness_normalization_scheme": "domain_minmax",
+  "betweenness_sampling": "random",
+  "betweenness_ms": 0,
+  "betweenness_seed": 31,
+  "betweenness_top_nodes": [{"node": 45, "score": 1}, {"node": 46, "score": 1}, {"node": 47, "score": 1}, {"node": 48, "score": 1}, {"node": 49, "score": 1}, {"node": 40, "score": 0.954545}]
+}

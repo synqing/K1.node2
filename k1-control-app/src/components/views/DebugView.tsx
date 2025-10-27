@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Activity, History, Volume2, AlertCircle, Play, Pause, Download } from 'lucide-react';
+import { Activity, History, Volume2, AlertCircle, Play, Pause, Download, Search } from 'lucide-react';
 import { PatternPerformanceMonitor } from '../debug/PatternPerformanceMonitor';
 import { ParameterHistory } from '../debug/ParameterHistory';
 import { AudioReactiveDebug } from '../debug/AudioReactiveDebug';
+import { DiscoveryMonitoringDashboard } from '../discovery/DiscoveryMonitoringDashboard';
+import '../discovery/DiscoveryMonitoringDashboard.css';
 import { Button } from '../ui/button';
 import { useK1Actions, useK1State } from '../../providers/K1Provider';
 
 interface DebugViewProps {
   isConnected: boolean;
   k1Client: any;
-  initialTab?: 'performance' | 'parameters' | 'audio';
+  initialTab?: 'performance' | 'parameters' | 'audio' | 'discovery';
 }
 
 export function DebugView({ isConnected, k1Client, initialTab }: DebugViewProps) {
@@ -102,7 +104,7 @@ export function DebugView({ isConnected, k1Client, initialTab }: DebugViewProps)
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid w-full grid-cols-3 bg-[var(--k1-panel)] border-b border-[var(--k1-border)]">
+        <TabsList className="grid w-full grid-cols-4 bg-[var(--k1-panel)] border-b border-[var(--k1-border)]">
           <TabsTrigger value="performance" className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Performance Monitor
@@ -114,6 +116,10 @@ export function DebugView({ isConnected, k1Client, initialTab }: DebugViewProps)
           <TabsTrigger value="audio" className="flex items-center gap-2">
             <Volume2 className="w-4 h-4" />
             Audio Debug
+          </TabsTrigger>
+          <TabsTrigger value="discovery" className="flex items-center gap-2">
+            <Search className="w-4 h-4" />
+            Discovery
           </TabsTrigger>
         </TabsList>
 
@@ -127,6 +133,10 @@ export function DebugView({ isConnected, k1Client, initialTab }: DebugViewProps)
 
         <TabsContent value="audio" className="flex-1 mt-0">
           <AudioReactiveDebug isConnected={isConnected} k1Client={k1Client} />
+        </TabsContent>
+
+        <TabsContent value="discovery" className="flex-1 mt-0">
+          <DiscoveryMonitoringDashboard refreshIntervalMs={1000} />
         </TabsContent>
       </Tabs>
     </div>

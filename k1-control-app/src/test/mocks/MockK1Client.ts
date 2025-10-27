@@ -18,8 +18,31 @@ import {
 
 /**
  * Mock K1Client with event emitter capabilities for testing
+ * Implements the exact same interface as the real K1Client
  */
-export class MockK1Client extends EventEmitter {
+export class MockK1Client {
+  private _listeners = new Map<string, Set<(payload: any) => void>>()
+  
+  // Event system matching real K1Client
+  on(event: string, handler: (payload: any) => void) {
+    if (!this._listeners.has(event)) {
+      this._listeners.set(event, new Set())
+    }
+    this._listeners.get(event)!.add(handler)
+  }
+
+  off(event: string, handler: (payload: any) => void) {
+    this._listeners.get(event)?.delete(handler)
+  }
+
+  emit(event: string, payload?: any) {
+    const handlers = this._listeners.get(event)
+    if (handlers) {
+      handlers.forEach((h) => {
+        try { h(payload) } catch (_) { /* noop */ }
+      })
+    }
+  }
   private _isConnected = false
   private _endpoint = ''
   private _deviceInfo: K1DeviceInfo | null = null
@@ -350,7 +373,7 @@ export class MockK1Client extends EventEmitter {
 
   // Cleanup method for tests
   cleanup() {
-    this.removeAllListeners()
+    this._listeners.clear()
     this._isConnected = false
     this._endpoint = ''
     this._deviceInfo = null

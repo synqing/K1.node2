@@ -1,0 +1,48 @@
+name: libgraph-ci
+
+on:
+  push:
+    paths:
+      - 'host/libgraph/**'
+      - '.github/workflows/libgraph.yml'
+  pull_request:
+    paths:
+      - 'host/libgraph/**'
+
+jobs:
+  build-test-bench:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup CMake dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make
+
+      - name: Configure
+        run: cmake -S host/libgraph -B host/libgraph/build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build host/libgraph/build -j
+
+      - name: Run unit tests
+        run: ctest --test-dir host/libgraph/build --output-on-failure
+
+      - name: Run bench and emit metrics
+        run: |
+          ./host/libgraph/build/k1_graph_bench --layers 12 --width 34 \
+            --betweenness-samples 16 --betweenness-domain layer0 \
+            --betweenness-top-k 5 --betweenness-normalize-scheme directed \
+            --betweenness-seed 42 --metrics host/libgraph/build/graph.metrics.json \
+            --out host/libgraph/build/bench.topo.json
+          cat host/libgraph/build/graph.metrics.json
+
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libgraph-metrics
+          path: |
+            host/libgraph/build/graph.metrics.json
+            host/libgraph/build/bench.topo.json

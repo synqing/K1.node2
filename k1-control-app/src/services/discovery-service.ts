@@ -134,13 +134,32 @@ export class K1DiscoveryService {
       // Reset cancellation flag after considering it for this cycle
       this._wasCancelled = false;
 
-      // If mDNS failed or returned no devices and scan is disabled, surface the error
+      // If mDNS failed or returned no devices and scan is disabled, return graceful result
       if (devices.length === 0 && !preferredMethods.includes('scan')) {
-        const err = mdnsError instanceof Error ? mdnsError : new Error('Discovery failed');
-        throw err;
+        // Emit error event for listeners even though we return gracefully
+        if (mdnsError) {
+          const discoveryError = mdnsError instanceof Error ? mdnsError : new Error(String(mdnsError));
+          this._emit('discovery-error', discoveryError);
+        }
+
+        const result: K1DiscoveryResult = {
+          devices: [],
+          method: 'mdns',
+          duration: Date.now() - startTime,
+          errors: errors.length > 0 ? errors : undefined,
+        };
+
+        this._updateDeviceCache([]);
+        this._emit('devices-found', []);
+        this._emit('discovery-completed', result);
+        return result;
       }
 
       // Fallback to network scanning if scan is preferred (regardless of mDNS results)
+      if (this._abortController?.signal.aborted) {
+        throw new Error('Discovery cancelled');
+      }
+
       if (preferredMethods.includes('scan')) {
         try {
           console.log('[DiscoveryService] Attempting network scan fallback...');
@@ -353,7 +372,7 @@ export class K1DiscoveryService {
       }));
     } catch (error) {
       console.warn('[DiscoveryService] mDNS discovery failed:', error);
-      return [];
+      throw error instanceof Error ? error : new Error(String(error));
     }
   }
 

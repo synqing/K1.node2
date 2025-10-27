@@ -10,6 +10,8 @@ import { K1DiscoveredDevice, K1DiscoveryResult, K1DiscoveryOptions } from '../ty
 import { K1Client } from '../api/k1-client';
 import { K1DiscoveryService } from './discovery-service';
 import { discoveryMetrics } from './discovery-metrics';
+import { cacheInvalidationManager } from './cache-invalidation';
+import { DiscoveryMethodQueue, DiscoveryQueueConfig, DiscoveryMethod } from './discovery-queue';
 
 /**
  * Normalized device summary (internal format)
@@ -81,21 +83,67 @@ export class DeviceDiscoveryAbstraction {
   private _maxCacheSize = 100; // Maximum devices to cache
   private _cacheTtlMs = 3600000; // Cache TTL: 1 hour (ms)
 
+  // Priority queue for intelligent method selection
+  private _queue: DiscoveryMethodQueue;
+
   constructor() {
     this._discoveryService = new K1DiscoveryService();
+    
+    // Initialize discovery queue with default configuration
+    const defaultConfig: DiscoveryQueueConfig = {
+      strategy: 'hybrid',
+      defaultTimeout: 5000,
+      learningEnabled: true,
+      methods: [
+        {
+          name: 'mdns',
+          priority: 8,
+          timeout: 3000,
+          retries: 1,
+          enabled: true,
+        },
+        {
+          name: 'scan',
+          priority: 6,
+          timeout: 5000,
+          retries: 0,
+          enabled: true,
+        },
+        {
+          name: 'manual',
+          priority: 4,
+          timeout: 2000,
+          retries: 0,
+          enabled: false, // Disabled by default
+        },
+      ],
+    };
+
+    this._queue = new DiscoveryMethodQueue(
+      defaultConfig,
+      discoveryMetrics,
+      this._executeDiscoveryMethod.bind(this)
+    );
   }
 
   /**
-   * Remove expired devices from cache (older than TTL)
+   * Remove expired devices from cache using smart invalidation
    * @private
    */
   private _evictExpiredDevices(): void {
-    const now = Date.now();
     const expired: string[] = [];
 
     this._discoveryCache.forEach((device, deviceId) => {
-      if (now - device.lastSeen.getTime() > this._cacheTtlMs) {
+      // Use smart invalidation instead of fixed TTL
+      if (cacheInvalidationManager.shouldInvalidate(device)) {
         expired.push(deviceId);
+        
+        // Determine invalidation reason
+        const adaptiveTTL = cacheInvalidationManager.computeAdaptiveTTL(deviceId);
+        const ageMs = Date.now() - device.lastSeen.getTime();
+        const reason = ageMs > adaptiveTTL ? 'ttl_expired' : 'changed';
+        
+        cacheInvalidationManager.markAsStale(deviceId, reason);
       }
     });
 
@@ -197,45 +245,22 @@ export class DeviceDiscoveryAbstraction {
           // Clean up expired devices before discovery
           this._evictExpiredDevices();
 
-          // Try K1Client.discover first if available
-          let result: K1DiscoveryResult | null = null;
-          const errors: string[] = [];
+          // Use priority queue for intelligent method selection
+          const result = await this._queue.execute({
+            timeout: options.timeout || 5000,
+            // Could add strategy override from options if needed
+          });
 
-          try {
-            result = await this._discoverViaK1Client(options);
-          } catch (err) {
-            errors.push(`K1Client discovery failed: ${err instanceof Error ? err.message : String(err)}`);
-            // Fall back to K1DiscoveryService
-          }
-
-          // Fallback to K1DiscoveryService if K1Client failed
-          if (!result) {
-            try {
-              result = await this._discoveryService.discoverDevices(options);
-            } catch (err) {
-              errors.push(`K1DiscoveryService failed: ${err instanceof Error ? err.message : String(err)}`);
-              result = {
-                devices: [],
-                method: 'hybrid',
-                duration: performance.now() - startTime,
-                errors: errors.length > 0 ? errors : undefined,
-                hasErrors: true,
-              };
-            }
-          }
-
-          const duration = performance.now() - startTime;
-
-          // Normalize results
-          const normalizedDevices = this._normalizeDevices(result.devices);
-
-          // Update cache
-          normalizedDevices.forEach(device => {
+          // The queue already returns normalized devices, just update cache
+          result.devices.forEach(device => {
             const existing = this._discoveryCache.get(device.id);
             if (existing) {
               device.discoveryCount = existing.discoveryCount + 1;
             }
             this._discoveryCache.set(device.id, device);
+            
+            // Record device state for smart invalidation
+            cacheInvalidationManager.recordDeviceState(device);
           });
 
           // Enforce cache size limits (remove LRU devices if needed)
@@ -245,12 +270,12 @@ export class DeviceDiscoveryAbstraction {
           discoveryMetrics.updateCacheMetrics(this._discoveryCache.size, this._maxCacheSize);
 
           const discoveryResult: DiscoveryResult = {
-            devices: normalizedDevices,
-            method: result.method,
-            duration,
-            errors: errors.length > 0 ? errors : undefined,
-            hasErrors: errors.length > 0,
-            cancelled: false,
+            devices: result.devices,
+            method: result.method as 'mdns' | 'scan' | 'hybrid',
+            duration: result.duration,
+            errors: result.errors,
+            hasErrors: result.hasErrors || false,
+            cancelled: result.cancelled,
           };
 
           this._lastDiscovery = discoveryResult;
@@ -396,6 +421,64 @@ export class DeviceDiscoveryAbstraction {
   }
 
   /**
+   * Execute a specific discovery method (used by the priority queue)
+   * @private
+   */
+  private async _executeDiscoveryMethod(method: string, timeout: number): Promise<DiscoveryResult> {
+    const startTime = performance.now();
+    let result: K1DiscoveryResult | null = null;
+    const errors: string[] = [];
+
+    try {
+      switch (method) {
+        case 'mdns':
+          result = await this._discoverViaK1Client({ timeout });
+          break;
+        case 'scan':
+          result = await this._discoveryService.discoverDevices({ timeout });
+          break;
+        case 'manual':
+          // Manual discovery would be implemented here
+          // For now, return empty result
+          result = {
+            devices: [],
+            method: 'manual',
+            duration: 0,
+          };
+          break;
+        default:
+          throw new Error(`Unknown discovery method: ${method}`);
+      }
+
+      if (!result) {
+        throw new Error(`${method} discovery returned null`);
+      }
+
+      // Normalize devices
+      const normalizedDevices = this._normalizeDevices(result.devices);
+
+      return {
+        devices: normalizedDevices,
+        method: method as 'mdns' | 'scan' | 'hybrid',
+        duration: performance.now() - startTime,
+        errors: result.errors,
+        hasErrors: (result.errors?.length || 0) > 0,
+        cancelled: false,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      return {
+        devices: [],
+        method: method as 'mdns' | 'scan' | 'hybrid',
+        duration: performance.now() - startTime,
+        errors: [errorMsg],
+        hasErrors: true,
+        cancelled: false,
+      };
+    }
+  }
+
+  /**
    * Try K1Client.discover (if available)
    * Returns null if K1Client doesn't have discover method
    */
@@ -441,6 +524,34 @@ export class DeviceDiscoveryAbstraction {
         discoveryCount: cached?.discoveryCount || 1,
       };
     });
+  }
+
+  /**
+   * Get current discovery queue configuration
+   */
+  getQueueConfig(): DiscoveryQueueConfig {
+    return this._queue.getConfig();
+  }
+
+  /**
+   * Update discovery queue configuration
+   */
+  setQueueConfig(config: Partial<DiscoveryQueueConfig>): void {
+    this._queue.setConfig(config);
+  }
+
+  /**
+   * Get method statistics from the queue
+   */
+  getMethodStats(): { [methodName: string]: any } {
+    return this._queue.getMethodStats();
+  }
+
+  /**
+   * Reset method priorities to defaults
+   */
+  resetMethodPriorities(): void {
+    this._queue.resetPriorities();
   }
 }
 

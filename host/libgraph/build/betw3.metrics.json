@@ -1,0 +1,16 @@
+{
+  "directed": true,
+  "N": 63,
+  "M": 392,
+  "outdegree": { "min": 0, "max": 7, "avg": 6.22222 },
+  "isDag": true,
+  "betweenness_sample_count": 9,
+  "betweenness_domain": "layers:1-7:step:2",
+  "betweenness_top_k": 7,
+  "betweenness_normalized": true,
+  "betweenness_normalization_scheme": "zscore",
+  "betweenness_sampling": "random",
+  "betweenness_ms": 0,
+  "betweenness_seed": 21,
+  "betweenness_top_nodes": [{"node": 14, "score": 1.26145}, {"node": 15, "score": 1.26145}, {"node": 16, "score": 1.26145}, {"node": 17, "score": 1.26145}, {"node": 18, "score": 1.26145}, {"node": 19, "score": 1.26145}, {"node": 20, "score": 1.26145}]
+}

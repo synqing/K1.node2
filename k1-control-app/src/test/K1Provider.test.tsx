@@ -9,21 +9,20 @@ import userEvent from '@testing-library/user-event'
 import { MockK1Client, createMockK1Client } from './mocks/MockK1Client'
 import { setMockRandom } from './setup'
 import { K1_DEFAULTS } from '../types/k1-types'
-import * as ClientModule from '../api/k1-client'
 import { ErrorProvider } from '../hooks/useErrorHandler'
 
-// Mock the K1Client module
+// Mock K1Client before importing provider
 vi.mock('../api/k1-client', () => {
-  // Constructor-compatible mock so `new K1Client()` works
-  const K1ClientMock = vi.fn(function K1ClientMock(this: any) {
-    return createMockK1Client()
-  })
-  return { K1Client: K1ClientMock }
+  return {
+    K1Client: vi.fn()
+  }
 })
 
 vi.mock('../components/debug/HMRDelayOverlay', () => ({ default: () => null }))
 
+// Import after mocking
 import { K1Provider, useK1State, useK1Actions } from '../providers/K1Provider'
+import { K1Client } from '../api/k1-client'
 
 // Test component to access provider state and actions
 function TestComponent() {
@@ -104,8 +103,14 @@ describe('K1Provider', () => {
     vi.useFakeTimers()
     mockClient = createMockK1Client()
     user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    // Ensure the mock returns our per-test client
-    ClientModule.K1Client.mockImplementation(function () { return mockClient })
+    
+    // Mock K1Client constructor - must return the mock when called with 'new'
+    vi.mocked(K1Client).mockImplementation(function(this: any) {
+      return mockClient as any
+    } as any)
+    
+    // Mock static discover method
+    ;(K1Client as any).discover = vi.fn().mockResolvedValue([])
   })
 
   afterEach(() => {

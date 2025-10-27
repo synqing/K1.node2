@@ -1,0 +1,41 @@
+name: Host Libgraph CI
+
+on:
+  push:
+    paths:
+      - 'host/libgraph/**'
+      - '.github/workflows/host-libgraph.yml'
+  pull_request:
+    paths:
+      - 'host/libgraph/**'
+      - '.github/workflows/host-libgraph.yml'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup CMake
+        uses: lukka/get-cmake@v3.27.0
+
+      - name: Configure
+        run: cmake -S host/libgraph -B host/libgraph/build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build host/libgraph/build -j
+
+      - name: Run tests
+        run: ctest --test-dir host/libgraph/build --output-on-failure
+
+      - name: Run small bench
+        run: |
+          mkdir -p host/libgraph/build/metrics
+          ./host/libgraph/build/k1_graph_bench 10 20 --json-out host/libgraph/build/metrics/graph.metrics.json
+
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libgraph-metrics
+          path: host/libgraph/build/metrics/graph.metrics.json

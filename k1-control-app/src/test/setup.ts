@@ -36,8 +36,11 @@ WebSocketMock.CLOSING = 2
 WebSocketMock.CLOSED = 3
 global.WebSocket = WebSocketMock
 
-// Mock fetch
-global.fetch = vi.fn()
+// Mock fetch for unit tests, but allow real fetch for integration tests
+// Integration tests will override this
+if (!global.fetch) {
+  global.fetch = vi.fn()
+}
 
 // Mock Math.random for deterministic tests
 let mockRandomValue = 0.5

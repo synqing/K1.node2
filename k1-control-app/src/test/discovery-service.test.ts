@@ -159,7 +159,7 @@ describe('K1DiscoveryService', () => {
 
       mockDiscover.mockResolvedValue([oldDevice, recentDevice])
 
-      const result = await service.discoverDevices({ includeOffline: false })
+      const result = await service.discoverDevices({ includeOffline: false, preferredMethods: ['mdns'] })
 
       expect(result.devices).toHaveLength(1)
       expect(result.devices[0].id).toBe('k1-recent')
@@ -179,7 +179,7 @@ describe('K1DiscoveryService', () => {
 
       mockDiscover.mockResolvedValue([oldDevice])
 
-      const result = await service.discoverDevices({ includeOffline: true })
+      const result = await service.discoverDevices({ includeOffline: true, preferredMethods: ['mdns'] })
 
       expect(result.devices).toHaveLength(1)
       expect(result.devices[0].id).toBe('k1-old')
@@ -412,19 +412,22 @@ describe('K1DiscoveryService', () => {
       )
     })
 
-    it('should emit error events', async () => {
+    it('should emit error events (graceful resolve)', async () => {
       const error = new Error('Discovery failed')
       mockDiscover.mockRejectedValue(error)
 
       const errorSpy = vi.fn()
       service.on('discovery-error', errorSpy)
 
-      // Disable scan fallback to force error
-      await expect(
-        service.discoverDevices({ preferredMethods: ['mdns'] })
-      ).rejects.toThrow('Discovery failed')
+      // Disable scan fallback to force mDNS-only behavior; should resolve gracefully
+      const result = await service.discoverDevices({ preferredMethods: ['mdns'] })
 
       expect(errorSpy).toHaveBeenCalledWith(error)
+      expect(result.method).toBe('mdns')
+      expect(result.devices).toHaveLength(0)
+      expect(result.errors).toEqual(
+        expect.arrayContaining([expect.stringContaining('mDNS discovery failed')])
+      )
     })
 
     it('should emit device-updated events', async () => {

@@ -1,0 +1,5 @@
+k1_graph_tests 7 0.0494375
+k1_graph_betweenness_test 7 0.0552472
+k1_graph_bench_json_test 7 0.117741
+k1_graph_json_test 6 0.0686353
+---
