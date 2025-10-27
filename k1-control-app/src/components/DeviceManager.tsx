@@ -115,6 +115,78 @@ export function DeviceManager() {
   }, [k1Actions, k1State.featureFlags.autoReconnect, autoReconnect]);
 
   /**
+   * Handle immediate retry action
+   */
+  const handleRetry = useCallback(async () => {
+    try {
+      // Get last endpoint from state or localStorage
+      const lastEndpoint =
+        localStorage.getItem('k1:v1:endpoint') ||
+        (k1State.deviceInfo?.ip ? `http://${k1State.deviceInfo.ip}` : null);
+
+      if (!lastEndpoint) {
+        console.warn('[DeviceManager] No endpoint to retry');
+        return;
+      }
+
+      // Clear previous error and attempt connection
+      k1Actions.clearError();
+      await k1Actions.connect(lastEndpoint);
+
+      // Stop auto-reconnect if it was running
+      if (autoReconnect.isReconnecting) {
+        autoReconnect.stop();
+      }
+    } catch (error) {
+      console.error('[DeviceManager] Retry connection failed:', error);
+    }
+  }, [k1State.deviceInfo, k1Actions, autoReconnect]);
+
+  /**
+   * Get user-friendly error title based on error type
+   */
+  const getErrorTitle = (errorType?: string): string => {
+    switch (errorType) {
+      case 'connect_error':
+        return 'Connection Failed';
+      case 'timeout_error':
+        return 'Connection Timeout';
+      case 'network_error':
+        return 'Network Error';
+      case 'validation_error':
+        return 'Invalid Input';
+      case 'reconnect_giveup':
+        return 'Reconnection Failed';
+      case 'ws_send_error':
+        return 'WebSocket Error';
+      case 'rest_error':
+        return 'API Error';
+      default:
+        return 'Connection Error';
+    }
+  };
+
+  /**
+   * Get troubleshooting guidance based on error type
+   */
+  const getErrorDiagnosis = (errorType?: string): string | null => {
+    switch (errorType) {
+      case 'connect_error':
+        return 'Check that the device IP/hostname is correct and the device is powered on and connected to the network.';
+      case 'timeout_error':
+        return 'The connection took too long. Try moving closer to the device or check if the network is congested.';
+      case 'network_error':
+        return 'Unable to reach the network. Check your internet connection and firewall settings.';
+      case 'validation_error':
+        return 'The entered endpoint is invalid. Use format: IP (e.g., 192.168.1.100) or hostname:port (e.g., k1.local:8080)';
+      case 'reconnect_giveup':
+        return 'Auto-reconnect reached maximum attempts. Try refreshing the page or check the device status.';
+      default:
+        return null;
+    }
+  };
+
+  /**
    * Get visual status indicator
    */
   const getConnectionStatusIcon = () => {
@@ -206,13 +278,13 @@ export function DeviceManager() {
               <button
                 onClick={handleStartDiscovery}
                 disabled={isDiscovering || k1State.connection === 'connecting'}
-                className="px-4 py-2 bg-[var(--k1-primary)] text-white rounded-md hover:bg-[var(--k1-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                aria-label="Start device discovery"
+                className="px-4 py-2.5 bg-[var(--k1-primary)] text-white rounded-lg hover:bg-[var(--k1-primary-hover)] active:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-md hover:shadow-lg"
+                aria-label="Scan network for K1 devices"
               >
                 {isDiscovering ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Discovering...
+                    Scanning...
                   </>
                 ) : (
                   <>
@@ -246,10 +318,14 @@ export function DeviceManager() {
                   <button
                     onClick={() => handleConnectToDiscoveredDevice(device.id)}
                     disabled={k1State.connection === 'connecting'}
-                    className="px-4 py-2 bg-[var(--k1-primary)] text-white rounded-md hover:bg-[var(--k1-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors ml-4"
+                    className="px-4 py-2 bg-[var(--k1-primary)] text-white rounded-lg hover:bg-[var(--k1-primary-hover)] active:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium ml-4 whitespace-nowrap shadow-sm hover:shadow-md flex items-center gap-1"
                     aria-label={`Connect to ${device.name}`}
                   >
-                    Connect
+                    {k1State.connection === 'connecting' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>📡 Connect</>
+                    )}
                   </button>
                 </div>
               ))}
@@ -300,9 +376,16 @@ export function DeviceManager() {
               <button
                 type="submit"
                 disabled={!manualEndpoint.trim() || k1State.connection === 'connecting'}
-                className="w-full px-4 py-2 bg-[var(--k1-primary)] text-white rounded-md hover:bg-[var(--k1-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full px-4 py-2.5 bg-[var(--k1-primary)] text-white rounded-lg hover:bg-[var(--k1-primary-hover)] active:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-md hover:shadow-lg"
               >
-                {k1State.connection === 'connecting' ? 'Connecting...' : 'Connect'}
+                {k1State.connection === 'connecting' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 inline animate-spin mr-2" />
+                    Connecting...
+                  </>
+                ) : (
+                  '🔗 Connect'
+                )}
               </button>
             </form>
           </div>
@@ -365,22 +448,50 @@ export function DeviceManager() {
 
             {/* Error Display */}
             {k1State.lastError && (
-              <div className="border-t border-[var(--k1-border)] pt-4">
-                <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-red-800">
+              <div className="border-t border-[var(--k1-border)] pt-4 space-y-3">
+                <div className="bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0 animate-pulse" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-semibold text-red-800 mb-1">
+                        {getErrorTitle(k1State.lastError.type)}
+                      </h3>
+                      <p className="text-sm text-red-700 mb-2">
                         {k1State.lastError.message}
                       </p>
                       {k1State.lastError.details && (
-                        <p className="text-xs text-red-600 mt-1">
+                        <p className="text-xs text-red-600 bg-white bg-opacity-50 rounded px-2 py-1 mb-2">
                           {k1State.lastError.details}
                         </p>
                       )}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={handleRetry}
+                          disabled={k1State.connection === 'connecting'}
+                          className="text-xs font-medium px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          aria-label="Retry connection immediately"
+                        >
+                          Retry Now
+                        </button>
+                        <button
+                          onClick={() => k1Actions.clearError()}
+                          className="text-xs font-medium px-3 py-1.5 bg-white border border-red-200 text-red-700 rounded hover:bg-red-50 transition-colors"
+                          aria-label="Dismiss error message"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Error Diagnosis Helper */}
+                {getErrorDiagnosis(k1State.lastError.type) && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
+                    <p className="font-medium mb-1">💡 Troubleshooting:</p>
+                    <p>{getErrorDiagnosis(k1State.lastError.type)}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -388,18 +499,35 @@ export function DeviceManager() {
             {k1State.connection === 'connected' && (
               <button
                 onClick={handleDisconnect}
-                className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium"
+                className="w-full px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 active:bg-red-800 transition-all font-medium text-sm shadow-md hover:shadow-lg"
+                aria-label="Disconnect from device"
               >
-                Disconnect
+                🔌 Disconnect
               </button>
             )}
 
             {autoReconnect.isReconnecting && (
+              <div className="space-y-2">
+                <button
+                  onClick={autoReconnect.stop}
+                  className="w-full px-4 py-2.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 active:bg-amber-700 transition-all font-medium text-sm shadow-md hover:shadow-lg"
+                  aria-label="Stop automatic reconnection attempts"
+                >
+                  ⏹️ Stop Retrying
+                </button>
+                <p className="text-xs text-[var(--k1-text-dim)] text-center">
+                  Retrying in {Math.ceil((autoReconnect.nextDelay || 0) / 1000)}s...
+                </p>
+              </div>
+            )}
+
+            {k1State.connection === 'error' && !autoReconnect.isReconnecting && (
               <button
-                onClick={autoReconnect.stop}
-                className="w-full px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition-colors text-sm font-medium"
+                onClick={handleRetry}
+                className="w-full px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 active:bg-orange-800 transition-all font-medium text-sm shadow-md hover:shadow-lg"
+                aria-label="Attempt to reconnect immediately"
               >
-                Cancel Retry
+                🔄 Retry Now
               </button>
             )}
           </div>

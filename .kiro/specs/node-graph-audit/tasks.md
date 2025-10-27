@@ -2,7 +2,7 @@
 
 ## Phase 1: Immediate Integration (Week 1)
 
-- [ ] 1. Integrate compliant static patterns
+- [-] 1. Integrate compliant static patterns
   - Validate departure.json, lava.json, twilight.json against current codegen system
   - Test compilation and runtime performance
   - Add to pattern registry with proper metadata
