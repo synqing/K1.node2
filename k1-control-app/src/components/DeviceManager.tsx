@@ -9,8 +9,8 @@
  * - Manages device persistence to localStorage
  */
 
-import React, { useState, useCallback, useRef } from 'react';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { Loader2, AlertCircle, RefreshCw, Star } from 'lucide-react';
 import { useK1State, useK1Actions } from '../providers/K1Provider';
 import { useAutoReconnect } from '../hooks/useAutoReconnect';
 import { getDeviceDiscovery } from '../services/device-discovery';
@@ -28,7 +28,41 @@ export function DeviceManager() {
 
   const [manualEndpoint, setManualEndpoint] = useState('');
   const [isDiscovering, setIsDiscovering] = useState(false);
+  const [displayedDevices, setDisplayedDevices] = useState(discovery.getCachedDevices(true));
   const discoveredDevicesRef = useRef(new Map());
+  const updateDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastUpdateTimeRef = useRef<number>(0);
+  const DEBOUNCE_DELAY = 300; // Debounce device list updates by 300ms
+  const MAX_DISPLAYED_DEVICES = 8; // Show up to 8 devices before "View All"
+
+  /**
+   * Update displayed devices with debouncing to prevent UI thrash
+   * This prevents re-rendering on every single discovery update
+   */
+  const updateDisplayedDevices = useCallback(() => {
+    // Clear any pending debounce timer
+    if (updateDebounceTimerRef.current) {
+      clearTimeout(updateDebounceTimerRef.current);
+    }
+
+    // Set up debounce timer for next update
+    updateDebounceTimerRef.current = setTimeout(() => {
+      const cachedDevices = discovery.getCachedDevices(true); // Already sorted by lastSeen
+      setDisplayedDevices(cachedDevices);
+      lastUpdateTimeRef.current = Date.now();
+    }, DEBOUNCE_DELAY);
+  }, [discovery, DEBOUNCE_DELAY]);
+
+  /**
+   * Cleanup debounce timer on unmount
+   */
+  useEffect(() => {
+    return () => {
+      if (updateDebounceTimerRef.current) {
+        clearTimeout(updateDebounceTimerRef.current);
+      }
+    };
+  }, []);
 
   /**
    * Attempt manual connection with endpoint validation
@@ -64,16 +98,18 @@ export function DeviceManager() {
     setIsDiscovering(true);
     try {
       const result = await discovery.discover({ timeout: 5000 });
-      // Store discovered devices for UI display
+      // Store discovered devices for quick access
       result.devices.forEach(device => {
         discoveredDevicesRef.current.set(device.id, device);
       });
+      // Update displayed devices (debounced to prevent UI thrash)
+      updateDisplayedDevices();
     } catch (error) {
       console.error('[DeviceManager] Discovery failed:', error);
     } finally {
       setIsDiscovering(false);
     }
-  }, [discovery]);
+  }, [discovery, updateDisplayedDevices]);
 
   /**
    * Connect to a discovered device
@@ -221,6 +257,9 @@ export function DeviceManager() {
     }
   };
 
+  /**
+   * Format relative timestamp in human-readable format
+   */
   const formatLastSeen = (date: Date): string => {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -234,6 +273,23 @@ export function DeviceManager() {
 
     const diffDays = Math.floor(diffHours / 24);
     return `${diffDays}d ago`;
+  };
+
+  /**
+   * Determine if device should show "premium" indicator
+   * (seen multiple times or very recently)
+   */
+  const isPremiumDevice = (device: typeof displayedDevices[0]): boolean => {
+    // Show star if seen 3+ times or seen within last 5 minutes
+    const seenMultipleTimes = device.discoveryCount >= 3;
+    const recentlySeen = (() => {
+      const now = new Date();
+      const diffMs = now.getTime() - device.lastSeen.getTime();
+      const diffMinutes = Math.floor(diffMs / 60000);
+      return diffMinutes <= 5;
+    })();
+
+    return seenMultipleTimes || recentlySeen;
   };
 
   return (
@@ -297,13 +353,21 @@ export function DeviceManager() {
 
             {/* Discovered Devices List */}
             <div className="space-y-3">
-              {discovery.getCachedDevices(true).slice(0, 5).map(device => (
+              {displayedDevices.slice(0, MAX_DISPLAYED_DEVICES).map((device, index) => (
                 <div
                   key={device.id}
-                  className="flex items-center justify-between p-4 bg-[var(--k1-background)] border border-[var(--k1-border)] rounded-md hover:bg-[var(--k1-surface)] transition-colors"
+                  className="flex items-center justify-between p-4 bg-[var(--k1-background)] border border-[var(--k1-border)] rounded-lg hover:bg-[var(--k1-surface)] transition-all hover:shadow-md"
                 >
                   <div className="flex-1">
-                    <h3 className="font-medium text-[var(--k1-text)]">{device.name}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-medium text-[var(--k1-text)]">{device.name}</h3>
+                      {isPremiumDevice(device) && (
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" title="Frequently seen device" />
+                      )}
+                      {index === 0 && displayedDevices.length > 1 && (
+                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">Most Recent</span>
+                      )}
+                    </div>
                     <div className="text-sm text-[var(--k1-text-dim)] space-y-1 mt-1">
                       <div className="flex items-center gap-4">
                         <span>📍 {device.ip}:{device.port}</span>
@@ -311,7 +375,9 @@ export function DeviceManager() {
                       </div>
                       <div className="flex items-center gap-4">
                         <span>⏰ {formatLastSeen(device.lastSeen)}</span>
-                        <span className="text-xs">Seen {device.discoveryCount}x</span>
+                        <span className={`text-xs px-2 py-0.5 rounded ${device.discoveryCount >= 3 ? 'bg-blue-100 text-blue-700' : 'text-[var(--k1-text-dim)]'}`}>
+                          Seen {device.discoveryCount}x
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -330,7 +396,20 @@ export function DeviceManager() {
                 </div>
               ))}
 
-              {discovery.getCachedDevices().length === 0 && !isDiscovering && (
+              {/* Show "View All Devices" if more than MAX_DISPLAYED_DEVICES */}
+              {displayedDevices.length > MAX_DISPLAYED_DEVICES && (
+                <button
+                  onClick={() => {
+                    // Toggle view of all devices by temporarily showing all
+                    setDisplayedDevices(discovery.getCachedDevices(true));
+                  }}
+                  className="w-full text-center py-2 text-sm text-[var(--k1-primary)] hover:text-[var(--k1-primary-hover)] font-medium transition-colors"
+                >
+                  📋 View all {displayedDevices.length} devices
+                </button>
+              )}
+
+              {displayedDevices.length === 0 && !isDiscovering && (
                 <div className="text-center py-8 text-[var(--k1-text-dim)]">
                   <p className="mb-2">No devices found yet</p>
                   <p className="text-sm">Click "Discover Devices" to scan your network</p>

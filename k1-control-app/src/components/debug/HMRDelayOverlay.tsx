@@ -40,7 +40,7 @@ export default function HMRDelayOverlay() {
 
   const urlShow = getUrlFlag('hmrOverlay');
   const lsShow = getLocalStorageFlag('k1.hmrOverlay');
-  const showOverlay = typeof urlShow === 'boolean' ? urlShow : (typeof lsShow === 'boolean' ? lsShow : true);
+  const [overlayEnabled, setOverlayEnabled] = useState<boolean>(typeof urlShow === 'boolean' ? urlShow : (typeof lsShow === 'boolean' ? lsShow : true));
 
   const effectiveDelay = useMemo(() => {
     return config.hmrDelayMs ?? envDelay ?? (hot ? 50 : 0);
@@ -60,7 +60,22 @@ export default function HMRDelayOverlay() {
     };
   }, [hot]);
 
-  if (!showOverlay || !visible) return null;
+  // React to storage changes for live toggling
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'k1.hmrOverlay' && typeof event.newValue === 'string') {
+        const v = event.newValue.toLowerCase();
+        if (v === 'true' || v === '1') setOverlayEnabled(true);
+        if (v === 'false' || v === '0') setOverlayEnabled(false);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
+
+  if (!overlayEnabled || !visible) return null;
 
   return (
     <div

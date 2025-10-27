@@ -215,6 +215,35 @@ export function loadPatternPalette(patternId: string): number | null {
   return validatePaletteId(data);
 }
 
+// Add transport preferences persistence
+import type { K1TransportPreferences } from '../types/k1-types';
+
+function validateTransportPrefs(prefs: any): K1TransportPreferences | null {
+  if (!prefs || typeof prefs !== 'object') return null;
+  const wsEnabled = typeof prefs.wsEnabled === 'boolean' ? prefs.wsEnabled : true;
+  const preferredTransport = prefs.preferredTransport === 'ws' || prefs.preferredTransport === 'rest' ? prefs.preferredTransport : (wsEnabled ? 'ws' : 'rest');
+  const autoReconnect = typeof prefs.autoReconnect === 'boolean' ? prefs.autoReconnect : true;
+  return { wsEnabled, preferredTransport, autoReconnect };
+}
+
+export function saveTransportPrefs(prefs: K1TransportPreferences): boolean {
+  const validated = validateTransportPrefs(prefs);
+  if (!validated) return false;
+  return safeSetItem(K1_STORAGE_KEYS.TRANSPORT_PREFS, JSON.stringify(validated));
+}
+
+export function loadTransportPrefs(): K1TransportPreferences | null {
+  const raw = safeGetItem(K1_STORAGE_KEYS.TRANSPORT_PREFS);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return validateTransportPrefs(parsed);
+  } catch (e) {
+    console.warn('Failed to parse transport preferences:', e);
+    return null;
+  }
+}
+
 /**
  * Save global endpoint
  */

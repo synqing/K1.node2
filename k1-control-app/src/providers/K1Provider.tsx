@@ -21,6 +21,8 @@ import {
 } from '../utils/persistence';
 import { setAbortLoggingEnabled } from '../utils/error-utils';
 import HMRDelayOverlay from '../components/debug/HMRDelayOverlay';
+// Add transport prefs helpers
+import { loadTransportPrefs, saveTransportPrefs } from '../utils/persistence';
 
 // ============================================================================
 // PROVIDER STATE MANAGEMENT
@@ -297,6 +299,14 @@ export function K1Provider({
     }
   }, [resolvedDebugAborts]);
 
+  // Hydrate transport flags from saved preferences
+  useEffect(() => {
+    const prefs = loadTransportPrefs();
+    if (prefs) {
+      dispatch({ type: 'SET_TRANSPORT_FLAGS', payload: { wsDisabled: !prefs.wsEnabled } });
+    }
+  }, []);
+
   const k1ClientRef = useRef<K1Client | null>(null);
   const { showError } = useErrorHandler();
 
@@ -310,6 +320,13 @@ export function K1Provider({
     dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connecting' });
     const client = new K1Client(normalized);
     client.setErrorHandler(showError);
+
+    // Apply saved transport preference before connecting
+    const prefs = loadTransportPrefs();
+    if (prefs) {
+      client.setWebSocketEnabled(prefs.wsEnabled);
+    }
+
     k1ClientRef.current = client;
 
     // Attempt connection and hydrate device info
@@ -338,6 +355,13 @@ export function K1Provider({
         
         const client = new K1Client(normalized);
         client.setErrorHandler(showError);
+
+        // Apply saved transport preference before connecting
+        const prefs = loadTransportPrefs();
+        if (prefs) {
+          client.setWebSocketEnabled(prefs.wsEnabled);
+        }
+
         k1ClientRef.current = client;
         
         const deviceInfo = await client.connect(normalized);
@@ -449,7 +473,10 @@ export function K1Provider({
         k1ClientRef.current.setWebSocketEnabled(enabled);
       }
       dispatch({ type: 'SET_TRANSPORT_FLAGS', payload: { wsDisabled: !enabled } });
-    }, []),
+      // Persist transport preference
+      const autoReconnect = state.featureFlags.autoReconnect;
+      saveTransportPrefs({ wsEnabled: enabled, preferredTransport: enabled ? 'ws' : 'rest', autoReconnect });
+    }, [state.featureFlags]),
 
     getTransportStatus: useCallback(() => {
       if (k1ClientRef.current) {
