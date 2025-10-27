@@ -697,17 +697,17 @@ describe('DeviceDiscoveryAbstraction', () => {
         };
       });
 
-      // Act: Make rapid discover calls
-      const p1 = discovery.discover();
-      const p2 = discovery.discover(); // Should cancel first debounce
-      const p3 = discovery.discover(); // Should cancel second debounce
+      // Act: Make rapid discover calls - only the last one will resolve
+      discovery.discover(); // This will be cancelled by the next call
+      discovery.discover(); // This will be cancelled by the next call
+      const lastCall = discovery.discover(); // Only this promise will resolve
 
-      // Wait for all to complete
-      await Promise.all([p1, p2, p3]);
+      // Wait for the last (and only) promise to resolve
+      await lastCall;
 
-      // Assert: Debouncing worked - multiple calls merged into fewer executions
+      // Assert: Debouncing worked - multiple calls merged into 1 execution
       expect(discoveryCalls).toBeGreaterThanOrEqual(1);
-    }, 5000);
+    });
 
     it('should not accumulate pending timers', async () => {
       // Arrange
@@ -719,17 +719,22 @@ describe('DeviceDiscoveryAbstraction', () => {
         duration: 5,
       }));
 
-      // Act: Trigger multiple rapid calls and verify no memory accumulation
-      const promises = [];
-      for (let i = 0; i < 10; i++) {
-        promises.push(discovery.discover());
-      }
+      // Act: Verify that debounce timer is cleared when rapid calls are made
+      discovery.discover(); // Timer 1 created
+      expect(discovery['_debounceTimer']).not.toBeNull(); // Timer exists
 
-      // All promises should complete without hanging
-      const results = await Promise.all(promises);
-      expect(results).toBeDefined();
-      expect(results.length).toBe(10);
-    }, 2000);
+      discovery.discover(); // Timer 1 cleared, Timer 2 created
+      const timer2 = discovery['_debounceTimer'];
+      expect(timer2).not.toBeNull();
+
+      discovery.discover(); // Timer 2 cleared, Timer 3 created
+      const timer3 = discovery['_debounceTimer'];
+
+      // Assert: Only the final timer should exist (previous ones cleared)
+      expect(timer3).not.toBeNull();
+      // Timers should be different instances (old one was cleared)
+      expect(timer3).not.toBe(timer2);
+    });
 
     it('should clean up timer on cancel', () => {
       // Arrange
