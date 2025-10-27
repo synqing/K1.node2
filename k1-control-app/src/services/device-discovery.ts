@@ -9,6 +9,7 @@
 import { K1DiscoveredDevice, K1DiscoveryResult, K1DiscoveryOptions } from '../types/k1-types';
 import { K1Client } from '../api/k1-client';
 import { K1DiscoveryService } from './discovery-service';
+import { discoveryMetrics } from './discovery-metrics';
 
 /**
  * Normalized device summary (internal format)
@@ -123,6 +124,7 @@ export class DeviceDiscoveryAbstraction {
     });
 
     if (oldestId) {
+      discoveryMetrics.recordCacheEviction(oldestId);
       this._discoveryCache.delete(oldestId);
     }
   }
@@ -190,6 +192,7 @@ export class DeviceDiscoveryAbstraction {
 
         try {
           const startTime = performance.now();
+          const attemptId = discoveryMetrics.startDiscovery('hybrid');
 
           // Clean up expired devices before discovery
           this._evictExpiredDevices();
@@ -238,6 +241,9 @@ export class DeviceDiscoveryAbstraction {
           // Enforce cache size limits (remove LRU devices if needed)
           this._enforceMaxCacheSize();
 
+          // Update cache metrics
+          discoveryMetrics.updateCacheMetrics(this._discoveryCache.size, this._maxCacheSize);
+
           const discoveryResult: DiscoveryResult = {
             devices: normalizedDevices,
             method: result.method,
@@ -248,6 +254,15 @@ export class DeviceDiscoveryAbstraction {
           };
 
           this._lastDiscovery = discoveryResult;
+
+          // Record discovery completion
+          discoveryMetrics.completeDiscovery(attemptId, {
+            success: !discoveryResult.hasErrors,
+            durationMs: discoveryResult.duration,
+            devicesFound: discoveryResult.devices.length,
+            error: discoveryResult.errors?.[0],
+            method: discoveryResult.method,
+          });
 
           // Resolve ALL pending promises with the same result
           resolvers.forEach(resolver => resolver(discoveryResult));
@@ -261,6 +276,15 @@ export class DeviceDiscoveryAbstraction {
             hasErrors: true,
             cancelled: false,
           };
+
+          // Record discovery failure
+          discoveryMetrics.completeDiscovery(attemptId, {
+            success: false,
+            durationMs: 0,
+            devicesFound: 0,
+            error: errorMessage,
+            method: 'hybrid',
+          });
 
           // Resolve ALL pending promises with error result
           resolvers.forEach(resolver => resolver(errorResult));
