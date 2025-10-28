@@ -27,7 +27,7 @@ from typing import Optional
 
 # Import Mem0 SDK (install with: pip install mem0ai)
 try:
-    from mem0 import Memory
+    from mem0 import MemoryClient
 except ImportError:
     print("ERROR: mem0ai package not installed. Install with:")
     print("  pip install mem0ai")
@@ -45,27 +45,8 @@ class Mem0Bootstrap:
                 "MEM0_API_KEY not found. Set via environment or pass as argument."
             )
 
-        # Initialize Mem0 with managed platform
-        self.memory = Memory.from_config(
-            {
-                "llm": {
-                    "provider": "openai",
-                    "config": {
-                        "model": "gpt-4-turbo",
-                    }
-                },
-                "embedder": {
-                    "provider": "openai",
-                    "config": {
-                        "model": "text-embedding-3-small",
-                    }
-                },
-                "storage": {
-                    "type": "mem0",
-                    "api_key": self.api_key,
-                }
-            }
-        )
+        # Initialize Mem0 MemoryClient with managed platform API
+        self.memory = MemoryClient(api_key=self.api_key)
         self.user_id = "spectrasynq"
         self.session_count = 0
 
@@ -88,12 +69,12 @@ class Mem0Bootstrap:
         tags = [memory_type, status] + domain_tags
         messages = [
             {
-                "role": "system",
-                "content": f"You are an institutional memory curator. This memory is about K1.reinvented. Tag it appropriately.",
+                "role": "user",
+                "content": f"Store this K1.reinvented memory:\n\n{content}",
             },
             {
-                "role": "user",
-                "content": f"Store this memory:\n\n{content}",
+                "role": "assistant",
+                "content": f"I've stored this {memory_type.upper()} memory about K1.reinvented with tags: {', '.join(tags)}",
             }
         ]
 
@@ -101,11 +82,15 @@ class Mem0Bootstrap:
         print(f"  Tags: {tags}")
         print(f"  Content preview: {content[:80]}...")
 
-        self.memory.add(
-            messages=messages,
-            user_id=self.user_id,
-            metadata={"type": memory_type, "tags": tags}
-        )
+        try:
+            self.memory.add(
+                messages=messages,
+                user_id=self.user_id
+            )
+            print(f"  ✅ Added successfully")
+        except Exception as e:
+            print(f"  ⚠️  Error: {e}")
+
         self.session_count += 1
 
     def search_memory(self, query: str, limit: int = 3) -> list:
@@ -120,11 +105,23 @@ class Mem0Bootstrap:
             List of memory results
         """
         print(f"\n[SEARCH] Query: '{query}'")
-        results = self.memory.search(query=query, user_id=self.user_id, limit=limit)
-        print(f"  Found {len(results)} results:")
-        for i, result in enumerate(results, 1):
-            print(f"    {i}. {result[:100]}...")
-        return results
+        try:
+            # Filters are required per Mem0 API
+            filters = {"user_id": self.user_id}
+            results = self.memory.search(
+                query=query,
+                filters=filters,
+                limit=limit
+            )
+            print(f"  Found {len(results)} results:")
+            if isinstance(results, list):
+                for i, result in enumerate(results[:limit], 1):
+                    result_str = str(result)[:100]
+                    print(f"    {i}. {result_str}...")
+            return results if results else []
+        except Exception as e:
+            print(f"  ⚠️  Search error: {e}")
+            return []
 
     def test_connectivity(self) -> bool:
         """Test basic Mem0 connectivity."""
@@ -137,24 +134,37 @@ class Mem0Bootstrap:
 
         try:
             # Test add
-            test_message = "Test: K1.reinvented is a visual programming environment for addressable LEDs on ESP32-S3."
+            test_messages = [
+                {
+                    "role": "user",
+                    "content": "Test: K1.reinvented is a visual programming environment for addressable LEDs on ESP32-S3."
+                },
+                {
+                    "role": "assistant",
+                    "content": "Understood. K1.reinvented uses ESP32-S3 for LED control with visual programming."
+                }
+            ]
             self.memory.add(
-                messages=[{"role": "user", "content": test_message}],
+                messages=test_messages,
                 user_id=self.user_id,
             )
             print("\n✅ ADD operation successful")
 
             # Test search
+            filters = {"user_id": self.user_id}
             results = self.memory.search(
-                query="K1.reinvented visual programming",
-                user_id=self.user_id,
+                query="K1.reinvented visual programming LED control",
+                filters=filters,
                 limit=1
             )
-            print(f"✅ SEARCH operation successful ({len(results)} results)")
+            result_count = len(results) if results else 0
+            print(f"✅ SEARCH operation successful ({result_count} results)")
 
             return True
         except Exception as e:
             print(f"\n❌ ERROR: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
 
