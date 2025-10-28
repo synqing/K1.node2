@@ -18,8 +18,13 @@
 #define I2S_LRCLK_PIN 12  // LRCLK (Left/Right Clock / Word Select) - CRITICAL!
 #define I2S_DIN_PIN   13  // DIN (Data In / DOUT from microphone)
 
-#define CHUNK_SIZE 64
-#define SAMPLE_RATE 12800
+// ============================================================================
+// AUDIO CONFIGURATION: 16kHz, 128-chunk (8ms cadence)
+// ============================================================================
+// Chunk duration: 128 samples / 16000 Hz = 8ms
+// This aligns with ring buffer and Goertzel FFT processing cadence
+#define CHUNK_SIZE 128
+#define SAMPLE_RATE 16000
 
 #define SAMPLE_HISTORY_LENGTH 4096
 
@@ -39,9 +44,9 @@ void init_i2s_microphone(){
 	i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
 	i2s_new_channel(&chan_cfg, NULL, &rx_handle);
 
-	// Standard I2S RX configuration for SPH0645 (EXACT match to original Emotiscope)
+	// Standard I2S RX configuration for SPH0645
 	i2s_std_config_t std_cfg = {
-		.clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(12800),  // 12.8 kHz sample rate
+		.clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(16000),  // 16 kHz sample rate
 		.slot_cfg = {
 			.data_bit_width = I2S_DATA_BIT_WIDTH_32BIT,  // 32-bit data width
 			.slot_bit_width = I2S_SLOT_BIT_WIDTH_32BIT,  // 32-bit slot width
@@ -84,18 +89,18 @@ void acquire_sample_chunk() {
 		// Read audio samples into int32_t buffer, but **only when emotiscope is active**
 		if( EMOTISCOPE_ACTIVE == true ){
 			size_t bytes_read = 0;
-			// CRITICAL FIX: Add I2S timeout (20ms) instead of infinite wait
-			esp_err_t i2s_result = i2s_channel_read(rx_handle, new_samples_raw, CHUNK_SIZE*sizeof(uint32_t), &bytes_read, pdMS_TO_TICKS(20));
+			// I2S DMA naturally paces audio at 8ms intervals (16kHz, 128-chunk)
+			// portMAX_DELAY: block until next chunk is ready (~8ms typical)
+			// This is the synchronization mechanism - no explicit timing needed
+			// DMA continuously buffers, so portMAX_DELAY returns quickly with valid data
+			esp_err_t i2s_result = i2s_channel_read(rx_handle, new_samples_raw, CHUNK_SIZE*sizeof(uint32_t), &bytes_read, portMAX_DELAY);
 			if (i2s_result != ESP_OK) {
-				// I2S timeout/error - fill with silence and log diagnostic
+				// I2S error - fill with silence and continue
 				memset(new_samples_raw, 0, sizeof(uint32_t) * CHUNK_SIZE);
-				static uint32_t i2s_error_count = 0;
-				if (++i2s_error_count % 10 == 1) {  // Log every 10th error
-					Serial.printf("[I2S] WARNING: Timeout/error (code %d, count %u)\n", i2s_result, i2s_error_count);
-				}
 			}
 		}
 		else{
+			// Audio inactive - fill with silence
 			memset(new_samples_raw, 0, sizeof(uint32_t) * CHUNK_SIZE);
 		}
 
@@ -132,7 +137,7 @@ void acquire_sample_chunk() {
 				save_audio_debug_recording();
 			}
 		}
-		
+
 		// Used to sync GPU to this when needed
 		waveform_locked = false;
 		waveform_sync_flag = true;

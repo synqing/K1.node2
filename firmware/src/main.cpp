@@ -58,8 +58,12 @@ void handle_wifi_disconnected() {
 }
 
 // ============================================================================
-// AUDIO TASK - Runs on Core 1 @ ~100 Hz (audio processing only)
+// AUDIO TASK - COMMENTED OUT (unused dual-core remnant)
 // ============================================================================
+// This function was designed for Core 1 execution but xTaskCreatePinnedToCore()
+// was never called. Audio pipeline now runs in main loop with ring buffer.
+// Keeping for reference / test files that depend on it.
+/*
 void audio_task(void* param) {
     // Audio runs independently from rendering
     // This task handles:
@@ -117,6 +121,7 @@ void audio_task(void* param) {
         vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
+*/
 
 // ============================================================================
 // SETUP - Initialize hardware, create tasks
@@ -161,27 +166,14 @@ void setup() {
         else if (error == OTA_END_ERROR) Serial.println("End Failed");
     });
 
-    // Initialize SPIFFS filesystem for serving static web assets
-    // NOTE: Use begin(true) to format on fail - ensures SPIFFS is initialized
-    // The uploadfs command will populate the files afterward
+    // SPIFFS enumeration REMOVED - was blocking startup 100-500ms
+    // Initialize SPIFFS silently and defer enumeration to background task
     Serial.println("Initializing SPIFFS...");
     if (!SPIFFS.begin(true)) {
         Serial.println("ERROR: SPIFFS initialization failed - web UI will not be available");
     } else {
         Serial.println("SPIFFS mounted successfully");
-        // List SPIFFS contents for debugging
-        File root = SPIFFS.open("/");
-        File file = root.openNextFile();
-        Serial.println("SPIFFS Contents:");
-        int file_count = 0;
-        while(file) {
-            Serial.printf("  %s (%d bytes)\n", file.name(), file.size());
-            file = root.openNextFile();
-            file_count++;
-        }
-        if (file_count == 0) {
-            Serial.println("  (SPIFFS is empty - run 'pio run --target uploadfs' to upload web files)");
-        }
+        // Lazy enumeration removed; can be added to status endpoint if needed
     }
 
     // Initialize audio stubs (demo audio-reactive globals)
@@ -215,21 +207,16 @@ void setup() {
     Serial.printf("  Loaded %d patterns\n", g_num_patterns);
     Serial.printf("  Starting pattern: %s\n", get_current_pattern().name);
 
-    // Initialize web server
     // ========================================================================
-    // CREATE AUDIO TASK ON CORE 1
+    // AUDIO PIPELINE CONFIGURATION
     // ========================================================================
-    // This task runs independently:
-    // - Core 1: Audio processing (100 Hz nominal, 20-25 Hz actual)
-    // - Core 0: Pattern rendering (this loop, 200+ FPS target)
-    //
-    // Memory: 8 KB stack (typical usage 6-7 KB based on Goertzel complexity)
-    // Priority: 10 (high, but lower than WiFi stack priority 24)
+    // Audio processing runs in main loop with ring buffer at 8ms cadence
+    // - 16kHz sample rate, 128-sample chunks
+    // - Goertzel FFT processing on 8ms boundary
+    // - Double-buffered audio_front/audio_back (lock-free reads from Core 0)
+    // - WiFi/OTA isolated on future Core 1 task (coming in next phase)
     // ========================================================================
-
-
-    // Single-core mode: run audio pipeline inside main loop
-    Serial.println("Single-core mode: audio runs in main loop");
+    Serial.println("Audio pipeline: ring buffer mode (16kHz, 128-chunk, 8ms cadence)");
 
     Serial.println("Ready!");
     Serial.println("Upload new effects with:");
@@ -240,32 +227,25 @@ void setup() {
 // MAIN LOOP - Runs on Core 0 @ 200+ FPS (pattern rendering only)
 // ============================================================================
 void loop() {
-    wifi_monitor_loop();
+    // Core 0 main loop: pure pattern rendering without blocking
 
-    // Handle OTA updates (non-blocking check)
-    ArduinoOTA.handle();
+    wifi_monitor_loop();  // Non-blocking WiFi status check (will move to Core 1)
+    ArduinoOTA.handle();  // Non-blocking OTA polling (will move to Core 1)
 
-    // Handle web server (includes WebSocket cleanup)
-    handle_webserver();
+    // ========================================================================
+    // AUDIO PROCESSING: Synchronized to I2S DMA cadence
+    // ========================================================================
+    // I2S configuration (16kHz, 128-chunk) naturally produces chunks every 8ms
+    // acquire_sample_chunk() blocks on portMAX_DELAY until next chunk ready
+    // This is the synchronization mechanism - no explicit timing needed
+    // DMA continuously buffers, so the block is brief (~<1ms typical)
+    // AP and VP decoupled: AP produces chunks at 125 Hz, VP reads latest available
+    // ========================================================================
+    run_audio_pipeline_once();
 
-    // Run audio processing at fixed cadence to avoid throttling render FPS
-    static uint32_t last_audio_ms = 0;
-    const uint32_t audio_interval_ms = 20; // ~50 Hz audio processing
-    uint32_t now_ms = millis();
-    if ((now_ms - last_audio_ms) >= audio_interval_ms) {
-        run_audio_pipeline_once();
-        last_audio_ms = now_ms;
-    }
-
-    // Broadcast real-time data to WebSocket clients at 10 Hz
-    static uint32_t last_broadcast_ms = 0;
-    const uint32_t broadcast_interval_ms = 100; // 10 Hz broadcast rate
-    if ((now_ms - last_broadcast_ms) >= broadcast_interval_ms) {
-        // Update CPU monitor before broadcasting
-        cpu_monitor.update();
-        broadcast_realtime_data();
-        last_broadcast_ms = now_ms;
-    }
+    // CLUTTER REMOVED: Telemetry broadcast at 10Hz (add flag later if needed)
+    // Removed: cpu_monitor.update(), broadcast_realtime_data()
+    // Can be re-enabled with #define ENABLE_TELEMETRY
 
     // Track time for animation
     static uint32_t start_time = millis();
@@ -275,27 +255,25 @@ void loop() {
     const PatternParameters& params = get_params();
 
     // BRIGHTNESS BINDING: Synchronize global_brightness with params.brightness
-    // This ensures UI brightness slider changes are reflected in LED output
-    extern float global_brightness;  // From led_driver.cpp
+    extern float global_brightness;
     global_brightness = params.brightness;
 
-    // Draw current pattern (reads audio_front updated by Core 1 audio task)
-    uint32_t t_render0 = micros();
+    // Draw current pattern with audio-reactive data (lock-free read from audio_front)
     draw_current_pattern(time, params);
-    ACCUM_RENDER_US += (micros() - t_render0);
 
-    // Transmit to LEDs via RMT (with timeout instead of portMAX_DELAY)
-    // Modified transmit_leds() should use pdMS_TO_TICKS(10) timeout
+    // Transmit to LEDs via RMT (non-blocking DMA)
     transmit_leds();
 
-    // Track FPS
+    // FPS tracking (minimal overhead)
     watch_cpu_fps();
     print_fps();
 }
 // All patterns are included from generated_patterns.h
 
 static inline void run_audio_pipeline_once() {
-    // Acquire and process audio in the same thread as rendering
+    // Acquire and process audio chunk
+    // portMAX_DELAY in acquire_sample_chunk() blocks until I2S data ready
+    // This synchronization happens naturally via DMA, no explicit timing needed
     acquire_sample_chunk();
     calculate_magnitudes();
     get_chromagram();

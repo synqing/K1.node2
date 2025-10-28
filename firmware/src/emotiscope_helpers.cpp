@@ -3,6 +3,7 @@
 // ============================================================================
 
 #include "emotiscope_helpers.h"
+#include "audio/goertzel.h"  // For clip_float() and NUM_LEDS
 
 extern CRGBF leds[NUM_LEDS];
 

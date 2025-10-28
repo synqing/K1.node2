@@ -9,6 +9,8 @@
 
 #include "types.h"
 #include <math.h>
+#include "audio/goertzel.h"  // For clip_float()
+#include "led_driver.h"      // For NUM_LEDS (must be after types.h)
 
 // Constants from original Emotiscope
 #define NUM_RESERVED_DOTS 8
@@ -45,10 +47,4 @@ float get_color_range_hue(float progress);
  */
 CRGBF hsv_enhanced(float h, float s, float v);
 
-/**
- * Clamp float value to 0.0-1.0 range
- * Replaces Emotiscope's clip_float() function
- */
-inline float clip_float(float value) {
-    return fmaxf(0.0f, fminf(1.0f, value));
-}
+// clip_float() is defined in audio/goertzel.h - removed duplicate

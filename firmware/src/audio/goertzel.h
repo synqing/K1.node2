@@ -32,7 +32,7 @@
 // ============================================================================
 
 // Audio sample buffer
-#define SAMPLE_RATE 12800
+#define SAMPLE_RATE 16000
 #define SAMPLE_HISTORY_LENGTH 4096
 
 #define TWOPI   6.28318530
@@ -184,6 +184,7 @@ void init_audio_data_sync();
 // ============================================================================
 
 // Acquire sample chunk from microphone I2S buffer
+// Blocks on portMAX_DELAY until next chunk is ready (synchronization via I2S DMA)
 void acquire_sample_chunk();
 
 // Calculate frequency magnitudes using Goertzel algorithm
