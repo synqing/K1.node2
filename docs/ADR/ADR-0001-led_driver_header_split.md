@@ -1,11 +1,14 @@
 ---
 title: "ADR-0001: LED Driver Header-to-Implementation Split"
-author: Deep Technical Analyst (Claude)
-date: 2025-10-26
-status: proposed
-decision: Partial split of led_driver.h into header interface + led_driver.cpp implementation
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # ADR-0001: LED Driver Header-to-Implementation Split
 
 ## Status

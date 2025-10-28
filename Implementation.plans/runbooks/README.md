@@ -1,3 +1,14 @@
+---
+title: K1.reinvented Implementation Runbooks
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [plan]
+related_docs: []
+---
 # K1.reinvented Implementation Runbooks
 
 This directory contains operational guides for implementing, deploying, and maintaining features in K1.reinvented. Each runbook documents step-by-step procedures with verification checklist and rollback plans.

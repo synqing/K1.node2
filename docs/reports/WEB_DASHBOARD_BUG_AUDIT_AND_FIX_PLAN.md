@@ -1,3 +1,14 @@
+---
+title: Web Dashboard Bug Audit and Complete Fix Plan
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Web Dashboard Bug Audit and Complete Fix Plan
 
 **Author**: Claude (SUPREME Analyst + Embedded Engineer)

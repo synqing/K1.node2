@@ -1,9 +1,14 @@
 ---
-author: SUPREME Analyst (Forensic Deep-Dive Specialist)
-date: 2025-10-28
-status: published
+title: Forensic Analysis: K1.reinvented firmware/src/main.cpp Clutter Inventory
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # Forensic Analysis: K1.reinvented firmware/src/main.cpp Clutter Inventory
 
 ## Overview

@@ -1,10 +1,14 @@
 ---
-author: Claude SUPREME Analyst
-date: 2025-10-27
+title: K1.reinvented Control App - Emotiscope Dashboard Adaptation Plan
 status: draft
-intent: Adaptation plan for Emotiscope 2.0 Control Dashboard to K1.reinvented system
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # K1.reinvented Control App - Emotiscope Dashboard Adaptation Plan
 
 ## Executive Summary

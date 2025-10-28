@@ -1,3 +1,14 @@
+---
+title: ADR-0003: Phase A Acceptance Criteria
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # ADR-0003: Phase A Acceptance Criteria
 
 Status: Accepted

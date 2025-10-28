@@ -1,3 +1,14 @@
+---
+title: Reports Index
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Reports Index
 
 Phase closure reports, deployment summaries, validation audits, and delivery notes.

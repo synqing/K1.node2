@@ -1,10 +1,14 @@
 ---
-author: ULTRA Choreographer (Enhancement & Design Specialist)
-date: 2025-10-28
-status: published
-intent: Executive summary of I2S timeout fix - one-page quick reference for rapid decision-making
+title: I2S Timeout Fix: Executive Summary
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # I2S Timeout Fix: Executive Summary
 
 ## The Problem in One Sentence

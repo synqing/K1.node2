@@ -1,3 +1,14 @@
+---
+title: Audio Architecture Plan - Start Here
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Audio Architecture Plan - Start Here
 
 Welcome! You have received a complete, production-ready architecture plan for integrating real audio processing into K1.reinvented.

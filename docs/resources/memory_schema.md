@@ -1,3 +1,14 @@
+---
+title: Mem0 Memory Schema for K1.reinvented
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Mem0 Memory Schema for K1.reinvented
 
 **Author:** Claude (Mem0 PoC)

@@ -1,3 +1,14 @@
+---
+title: Figma Make Agent Prompt 3: Advanced Refinements & iOS Adaptation
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [plan]
+related_docs: []
+---
 # Figma Make Agent Prompt 3: Advanced Refinements & iOS Adaptation
 
 **Priority**: 🥉 FINAL - Execute Third (depends on Prompts 1-2 completion)

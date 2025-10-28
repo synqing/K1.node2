@@ -1,10 +1,14 @@
 ---
-author: SUPREME Analyst
-date: 2025-10-28
-status: published
-intent: Forensic proof that I2S 20ms timeout is the remaining FPS bottleneck preventing >43 FPS
+title: FPS Bottleneck Forensic Analysis: I2S 20ms Timeout
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # FPS Bottleneck Forensic Analysis: I2S 20ms Timeout
 
 **Executive Summary:**

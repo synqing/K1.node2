@@ -1,10 +1,14 @@
 ---
-author: SUPREME Analyst
-date: 2025-10-28
-status: published
-intent: Index and navigation guide for comprehensive FPS bottleneck analysis
+title: FPS Bottleneck Analysis - Complete Documentation Index
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # FPS Bottleneck Analysis - Complete Documentation Index
 
 ## Overview

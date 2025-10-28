@@ -83,8 +83,13 @@ typedef struct {
 } tempo;
 
 // Audio data snapshot for synchronization between cores
-// Used in double-buffered audio processing
+// Used in double-buffered audio processing with sequence counter synchronization
 typedef struct {
+	// SYNCHRONIZATION: Sequence counter for torn read detection
+	// Reader checks sequence before and after copy - if different, retry
+	// Writer increments sequence before and after write
+	volatile uint32_t sequence;             // Sequence number (even = valid, odd = writing)
+
 	// Frequency spectrum data (64 bins covering ~50Hz to 6.4kHz)
 	float spectrogram[NUM_FREQS];           // Raw frequency magnitudes (0.0-1.0)
 	float spectrogram_smooth[NUM_FREQS];    // Smoothed spectrum (8-sample average)
@@ -110,6 +115,9 @@ typedef struct {
 	uint32_t update_counter;                // Increments with each audio frame
 	uint32_t timestamp_us;                  // Microsecond timestamp (esp_timer)
 	bool is_valid;                          // True if data has been written at least once
+
+	// SYNCHRONIZATION: End sequence counter for validation
+	volatile uint32_t sequence_end;         // Must match sequence for valid read
 } AudioDataSnapshot;
 
 // ============================================================================
@@ -205,6 +213,10 @@ void start_noise_calibration();
 
 // Get snapshot of current audio data (non-blocking)
 bool get_audio_snapshot(AudioDataSnapshot* snapshot);
+
+// Commit audio data from back buffer to front buffer (atomic swap)
+// Used by test suites to validate lock-free synchronization
+void commit_audio_data();
 
 // ============================================================================
 // UTILITY FUNCTIONS

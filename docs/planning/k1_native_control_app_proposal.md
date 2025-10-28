@@ -1,10 +1,14 @@
 ---
-author: Claude SUPREME Analyst
-date: 2025-10-27
+title: K1.reinvented Native Control Application - Design Proposal
 status: draft
-intent: Proposal for K1.reinvented native control application to replace web dashboard
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # K1.reinvented Native Control Application - Design Proposal
 
 ## Executive Summary

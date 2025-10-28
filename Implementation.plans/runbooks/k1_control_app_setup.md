@@ -1,10 +1,14 @@
 ---
-author: Claude SUPREME Analyst
-date: 2025-10-27
-status: in_progress
-intent: Step-by-step runbook for setting up K1 Control App from Emotiscope prototype
+title: K1 Control App Setup - Implementation Runbook
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [plan]
+related_docs: []
 ---
-
 # K1 Control App Setup - Implementation Runbook
 
 ## Phase 1: Project Setup & Basic Adaptation

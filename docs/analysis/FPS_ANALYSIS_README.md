@@ -1,3 +1,14 @@
+---
+title: K1 vs Sensory Bridge FPS Analysis
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # K1 vs Sensory Bridge FPS Analysis
 
 **Status:** COMPLETE - Published 2025-10-28

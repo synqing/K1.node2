@@ -1,10 +1,14 @@
 ---
-author: Claude Agent (Research Analyst)
-date: 2025-10-27
-status: published
-intent: Competitive landscape analysis and K1's technical differentiation strategy
+title: PF-5: Competitive Analysis & K1 Technical Differentiation
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # PF-5: Competitive Analysis & K1 Technical Differentiation
 
 ## Executive Summary

@@ -1,10 +1,14 @@
 ---
-author: SUPREME Analyst (Forensic Deep-Dive Specialist)
-date: 2025-10-28
-status: published
-intent: Comprehensive inventory of architectural clutter in firmware/src/main.cpp that is NOT essential for AP+VP pipeline; identifies dead code, unused initialization, non-blocking bloat, and startup overhead.
+title: Forensic Analysis: Architectural Clutter in firmware/src/main.cpp
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # Forensic Analysis: Architectural Clutter in firmware/src/main.cpp
 
 ## Executive Summary

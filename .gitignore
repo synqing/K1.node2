@@ -38,3 +38,13 @@ package-lock.json
 .taskmaster/reports/
 .taskmaster/.locks/
 .envcompile_commands.json
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+*storybook.log
+storybook-static

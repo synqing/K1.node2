@@ -1,3 +1,14 @@
+---
+title: Web Dashboard UI Synchronization Fix
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Web Dashboard UI Synchronization Fix
 
 **Issue:** Web dashboard controls showed 0.00 values on initial load, even though the device had proper parameters set (brightness=1.0, softness=0.25, color=0.33, etc.)

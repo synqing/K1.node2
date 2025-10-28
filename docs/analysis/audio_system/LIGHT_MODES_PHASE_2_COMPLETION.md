@@ -1,3 +1,14 @@
+---
+title: Light Show Modes Restoration - Phase 2 Complete ✅
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Light Show Modes Restoration - Phase 2 Complete ✅
 
 **Status**: All 11 ported light modes successfully integrated and firmware compiles without errors

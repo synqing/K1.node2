@@ -1,3 +1,14 @@
+---
+title: FPS Bottleneck Fix - Sensory Bridge Synchronization Restoration
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [plan]
+related_docs: []
+---
 # FPS Bottleneck Fix - Sensory Bridge Synchronization Restoration
 
 **Author:** Embedded Firmware Engineer

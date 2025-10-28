@@ -1,10 +1,14 @@
 ---
-author: Claude Agent (Software Architect)
-date: 2025-10-27
-status: published
-intent: Visual comparison of proposed vs. revised Layer 3 architecture
+title: Layer 3 Architecture Comparison
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # Layer 3 Architecture Comparison
 
 **Original Specification vs. Revised K1-Aligned Approach**

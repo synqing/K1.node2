@@ -1,3 +1,14 @@
+---
+title: FPS Regression Forensic Timeline: 150+ FPS → 42.5 FPS → FIXED
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # FPS Regression Forensic Timeline: 150+ FPS → 42.5 FPS → FIXED
 
 **Author:** Claude Code (Forensic Code Archaeology)

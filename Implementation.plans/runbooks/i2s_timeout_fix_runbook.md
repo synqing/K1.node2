@@ -1,10 +1,14 @@
 ---
-author: ULTRA Choreographer (Enhancement & Design Specialist)
-date: 2025-10-28
-status: published
-intent: Step-by-step implementation guide for fixing I2S timeout to restore 200+ FPS rendering
+title: I2S Timeout Fix Implementation Runbook
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [plan]
+related_docs: []
 ---
-
 # I2S Timeout Fix Implementation Runbook
 
 ## Objective

@@ -1,0 +1,4504 @@
+{
+  "generated_at": "2025-10-28T22:42:01.790Z",
+  "items": [
+    {
+      "path": "docs/CONTRIBUTING.md",
+      "title": "Documentation Contribution Guide",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "guide",
+        "docs",
+        "governance"
+      ]
+    },
+    {
+      "path": "docs/Dashboard.md",
+      "title": "Documentation Dashboard",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "dashboard",
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/INDEX.md",
+      "title": "K1 Project Documentation Index",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "index",
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/README.md",
+      "title": "K1 Documentation Library",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/adr/ADR-0001-fps-targets.md",
+      "title": "ADR-0001: Frame Rate Targets",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/adr/ADR-0001-led_driver_header_split.md",
+      "title": "\"ADR-0001: LED Driver Header-to-Implementation Split\"",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/adr/ADR-0002-global-brightness.md",
+      "title": "ADR-0002: Global Brightness Scaling at Pack Time",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/adr/ADR-0003-phase-a-acceptance.md",
+      "title": "ADR-0003: Phase A Acceptance Criteria",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/adr/ADR-template.md",
+      "title": "ADR-####: [Decision Title]",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/adr/README.md",
+      "title": "Architecture Decision Records (ADRs)",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/ANALYSIS_INDEX.md",
+      "title": "K1.reinvented Arduino vs ESP-IDF Analysis - Document Index",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/AUDIO_API_QUICK_REFERENCE.md",
+      "title": "K1.reinvented Audio API Quick Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/AUDIO_AUDIT_SUMMARY.md",
+      "title": "K1.reinvented Audio Pipeline Audit - Executive Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/BLOOM_MODE_FAILURE_ANALYSIS.md",
+      "title": "Bloom Mode Failure Analysis - K1.reinvented",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/CODEGEN_FIRMWARE_ALIGNMENT.md",
+      "title": "Codegen ↔ Firmware Audio Pipeline Alignment Map",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/CODE_REVIEW_REQUEST_DUAL_CORE_IMPLEMENTATION.md",
+      "title": "Code Review Request: K1.reinvented Dual-Core Architecture Implementation",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/CRITICAL_ISSUES_RESOLUTION_ANALYSIS.md",
+      "title": "Critical Issues Resolution Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/EMOTISCOPE_FEATURE_COMPLETENESS_AUDIT.md",
+      "title": "Emotiscope → K1.reinvented Feature Completeness Audit",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/EXECUTIVE_SUMMARY.md",
+      "title": "K1.reinvented Forensic Analyses - Executive Summary",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/FPS_ANALYSIS_README.md",
+      "title": "K1 vs Sensory Bridge FPS Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/FPS_BOTTLENECK_EXECUTIVE_SUMMARY.md",
+      "title": "FPS Bottleneck: Executive Summary",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/FPS_REGRESSION_FORENSIC_TIMELINE.md",
+      "title": "FPS Regression Forensic Timeline: 150+ FPS → 42.5 FPS → FIXED",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/INVESTIGATION_COMPLETE_EXECUTIVE_SUMMARY.md",
+      "title": "FPS BOTTLENECK INVESTIGATION & ARCHITECTURAL ANALYSIS",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/K1_ARCHITECTURE_RECOMMENDATIONS.md",
+      "title": "K1.reinvented: Architecture Recommendations",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/K1_DUAL_CORE_SURGICAL_STRIKE_PLAN.md",
+      "title": "K1.reinvented: Dual-Core Surgical Strike Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/LED_PIPELINE_QUICK_REFERENCE.md",
+      "title": "LED Rendering Pipeline - Quick Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/LED_RENDERING_INVESTIGATION_SUMMARY.md",
+      "title": "LED Rendering Pipeline Investigation - Complete Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/LIGHT_SHOW_PATTERN_AUDIT.md",
+      "title": "Light Show Pattern Audit: K1.reinvented vs Emotiscope",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/LINE_REDUCTION_BREAKDOWN.md",
+      "title": "ColorManagement Line Reduction Analysis: 744 → 120 Lines",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/MAIN_CPP_FORENSIC_ANALYSIS_README.md",
+      "title": "Forensic Analysis: K1.reinvented firmware/src/main.cpp Clutter Inventory",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/MASTER_ROOT_CAUSE_ANALYSIS.md",
+      "title": "Master Root Cause Analysis: Why Light Show Patterns Are Broken and Sluggish",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/PARALLEL_INVESTIGATION_RESULTS.md",
+      "title": "Parallel Investigation Results: Why Light Shows Were Broken",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/PF5_AI_CREATIVE_FEATURES_RESEARCH.md",
+      "title": "PF-5: AI-Powered Creative Features - Comprehensive Technical Research",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/PF5_COMPETITIVE_DIFFERENTIATION.md",
+      "title": "PF-5: Competitive Analysis & K1 Technical Differentiation",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/README.md",
+      "title": "Technical Analysis & Research",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/README_TEMPO_CONFIDENCE.md",
+      "title": "Tempo Confidence Investigation - Complete Documentation",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/README_audio_sync_analysis.md",
+      "title": "Audio/Visual Synchronization Analysis Index",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/README_comparative_architecture_analysis.md",
+      "title": "Comparative Architecture Analysis: Index & Navigation",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/README_fps_analysis.md",
+      "title": "FPS Bottleneck Analysis - Complete Documentation Index",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/TECHNICAL_ANALYSIS_ARDUINO_vs_ESPIDF.md",
+      "title": "TECHNICAL ANALYSIS: Arduino/PlatformIO vs ESP-IDF Migration for K1.reinvented",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/TEMPO_CONFIDENCE_INVESTIGATION_SUMMARY.md",
+      "title": "Investigation Summary: Tempo Confidence Not Affecting Pattern Brightness",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/TEMPO_DATA_SYNCHRONIZATION_ISSUE.md",
+      "title": "Tempo Data Synchronization Issue - Root Cause Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/TEMPO_SYNC_DATA_FLOW.md",
+      "title": "Tempo Data Flow - Visual Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/WEBSERVER_ANALYSIS_SUMMARY.md",
+      "title": "Webserver.cpp Code Metrics Analysis - Executive Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/architecture_pattern_comparison.md",
+      "title": "Architecture Pattern Comparison: Visual Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_pipeline_comprehensive_audit.md",
+      "title": "K1.reinvented Audio Pipeline Comprehensive Audit",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_sync_key_findings.md",
+      "title": "Audio/Visual Synchronization: Key Findings Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/00_START_HERE.md",
+      "title": "K1.reinvented Research & Planning - START HERE",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/AUDIO_ARCHITECTURE_QUICK_REFERENCE.md",
+      "title": "K1.reinvented Audio Architecture - Quick Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/AUDIO_FIXES_APPLIED.md",
+      "title": "Audio-Reactive System Fixes Applied",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/AUDIO_MIGRATION_PLAN.md",
+      "title": "Audio Migration Plan (Moved)",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/AUDIO_REACTIVE_SYSTEMS_ASSESSMENT.md",
+      "title": "K1.reinvented Audio-Reactive Systems: Comprehensive Assessment",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/CRGBF_TO_CRGB_CONVERSION_ANALYSIS.md",
+      "title": "CRGBF to CRGB Conversion Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/EMOTISCOPE_TO_FASTLED_MIGRATION_ANALYSIS.md",
+      "title": "EMOTISCOPE TO FASTLED 3.9.2 MIGRATION ANALYSIS",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/FASTLED_APA102_DRIVER_ANALYSIS.md",
+      "title": "FastLED 3.9.2 APA102 Driver Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/INDEX.md",
+      "title": "K1.reinvented Research & Planning Documentation Index",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/K1_FIRMWARE_ARCHITECTURE_ANALYSIS.md",
+      "title": "K1.reinvented Firmware Architecture Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/LIGHT_MODES_PHASE_2_COMPLETION.md",
+      "title": "Light Show Modes Restoration - Phase 2 Complete ✅",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/MOTION_PROCESSING_COMPARATIVE_ANALYSIS.md",
+      "title": "Motion Processing Algorithm Comparative Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/PATTERN_AUDIO_SYNC_IMPLEMENTATION_PLAN.md",
+      "title": "K1.reinvented Pattern Audio Synchronization Implementation Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/README_AUDIO_ANALYSIS.md",
+      "title": "Emotiscope 2.0 K1.reinvented Audio Architecture Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/ROOT_CAUSE_ANALYSIS.md",
+      "title": "Emotiscope-2.0: ROOT CAUSE ANALYSIS",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_system/STABILITY_ANALYSIS_AND_COMPARISON.md",
+      "title": "Emotiscope Versions: Stability Analysis & Comparison",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/audio_visual_sync_forensic_analysis.md",
+      "title": "Audio/Visual Synchronization: Comparative Forensic Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/color_desaturation_fix.md",
+      "title": "COLOR DESATURATION ROOT CAUSE ANALYSIS & FIX",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/control_system_bottleneck_matrix.md",
+      "title": "Control System Bottleneck Matrix",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/emotiscope_sensorybridge_comparative_architecture_report.md",
+      "title": "Emotiscope & Sensory Bridge: Comparative Architecture Analysis Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/AUDIO_LATENCY_FIX_DEPLOYED.md",
+      "title": "K1.reinvented Audio Latency Fix - Deployment Complete ✓",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/BOTTLENECK_ELIMINATION_SUMMARY.md",
+      "title": "K1.reinvented - Bottleneck Elimination Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/BOTTLENECK_PRIORITY_MATRIX.md",
+      "title": "Audio Pipeline Bottleneck Priority Matrix",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/EXACT_FIX_LOCATIONS.md",
+      "title": "Exact Fix Locations & Code Patches",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/FIX_3_MUTEX_TIMEOUT_APPLIED.md",
+      "title": "FIX #3: Mutex Timeout Silent Failure - APPLIED",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/FORENSIC_ANALYSIS_INDEX.md",
+      "title": "K1.reinvented Audio Pipeline - Forensic Analysis Index",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/FORENSIC_ANALYSIS_POST_OPTIMIZATION.md",
+      "title": "K1.reinvented Audio Pipeline - Forensic Analysis Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/FORENSIC_ANALYSIS_README.md",
+      "title": "K1.reinvented Forensic Audio Pipeline Analysis - Documentation Index",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/FORENSIC_AUDIO_ANALYSIS.md",
+      "title": "FORENSIC ANALYSIS: K1.reinvented Audio Pipeline Bottlenecks & Race Conditions",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/PHASE_1_IMPLEMENTATION_COMPLETE.md",
+      "title": "Phase 1 Implementation Complete: Audio Data Synchronization",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/PHASE_2_IMPLEMENTATION_SUMMARY.md",
+      "title": "Phase 2: Pattern Audio Interface - Implementation Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/PHASE_2_PATTERN_MIGRATION_EXAMPLES.md",
+      "title": "Phase 2: Pattern Audio Interface - Migration Examples",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/PHASE_2_VALIDATION_CHECKLIST.md",
+      "title": "Phase 2 Validation Checklist",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/TEST_GENERATION_COMPLETE.md",
+      "title": "K1 Audio Fixes - Test Generation Complete ✅",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/TEST_SUITE_SUMMARY.md",
+      "title": "K1 Audio Fixes - Test Suite Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/forensic_audio_pipeline/WORKFLOW_OPTIMIZATION_MULTIPLIERS.md",
+      "title": "Workflow Optimization Multipliers: Strategic Tool Combinations",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/fps_bottleneck_i2s_timeout_forensic_analysis.md",
+      "title": "FPS Bottleneck Forensic Analysis: I2S 20ms Timeout",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/fps_bottleneck_prioritized_fixes.md",
+      "title": "FPS Bottleneck Matrix: Prioritized Fixes",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/fps_bottleneck_root_cause_chain.md",
+      "title": "FPS Bottleneck Root Cause Chain Analysis",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/fps_comparison_forensic_report.md",
+      "title": "Forensic Analysis: K1 (43 FPS) vs Sensory Bridge (120 FPS)",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/fps_detailed_comparison_matrix.md",
+      "title": "Detailed FPS Comparison Matrix: K1 vs Sensory Bridge",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/fps_measurement_artifact_summary.md",
+      "title": "FPS Measurement Artifact Summary: K1 vs Sensory Bridge",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/generated_patterns_architecture_analysis.md",
+      "title": "Generated Patterns Header Architecture Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/generated_patterns_quick_reference.md",
+      "title": "Generated Patterns Quick Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/k1_control_app_ux_research_report.md",
+      "title": "K1 Control App: UX Research & User Workflow Analysis",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/led_driver_architecture_analysis.md",
+      "title": "LED Driver Architecture & Compilation Analysis",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/led_driver_refactoring_diagrams.md",
+      "title": "LED Driver Refactoring - Visual Diagrams",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/led_driver_refactoring_summary.md",
+      "title": "LED Driver Refactoring Summary",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/led_rendering_bottleneck_matrix.md",
+      "title": "LED Rendering Pipeline - Bottleneck Matrix",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/led_rendering_pipeline_forensic_analysis.md",
+      "title": "LED Rendering Pipeline - Complete Architecture Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/main_cpp_bottleneck_matrix.md",
+      "title": "Bottleneck Priority Matrix: main.cpp Clutter",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/main_cpp_clutter_inventory.md",
+      "title": "Forensic Analysis: Architectural Clutter in firmware/src/main.cpp",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/main_cpp_root_causes.md",
+      "title": "Root Cause Analysis: main.cpp Architectural Clutter",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/palette_system_forensic_analysis.md",
+      "title": "Palette System Forensic Analysis",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/parameter_flow_diagram.md",
+      "title": "Parameter Flow Diagram - palette_id Lifecycle",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/parameter_flow_trace_palette_id.md",
+      "title": "Parameter Flow Trace - palette_id Investigation",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/tempo_confidence_code_locations.md",
+      "title": "Tempo Confidence: Key Code Locations & Data Flow",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/tempo_confidence_gap_analysis.md",
+      "title": "ROOT CAUSE ANALYSIS: Tempo_Confidence Detected But Not Affecting Brightness",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/tempo_data_flow_diagram.md",
+      "title": "Tempo Data Flow Diagram",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/tempo_magnitude_data_loss_root_cause.md",
+      "title": "Tempo Magnitude Data Loss - Root Cause Analysis",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/tempo_magnitude_fix_implementation_guide.md",
+      "title": "Tempo Magnitude Fix - Implementation Guide",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/webserver/README.md",
+      "title": "Webserver Refactoring Analysis: Complete Technical Review",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/webserver/webserver_bottleneck_matrix.md",
+      "title": "Webserver Refactoring: Bottleneck Matrix",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/webserver/webserver_refactoring_forensic_analysis.md",
+      "title": "Webserver Refactoring: Forensic Technical Analysis",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/webserver/webserver_root_causes.md",
+      "title": "Webserver Refactoring: Root Cause Analysis",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/webserver_architectural_analysis.md",
+      "title": "webserver.cpp Architectural Analysis & Refactoring Proposal",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/webserver_architecture_executive_summary.md",
+      "title": "WebServer Architecture - Executive Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/webserver_bottleneck_matrix.md",
+      "title": "Webserver.cpp Bottleneck Matrix",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/webserver_comprehensive_architectural_review.md",
+      "title": "Comprehensive Architectural Review: webserver.cpp",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/webserver_metrics_analysis.md",
+      "title": "Webserver.cpp Comprehensive Code Metrics Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/webserver_module_reference.md",
+      "title": "webserver.cpp Module Reference & Line Mapping",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/analysis/webserver_security_forensics.md",
+      "title": "Webserver Security Forensics - Technical Evidence & Call Stack Analysis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/api/K1_FIRMWARE_API.md",
+      "title": "K1.reinvented Firmware API Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/AUDIO_ARCHITECTURE_INDEX.md",
+      "title": "Emotiscope Audio Integration - Complete Documentation Index",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/AUDIO_ARCHITECTURE_SUMMARY.md",
+      "title": "Emotiscope Audio Integration - Architecture Plan Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/AUDIO_INTEGRATION_ARCHITECTURE.md",
+      "title": "Emotiscope Audio Integration Architecture Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/AUDIO_NODES.md",
+      "title": "Audio-Reactive Node Types",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/EMOTISCOPE_1.0_ARCHITECTURE_CROSSCHECK.md",
+      "title": "Emotiscope 1.0 vs K1.reinvented - Complete Architectural Cross-Check ✅",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/LAYER_1_GRAPH_ANALYSIS_SPECIFICATION.md",
+      "title": "Layer 1: Graph Analysis Foundation - Technical Specification",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/LAYER_2_CPP_CODE_ANALYSIS_SPECIFICATION.md",
+      "title": "Layer 2: C++ Code Analysis & Profiling - Technical Specification",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/LAYER_3_ARCHITECTURE_COMPARISON.md",
+      "title": "Layer 3 Architecture Comparison",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/LAYER_3_EXECUTION_ENGINE_ARCHITECTURAL_REVIEW.md",
+      "title": "Layer 3 Execution Engine & Visual Validation - Architectural Review",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/LAYER_3_EXECUTION_MEASUREMENT_SPECIFICATION.md",
+      "title": "Layer 3: Graph Execution & Measurement - Technical Specification",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/MULTIPLIER_ARCHITECTURE.md",
+      "title": "Workflow Optimization Multiplier Architecture",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/PALETTE_ARCHITECTURE_IMPLEMENTATION.md",
+      "title": "PALETTE ARCHITECTURE FIX - QUICK REFERENCE",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/README.md",
+      "title": "README",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/README_AUDIO_ARCHITECTURE.md",
+      "title": "Audio Architecture Plan - Start Here",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/SPECIALIST_UPGRADE_DESIGN.md",
+      "title": "Specialist Upgrade Design: Ultra-Enhanced Versions",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/AUDIT_SUMMARY.md",
+      "title": "K1 Control App Repository Audit Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/BUILD_PIPELINE.md",
+      "title": "K1 Control App - Build Pipeline",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/COMPLETION_SUMMARY.md",
+      "title": "K1 Control App Architecture Documentation - Completion Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/COMPONENT_HIERARCHY.md",
+      "title": "K1 Control App - Component Hierarchy",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/DEBUG_CAPABILITIES.md",
+      "title": "Debug Capabilities Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/DEVELOPMENT_WORKFLOWS.md",
+      "title": "K1 Control App - Development Workflows",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/DIAGRAMS.md",
+      "title": "K1 Control App - Architecture Diagrams",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/K1_INTEGRATION.md",
+      "title": "K1 Control App - K1 Device Integration",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/OVERVIEW.md",
+      "title": "K1 Control App - Architecture Overview",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/PROJECT_STRUCTURE.md",
+      "title": "K1 Control App - Project Structure",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/QUALITY_PLAYBOOK.md",
+      "title": "K1 Control App - Quality Playbook",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/README.md",
+      "title": "K1 Control App - Architecture Documentation",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/control-app/STATE_AND_DATA_FLOW.md",
+      "title": "K1 Control App - State Management and Data Flow",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/k1-control-app-foundations.md",
+      "title": "K1 Control App - Codebase Foundations & Architecture",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/k1-foundations.md",
+      "title": "K1.reinvented - Codebase Foundations Audit",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/webserver_refactoring_architectural_review.md",
+      "title": "Webserver Refactoring Architectural Review",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/architecture/webserver_refactoring_executive_summary.md",
+      "title": "Webserver Refactoring - Executive Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/baseline/PERFORMANCE_BASELINE.md",
+      "title": "K1 Control App - Performance Baseline",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/features/COMPREHENSIVE_POWER_FEATURES_CATALOG.md",
+      "title": "Comprehensive Power Features Catalog",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/features/node-ui/DesignSystem.md",
+      "title": "Design System – Node UI + K1 Control App",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/features/node-ui/FigmaSpecs.md",
+      "title": "Figma Design Specifications – Node UI",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/features/node-ui/IntegrationArchitecture.md",
+      "title": "Application Integration Strategy – K1 Control App + Node UI",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/features/node-ui/Wireframes.md",
+      "title": "Node UI Wireframes – Evaluation and Redesign Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/implementation/CRITICAL_FIXES_IMPLEMENTATION_SUMMARY.md",
+      "title": "Critical Issues Implementation Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/implementation/MISSING_PATTERNS_FIX.md",
+      "title": "MISSING PATTERNS FIX - Analog, Metronome, Hype",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/implementation/MULTI_LAYER_TESTING_FRAMEWORK.md",
+      "title": "Multi-Layer Testing Framework for Node Graph Validation",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/implementation/PF5_PHASE1_IMPLEMENTATION_SUMMARY.md",
+      "title": "PF-5 Phase 1: Audio Reactivity Implementation Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/implementation/PHASE_1_COMPLETION_SUMMARY.md",
+      "title": "Phase 1 Implementation Complete - Node Graph Audit",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/implementation/PHASE_2_COMPLETION_SUMMARY.md",
+      "title": "Phase 2 Complete - Minor Violation Remediation",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/implementation/VIOLATION_ELIMINATION_PROOF.md",
+      "title": "DATA-DRIVEN PROOF: Major Violation Elimination",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/AUDIO_MIGRATION_PLAN.md",
+      "title": "Audio Migration Plan: Emotiscope → K1.reinvented",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/DEVICE_DISCOVERY_ENHANCEMENT_SPECIFICATIONS.md",
+      "title": "Device Discovery Enhancement Project: Complete Specifications",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/DIAGNOSTIC_PLAN_BEAT_PATTERNS.md",
+      "title": "Beat/Tempo Pattern Diagnostic Plan ✅",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/IMPLEMENTATION_PLAN_AUDIO_SYNC.md",
+      "title": "K1.reinvented Audio-Reactive Pattern Synchronization - Implementation Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/LIGHTSHOW_PORTING_PLAN.md",
+      "title": "K1.reinvented Light Show Porting Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/MIGRATION_RECOMMENDATION_SUMMARY.md",
+      "title": "ESP-IDF Migration: Executive Summary & Recommendation",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/MIGRATION_ROADMAP_IF_NEEDED.md",
+      "title": "ESP-IDF Migration Roadmap (If Needed in Future)",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/PALETTE_AND_EASING_IMPLEMENTATION_PLAN.md",
+      "title": "Emotiscope 33 Palettes + Easing Functions - K1 Implementation Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/PF5_IMPLEMENTATION_STRATEGY.md",
+      "title": "PF-5: AI-Powered Creative Features - Implementation Strategy & Architecture",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/PHASE_B_EXECUTION_PLAN.md",
+      "title": "K1 Phase B Execution Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/README.md",
+      "title": "K1.reinvented Planning & Design Documents Index",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/RESEARCH_DIRECTIONS.md",
+      "title": "K1.reinvented Research Directions",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/SPECIFICATIONS_DELIVERY_SUMMARY.md",
+      "title": "Device Discovery Enhancement Specifications: Delivery Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/i2s_nonblocking_audio_acquisition_design.md",
+      "title": "Non-Blocking I2S Audio Acquisition Pattern Design",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/i2s_timeout_fix_summary.md",
+      "title": "I2S Timeout Fix: Executive Summary",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/k1_control_app_adaptation_plan.md",
+      "title": "K1.reinvented Control App - Emotiscope Dashboard Adaptation Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/k1_native_control_app_proposal.md",
+      "title": "K1.reinvented Native Control Application - Design Proposal",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/task_2_smart_cache_invalidation_specification.md",
+      "title": "Task 2: Smart Cache Invalidation Specification",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/task_3_priority_queue_fallback_specification.md",
+      "title": "Task 3: Priority Queue Fallback Logic Specification",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/task_4_monitoring_dashboard_specification.md",
+      "title": "Task 4: Monitoring Dashboard Specification",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/planning/webserver_split_proposal.md",
+      "title": "Webserver.cpp Split & Refactoring Proposal",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/qa/COMPREHENSIVE_QA_REVIEW.md",
+      "title": "Comprehensive Quality Assurance Review",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/qa/FINAL_QA_STATUS.md",
+      "title": "Final Quality Assurance Status Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/API_PARAMETER_FIX.md",
+      "title": "K1.reinvented Web API Parameter Fix",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/BEAT_DETECTION_FIX_SUMMARY.md",
+      "title": "Beat Detection Fix - Complete Summary 🎯",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/BEFORE_AFTER_COMPARISON.md",
+      "title": "UI/UX Before & After: Visual Comparison",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/BLOOM_MODE_FIX_VERIFICATION.md",
+      "title": "Bloom Mode Fix - Implementation & Verification Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/CHOREOGRAPHY_DEPLOYMENT_SUMMARY.md",
+      "title": "Advanced Choreography Patterns - Deployment Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/CODEGEN_PHASE2_SUMMARY.md",
+      "title": "Phase 2: Code Generation Updates - Implementation Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/CORRECTED_FINAL_VALIDATION.md",
+      "title": "CORRECTED FINAL VALIDATION: K1.reinvented Dual-Core Architecture",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/CRITICAL_CSS_FIXES.md",
+      "title": "Critical CSS Fixes - Pattern Cards, Active States, and Slider Visibility",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/CRITICAL_FIXES_IMPLEMENTATION_SUMMARY.md",
+      "title": "Critical Fixes Implementation Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/CROSS_CHECK_VERIFICATION.md",
+      "title": "Bloom Mode Fix - Cross-Check Verification Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/CSS_UPDATES_APPLIED.md",
+      "title": "CSS Updates Applied - Webserver Dashboard ✅",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/DEPLOYMENT_VERIFICATION.md",
+      "title": "DEPLOYMENT VERIFICATION & COMPARISON",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/DESIGN_SYSTEM_UX_VALIDATION_REPORT.md",
+      "title": "K1 Control Dashboard Design System v2.0",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/EMOTISCOPE_AUDIO_FEATURE_IMPLEMENTATION_REPORT.md",
+      "title": "Emotiscope → K1 Audio Feature Implementation Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/FIGMA_MAKE_AGENT_EXECUTION_REPORT.md",
+      "title": "Figma Make Agent Execution Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/FINAL_DEPLOYMENT_DECISION.md",
+      "title": "FINAL DEPLOYMENT DECISION: K1.reinvented Dual-Core Architecture",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/FINAL_DEPLOYMENT_SUMMARY.md",
+      "title": "K1.reinvented Webserver Refactoring: Final Deployment Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/FIX_4_VALIDATION_REPORT.md",
+      "title": "FIX #4 VALIDATION REPORT: Codegen Safety Macro Applied",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/HARDWARE_VALIDATION_REPORT.md",
+      "title": "HARDWARE VALIDATION REPORT: K1.reinvented Dual-Core Architecture",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/IMPLEMENTATION_SUMMARY.md",
+      "title": "K1.reinvented Light Show Port - Implementation Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/INVESTIGATION_SUMMARY.md",
+      "title": "Beat/Tempo Pattern Investigation - Complete Summary ✅",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/LAYER_1_3_IMPLEMENTATION_BRIEFING.md",
+      "title": "3-Layer System Architecture: Implementation Briefing",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/LAYER_3_ARCHITECTURAL_REVIEW_EXECUTIVE_SUMMARY.md",
+      "title": "Layer 3 Execution Engine - Executive Summary",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/LIGHT_SHOW_PATTERN_PORTING_REPORT.md",
+      "title": "Light Show Pattern Porting Report: Complete Emotiscope Architecture Migration",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PALETTE_FIX_README.md",
+      "title": "PALETTE ARCHITECTURE FIX - DELIVERABLES INDEX",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PALETTE_IMPLEMENTATION_DEPLOYMENT_SUMMARY.md",
+      "title": "Emotiscope 33 Palettes + Easing Functions - Deployment Summary ✅",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PARALLEL_EXECUTION_COMPLETION_REPORT.md",
+      "title": "K1.reinvented Audio-Reactive Pattern Synchronization",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PATCH_SUMMARY.md",
+      "title": "PALETTE ARCHITECTURE FIX - COMPLETE PATCH SUMMARY",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PF5_RESEARCH_BRIEFING.md",
+      "title": "PF-5: AI-Powered Creative Features - Executive Briefing",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PHASE_1_COMPLETION_REPORT.md",
+      "title": "K1.reinvented Control App: Phase 1 Completion Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PHASE_1_WEEK_4_COMPREHENSIVE_REVIEW_SYNTHESIS.md",
+      "title": "Phase 1 Week 4 Figma Make Agent Prompt - Comprehensive Review Synthesis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PHASE_1_WEEK_4_FIGMA_MAKE_PROMPT_REVIEW.md",
+      "title": "Phase 1 Week 4 Figma Make Agent Automation Prompt - Technical Review Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PHASE_4_EXECUTION_SUMMARY.md",
+      "title": "Phase 4 Execution Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PHASE_4_VALIDATION_REPORT.md",
+      "title": "Phase 4: Comprehensive Testing & Validation Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PHASE_5_DEVICE_VALIDATION_REPORT.md",
+      "title": "Phase 5: Device Validation Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PHASE_A_BUGS_FIXED.md",
+      "title": "Phase A Critical Bugs Fixed",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PHASE_A_COMPLETE.md",
+      "title": "Phase A: Complete",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PHASE_A_FINAL_REPORT.md",
+      "title": "Phase A: Final Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PHASE_A_SUCCESS.md",
+      "title": "Phase A Success Criteria",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/PHASE_B_COMPLETE.md",
+      "title": "Phase B: Complete",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/QUICK_FIX_SUMMARY.md",
+      "title": "Bloom Mode Fix - Quick Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/QUICK_UI_IMPROVEMENTS.md",
+      "title": "K1.reinvented Dashboard - Quick Improvement Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/README.md",
+      "title": "Reports Index",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/SECURITY_ALERT.md",
+      "title": "SECURITY ALERT: Critical Vulnerabilities in K1.reinvented Webserver",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/TEMPO_DATA_SYNC_BUG_SUMMARY.md",
+      "title": "Tempo Data Synchronization Bug - Executive Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/TIER2_IMPLEMENTATION_COMPLETE.md",
+      "title": "Tier 2 Implementation Complete: Dual-Core Race Condition Fixes",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/UI_UX_RECOMMENDATIONS.md",
+      "title": "K1.reinvented Web Dashboard - UI/UX Analysis & Recommendations",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/UI_UX_SPECIALIST_REVIEW_EXECUTIVE_SUMMARY.md",
+      "title": "K1 Control App: UI/UX Specialist Review - Executive Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/VALIDATION_SUMMARY.md",
+      "title": "Security Vulnerability Validation - Executive Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/WEBDASHBOARD_UI_SYNC_FIX.md",
+      "title": "Web Dashboard UI Synchronization Fix",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/WEB_DASHBOARD_BUG_AUDIT_AND_FIX_PLAN.md",
+      "title": "Web Dashboard Bug Audit and Complete Fix Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/WORKFLOW_MULTIPLIER_DEPLOYMENT_REPORT.md",
+      "title": "K1.reinvented Workflow Multiplier Implementation Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/dual_core_fixes_validation.md",
+      "title": "Dual-Core Fixes Validation Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/dual_core_migration_code_review_report.md",
+      "title": "Dual-Core Migration Code Review Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/dual_core_migration_profiling_report.md",
+      "title": "Dual-Core Migration Profiling Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/dual_core_migration_test_summary.md",
+      "title": "Dual-Core Migration Test Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/fps_bottleneck_fix_deployment_summary.md",
+      "title": "FPS Bottleneck Fix - Complete Deployment Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/fps_bottleneck_fix_validation.md",
+      "title": "FPS Bottleneck Fix - Validation Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/k1-control-app-code-quality-report.md",
+      "title": "K1 Control App - Code Quality Assessment Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/k1_control_app_setup_complete.md",
+      "title": "K1 Control App Setup - Complete ✅",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/k1_control_app_ux_design_review.md",
+      "title": "K1 Control App - Comprehensive UI/UX Design Review",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/k1_system_audit_phase1_completion.md",
+      "title": "K1.reinvented System Audit - Phase 1 Completion Report",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/light_show_pattern_infrastructure_status.md",
+      "title": "Light Show Pattern Infrastructure Status Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/phase3_phase4_traceability_and_validation.md",
+      "title": "Phase 3 → Phase 4: Complete Traceability & Tier 3 Validation Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/security_vulnerability_validation_report.md",
+      "title": "Critical Security Vulnerability Validation Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/task_3_comprehensive_code_review.md",
+      "title": "Task 3 Comprehensive Code Review Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/task_3_critical_fixes_complete.md",
+      "title": "Task 3: Critical Fixes Completion Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/task_3_high_priority_fixes_complete.md",
+      "title": "Task 3: HIGH-Priority Fixes Completion Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/task_3_unit_tests_completion.md",
+      "title": "Task 3: Unit Tests Completion Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/webserver_phase1_integration_report.md",
+      "title": "Webserver Phase 1 Integration Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/webserver_phase2_final_completion.md",
+      "title": "Webserver Phase 2 Final Completion Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/webserver_phase2b_completion.md",
+      "title": "Webserver Phase 2B Completion Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/webserver_phase4_security_remediation.md",
+      "title": "Webserver Phase 4: Architectural & Security Remediation Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/reports/webserver_security_code_review_report.md",
+      "title": "K1.reinvented Webserver Security & Code Quality Review Report",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/research/PF-5_AI_DEEP_DIVE_RESEARCH_PROMPT.md",
+      "title": "PF-5 AI-Powered Creative Features: Comprehensive Research Prompt",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/AGENTIC_WORKFLOW_GUIDE.md",
+      "title": "Agentic Workflow Guide: workflow-orchestrator + code-operations-skills",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/AUDIO_QUICK_REFERENCE.md",
+      "title": "Audio Integration Quick Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/AUDIO_SYNCHRONIZATION_GUIDE.md",
+      "title": "Audio Synchronization Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/BETWEENNESS_CONTROLS_QUICK_REFERENCE.md",
+      "title": "Betweenness Controls — Quick Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/CODEGEN_EXAMPLES.md",
+      "title": "Code Generation Examples: Before vs After",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/EMOTISCOPE_PORT.md",
+      "title": "Emotiscope to K1.reinvented Porting Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/GENERATED_PATTERNS_REFERENCE.md",
+      "title": "Generated Patterns Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/PATTERN_DEVELOPER_GUIDE.md",
+      "title": "Pattern Developer Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/QUICK_IMPLEMENTATION_GUIDE.md",
+      "title": "Quick Implementation Guide - 3 Critical CSS Fixes",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/QUICK_TEST_GUIDE.md",
+      "title": "Quick Test Guide - Beat Detection Fix 🚀",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/README.md",
+      "title": "K1.reinvented",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/README_Claude_Skills.md",
+      "title": "Claude Skills + QA Pack for K1.node2",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/TEST_PATTERNS.md",
+      "title": "K1.reinvented Test Patterns",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/agent_quick_refs/SUPREME_analyst_cheatsheet.md",
+      "title": "SUPREME Analyst Quick Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/agent_quick_refs/ULTRA_choreographer_cheatsheet.md",
+      "title": "ULTRA Choreographer Quick Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/agent_quick_refs/code_reviewer_quality_validator_cheatsheet.md",
+      "title": "Code Reviewer & Quality Validator Quick Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/agent_quick_refs/embedded_firmware_engineer_cheatsheet.md",
+      "title": "Embedded Firmware Engineer Quick Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/agent_quick_refs/multiplier_orchestrator_cheatsheet.md",
+      "title": "Multiplier Orchestrator Quick Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/memory_schema.md",
+      "title": "Mem0 Memory Schema for K1.reinvented",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/multiplier_pattern_reference.md",
+      "title": "Multiplier Pattern Implementation Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/node_reference/NODE_ARCHITECTURE.md",
+      "title": "K1.reinvented Node Architecture",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/patterns/ADVANCED_CHOREOGRAPHY_PATTERNS.md",
+      "title": "Advanced Choreography Patterns for K1 Dual-Core System",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/patterns/PATTERN_AUDIO_API_REFERENCE.md",
+      "title": "Pattern Audio API Reference",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/patterns/PATTERN_AUDIO_QUICK_REFERENCE.md",
+      "title": "Pattern Audio Interface - Quick Reference Card",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/patterns/PATTERN_QUICK_START.md",
+      "title": "Pattern Development Quick Start Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/patterns/PATTERN_VISUAL_GUIDE.md",
+      "title": "Visual Demonstration Guide - Advanced Choreography Patterns",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/performance_baseline_schema.md",
+      "title": "Performance Baseline Schema & Registry",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/testing_standards.md",
+      "title": "Test Evidence Standards & Methodology",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/resources/workflow_multiplier_patterns.md",
+      "title": "Workflow Optimization Multiplier Patterns",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/roadmap/WHATS_NEXT_ROADMAP.md",
+      "title": "What's Next: K1 Control App Roadmap",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/tags/analysis.md",
+      "title": "Tag: analysis",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "index",
+        "tag",
+        "analysis"
+      ]
+    },
+    {
+      "path": "docs/tags/dashboard.md",
+      "title": "Tag: dashboard",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "index",
+        "tag",
+        "dashboard"
+      ]
+    },
+    {
+      "path": "docs/tags/docs.md",
+      "title": "Tag: docs",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "index",
+        "tag",
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/tags/feature.md",
+      "title": "Tag: feature",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "index",
+        "tag",
+        "feature"
+      ]
+    },
+    {
+      "path": "docs/tags/frontend.md",
+      "title": "Tag: frontend",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "index",
+        "tag",
+        "frontend"
+      ]
+    },
+    {
+      "path": "docs/tags/governance.md",
+      "title": "Tag: governance",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "index",
+        "tag",
+        "governance"
+      ]
+    },
+    {
+      "path": "docs/tags/guide.md",
+      "title": "Tag: guide",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "index",
+        "tag",
+        "guide"
+      ]
+    },
+    {
+      "path": "docs/tags/index.md",
+      "title": "Tag: index",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "index",
+        "tag",
+        "index"
+      ]
+    },
+    {
+      "path": "docs/tags/multipliers.md",
+      "title": "Tag: multipliers",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "index",
+        "tag",
+        "multipliers"
+      ]
+    },
+    {
+      "path": "docs/tags/plan.md",
+      "title": "Tag: plan",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "index",
+        "tag",
+        "plan"
+      ]
+    },
+    {
+      "path": "docs/tags/tag.md",
+      "title": "Tag: tag",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "index",
+        "tag",
+        "tag"
+      ]
+    },
+    {
+      "path": "docs/templates/AUDIO_IMPLEMENTATION_TEMPLATES.md",
+      "title": "Audio Integration Implementation Templates",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/templates/Doc_Taxonomy.md",
+      "title": "Documentation Taxonomy & Tagging",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/templates/Doc_Template_Analysis.md",
+      "title": "<Analysis Title>",
+      "status": "draft",
+      "version": "v0.1",
+      "owner": "[TBD]",
+      "last_updated": "YYYY-MM-DD",
+      "tags": [
+        "analysis"
+      ]
+    },
+    {
+      "path": "docs/templates/Doc_Template_Feature.md",
+      "title": "<Feature Title>",
+      "status": "draft",
+      "version": "v0.1",
+      "owner": "[TBD]",
+      "last_updated": "YYYY-MM-DD",
+      "tags": [
+        "feature",
+        "frontend"
+      ]
+    },
+    {
+      "path": "docs/templates/Doc_Template_Plan.md",
+      "title": "<Plan Title>",
+      "status": "draft",
+      "version": "v0.1",
+      "owner": "[TBD]",
+      "last_updated": "YYYY-MM-DD",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "docs/templates/Docs_Cleanup_Plan.md",
+      "title": "Documentation Cleanup Plan (Operational Guide)",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/templates/Docs_Index_Template.md",
+      "title": "Documentation Index (Template)",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/templates/Docs_Multipliers_Playbook.md",
+      "title": "Documentation Multipliers Playbook",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "guide",
+        "docs",
+        "multipliers"
+      ]
+    },
+    {
+      "path": "docs/templates/Documentation_Governance.md",
+      "title": "Documentation Governance Standard",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/templates/FigmaMake_Prompt_Suite_Guide.md",
+      "title": "Figma Make Prompt Suite Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "docs/templates/TEMPLATE_ARCHITECTURE_ANALYSIS.md",
+      "title": "Template Architecture Analysis: The Paradigm Shift",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "docs"
+      ]
+    },
+    {
+      "path": "Implementation.plans/Emotiscope 2.0 Control Dashboard/node_modules/Control Dashboard/README.md"
+    },
+    {
+      "path": "Implementation.plans/Emotiscope 2.0 Control Dashboard/node_modules/Control Dashboard/src/Attributions.md"
+    },
+    {
+      "path": "Implementation.plans/Emotiscope 2.0 Control Dashboard/node_modules/Control Dashboard/src/DESIGN_SPECS.md"
+    },
+    {
+      "path": "Implementation.plans/Emotiscope 2.0 Control Dashboard/node_modules/Control Dashboard/src/README.md"
+    },
+    {
+      "path": "Implementation.plans/Emotiscope 2.0 Control Dashboard/node_modules/Control Dashboard/src/guidelines/Guidelines.md"
+    },
+    {
+      "path": "Implementation.plans/Emotiscope 3.0 Control Dashboard/README.md",
+      "title": "README",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/Emotiscope 3.0 Control Dashboard/src/Attributions.md",
+      "title": "Attributions",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/Emotiscope 3.0 Control Dashboard/src/DESIGN_SPECS.md",
+      "title": "Emotiscope 2.0 Control Dashboard - Design Specifications",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/Emotiscope 3.0 Control Dashboard/src/README.md",
+      "title": "Emotiscope 2.0 Control Dashboard",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/Emotiscope 3.0 Control Dashboard/src/guidelines/Guidelines.md",
+      "title": "General guidelines",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/FigmaMake_PromptSuite_NodeUI_v1.md",
+      "title": "Figma Make Agent Prompt Suite: Node UI (K1 Control App)",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/HANDOFF_BRIEF_PHASE_1_WEEK_4.md",
+      "title": "Phase 1 Week 4 Handoff Brief: Responsive Design & Visual Feedback",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/K1_WIRELESS_ENHANCEMENT_PLAN.md",
+      "title": "K1 Wireless System Enhancement Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/LAYER_3_REVISED_IMPLEMENTATION_PLAN.md",
+      "title": "Layer 3 Revised Implementation Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/MAKE_PROMPT_1_DESIGN_TOKENS.md",
+      "title": "Figma Make Agent Prompt 1: Design Token System + Platform Variants",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/MAKE_PROMPT_2_COMPONENT_STATES.md",
+      "title": "Figma Make Agent Prompt 2: Component States & Interactions",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/MAKE_PROMPT_3_ADVANCED_REFINEMENTS.md",
+      "title": "Figma Make Agent Prompt 3: Advanced Refinements & iOS Adaptation",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/Node Graph Editor Design_v5/README.md",
+      "title": "README",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/Node Graph Editor Design_v5/src/Attributions.md",
+      "title": "Attributions",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/Node Graph Editor Design_v5/src/guidelines/Guidelines.md",
+      "title": "General guidelines",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P1 - Design Token System/README.md",
+      "title": "README",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P1 - Design Token System/src/guidelines/Guidelines.md",
+      "title": "General guidelines",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P1 - Design Token System/src/tokens/README.md",
+      "title": "K1 Control Dashboard - Design Token System v2.0",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P1 - Design Token System/src/tokens/accessibility-guide.md",
+      "title": "K1 Design System - Accessibility Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P1 - Design Token System/src/tokens/design-specification.md",
+      "title": "K1 Control Dashboard - Design Token Specification v2.0",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P1 - Design Token System/src/tokens/ios-swiftui-mapping.md",
+      "title": "iOS/SwiftUI Token Mapping Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P1 - Design Token System/src/tokens/platform-usage-guide.md",
+      "title": "K1 Design Token Platform Usage Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P2 - Design Token System/README.md",
+      "title": "README",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P2 - Design Token System/src/Attributions.md",
+      "title": "Attributions",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P2 - Design Token System/src/guidelines/Guidelines.md",
+      "title": "General guidelines",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P2 - Design Token System/src/tokens/README.md",
+      "title": "K1 Control Dashboard - Design Token System v2.0",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P2 - Design Token System/src/tokens/accessibility-guide.md",
+      "title": "K1 Design System - Accessibility Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P2 - Design Token System/src/tokens/component-state-matrix.md",
+      "title": "K1 Component State Matrix",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P2 - Design Token System/src/tokens/component-states-README.md",
+      "title": "K1 Component States & Interactions - Complete Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P2 - Design Token System/src/tokens/design-specification.md",
+      "title": "K1 Control Dashboard - Design Token Specification v2.0",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P2 - Design Token System/src/tokens/interaction-specification.md",
+      "title": "K1 Interaction Specification",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P2 - Design Token System/src/tokens/ios-interaction-patterns.md",
+      "title": "K1 iOS-Specific Interaction Patterns",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P2 - Design Token System/src/tokens/ios-swiftui-mapping.md",
+      "title": "iOS/SwiftUI Token Mapping Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P2 - Design Token System/src/tokens/platform-usage-guide.md",
+      "title": "K1 Design Token Platform Usage Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/README.md",
+      "title": "README",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/Attributions.md",
+      "title": "Attributions",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/K1-DESIGN-SYSTEM-README.md",
+      "title": "K1 Control Dashboard Design System v2.0",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/guidelines/Guidelines.md",
+      "title": "General guidelines",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/FINAL-SUMMARY.md",
+      "title": "K1 Design System v2.0 - Complete Implementation Summary",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/README.md",
+      "title": "K1 Control Dashboard - Design Token System v2.0",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/accessibility-guide.md",
+      "title": "K1 Design System - Accessibility Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/animation-choreography.md",
+      "title": "K1 Animation Choreography System",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/component-state-matrix.md",
+      "title": "K1 Component State Matrix",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/component-states-README.md",
+      "title": "K1 Component States & Interactions - Complete Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/dark-theme-polish.md",
+      "title": "K1 Dark Theme Polish",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/design-specification.md",
+      "title": "K1 Control Dashboard - Design Token Specification v2.0",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/design-system-overview.md",
+      "title": "K1 Design System Overview",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/interaction-specification.md",
+      "title": "K1 Interaction Specification",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/ios-interaction-patterns.md",
+      "title": "K1 iOS-Specific Interaction Patterns",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/ios-navigation-system.md",
+      "title": "K1 iOS Navigation System",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/ios-swiftui-mapping.md",
+      "title": "iOS/SwiftUI Token Mapping Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/platform-usage-guide.md",
+      "title": "K1 Design Token Platform Usage Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/P3 - Design Token System/src/tokens/responsive-design-guide.md",
+      "title": "K1 Responsive Design Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/PHASE_1_WEEK_4_FIGMA_MAKE_AGENT_PROMPT.md",
+      "title": "Phase 1 Week 4: Figma Make Agent Automation Prompt",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/PHASE_1_WEEK_4_RESPONSIVE_DESIGN_SPEC.md",
+      "title": "Phase 1 Week 4: Responsive Design & Visual Feedback Specification",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/README.md",
+      "title": "Implementation Plans",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/USER_EXPERIENCE_OPTIMIZATION.md",
+      "title": "K1 User Experience Optimization Plan",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/WIRELESS_TESTING_FRAMEWORK.md",
+      "title": "K1 Wireless System Testing Framework",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/backlog/documentation_lint_cleanup.md",
+      "title": "Documentation Lint Cleanup Backlog",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/backlog/triage_cadence_setup.md",
+      "title": "Task: Schedule Weekly Doc Triage",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/k1-host-suite-all-layers/tools/README.md",
+      "title": "README",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/k1-libgraph-layer1/host/libgraph/README.md",
+      "title": "K1 Layer‑1 Graph Library (host/libgraph)",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/k1-libgraph-layer1-json-metrics/host/libgraph/README.md",
+      "title": "K1 Layer‑1 Graph Library (host/libgraph)",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/k1-tools-pr1-pr2/tools/README.md",
+      "title": "K1 Tools (PR-1 + PR-2)",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/poc/MEM0_ARCHITECTURE_REVIEW.md",
+      "title": "Mem0 Architecture Review & PoC Optimization Strategy",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/poc/MEM0_OPTIMIZATION_INSIGHTS.md",
+      "title": "Mem0 PoC Optimization Insights",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/poc/POC_SUMMARY_FOR_CAPTAIN.md",
+      "title": "Mem0 PoC: Grade-A++++ Plan Summary for Captain",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/poc/README.md",
+      "title": "Mem0 PoC Execution Guide",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/poc/SETUP_INSTRUCTIONS.md",
+      "title": "Mem0 PoC Setup Instructions",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/poc/node_architecture_doc.md",
+      "title": "Node Architecture Documentation (Figma-Ready)",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/poc/node_editor_design_brief.md",
+      "title": "Node Editor Design Brief (Figma-Ready)",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/roadmaps/visualization_pipeline_rebuild.md",
+      "title": "Visualization Pipeline Rebuild Roadmap",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/DEPLOYMENT_CHECKLIST.md",
+      "title": "Deployment Checklist",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/DEPLOYMENT_VERIFICATION.md",
+      "title": "Deployment Verification Checklist",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/OTA_DEPLOYMENT_FAILURE_DIAGNOSIS.md",
+      "title": "OTA Deployment Failure - Systematic Diagnosis",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/README.md",
+      "title": "K1.reinvented Implementation Runbooks",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/audio_pipeline_cleanup_v1.md",
+      "title": "Audio Pipeline Cleanup & 16kHz Reconfiguration - Runbook",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/doc_triage_checklist.md",
+      "title": "Weekly Documentation Triage",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/fps_bottleneck_fix_v2.md",
+      "title": "FPS Bottleneck Fix - Sensory Bridge Synchronization Restoration",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/generated_patterns_inline_optimization.md",
+      "title": "Generated Patterns: Inline Optimization Runbook",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/i2s_timeout_fix_runbook.md",
+      "title": "I2S Timeout Fix Implementation Runbook",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/k1_control_app_setup.md",
+      "title": "K1 Control App Setup - Implementation Runbook",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/led_driver_refactoring_runbook.md",
+      "title": "LED Driver Refactoring - Implementation Runbook",
+      "status": "approved",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/race_condition_fix_implementation.md",
+      "title": "Race Condition Fix Implementation Runbook",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/security_vulnerability_remediation.md",
+      "title": "Security Vulnerability Remediation Runbook",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/task_3_4_provider_integration_implementation.md",
+      "title": "Task 3.4: K1Provider Integration & Auto-Reconnect Implementation",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/task_3_5_error_states_and_retry_ux.md",
+      "title": "Task 3.5: Error States, Retry UX, and Visual Status Indicators",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/task_3_6_device_deduplication_and_sorting.md",
+      "title": "Task 3.6: Device Deduplication and Sorting",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/tempo_confidence_amplification_fix.md",
+      "title": "RUNBOOK: Tempo Confidence Amplification Fix",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    },
+    {
+      "path": "Implementation.plans/runbooks/webserver_refactoring_phase1.md",
+      "title": "Webserver Refactoring Phase 1: Extraction & Modularization",
+      "status": "draft",
+      "version": "v1.0",
+      "owner": "[Docs Maintainers]",
+      "last_updated": "2025-10-28",
+      "tags": [
+        "plan"
+      ]
+    }
+  ]
+}

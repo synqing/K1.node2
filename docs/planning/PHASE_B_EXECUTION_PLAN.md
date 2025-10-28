@@ -1,3 +1,14 @@
+---
+title: K1 Phase B Execution Plan
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # K1 Phase B Execution Plan
 
 This plan defines objectives, deliverables, timeline, resources, task ownership, review cadence, success metrics, and contingencies to execute the wireless system enhancement and related infrastructure improvements.

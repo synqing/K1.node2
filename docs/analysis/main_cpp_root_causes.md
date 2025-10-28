@@ -1,10 +1,14 @@
 ---
-author: SUPREME Analyst (Forensic Deep-Dive Specialist)
-date: 2025-10-28
-status: published
-intent: Root cause analysis for each architectural clutter item; traces why each decision was made and what led to incomplete refactoring
+title: Root Cause Analysis: main.cpp Architectural Clutter
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # Root Cause Analysis: main.cpp Architectural Clutter
 
 ## Overview

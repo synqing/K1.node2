@@ -3,6 +3,9 @@
 #include <ArduinoOTA.h>
 #include <SPIFFS.h>
 
+// Skip main setup/loop during unit tests (tests provide their own)
+#ifndef UNIT_TEST
+
 #include "types.h"
 #include "led_driver.h"
 #include "profiler.h"
@@ -58,28 +61,24 @@ void handle_wifi_disconnected() {
 }
 
 // ============================================================================
-// AUDIO TASK - COMMENTED OUT (unused dual-core remnant)
+// AUDIO TASK - CORE 1 AUDIO PROCESSING (ACTIVATED)
 // ============================================================================
-// This function was designed for Core 1 execution but xTaskCreatePinnedToCore()
-// was never called. Audio pipeline now runs in main loop with ring buffer.
-// Keeping for reference / test files that depend on it.
-/*
+// This function runs on Core 1 and handles all audio processing
+// - Microphone sample acquisition (I2S, blocking - isolated to Core 1)
+// - Goertzel frequency analysis (CPU-intensive)
+// - Chromagram computation (pitch class analysis)
+// - Beat detection and tempo tracking
+// - Lock-free buffer synchronization with Core 0
 void audio_task(void* param) {
-    // Audio runs independently from rendering
-    // This task handles:
-    // - Microphone sample acquisition (I2S, blocking)
-    // - Goertzel frequency analysis (CPU-intensive)
-    // - Chromagram computation (light)
-    // - Beat detection and tempo tracking
-    // - Buffer synchronization (mutexes)
-
+    Serial.println("[AUDIO_TASK] Starting on Core 1");
+    
     while (true) {
-        // Process audio chunk
+        // Process audio chunk (I2S blocking isolated to Core 1)
         acquire_sample_chunk();        // Blocks on I2S if needed (acceptable here)
         calculate_magnitudes();        // ~15-25ms Goertzel computation
         get_chromagram();              // ~1ms pitch aggregation
 
-        // BEAT DETECTION PIPELINE (NEW - FIX FOR TEMPO_CONFIDENCE)
+        // BEAT DETECTION PIPELINE
         // Calculate spectral novelty as peak energy in current frame
         float peak_energy = 0.0f;
         for (int i = 0; i < NUM_FREQS; i++) {
@@ -98,7 +97,7 @@ void audio_task(void* param) {
         extern float tempo_confidence;  // From tempo.cpp
         audio_back.tempo_confidence = tempo_confidence;
 
-        // CRITICAL FIX: SYNC TEMPO MAGNITUDE AND PHASE ARRAYS
+        // SYNC TEMPO MAGNITUDE AND PHASE ARRAYS
         // Copy per-tempo-bin magnitude and phase data from tempo calculation to audio snapshot
         // This enables Tempiscope and Beat_Tunnel patterns to access individual tempo bin data
         extern tempo tempi[NUM_TEMPI];  // From tempo.cpp (64 tempo hypotheses)
@@ -107,21 +106,53 @@ void audio_task(void* param) {
             audio_back.tempo_phase[i] = tempi[i].phase;          // -π to +π per bin
         }
 
-        // Buffer synchronization
+        // Lock-free buffer synchronization with Core 0
         finish_audio_frame();          // ~0-5ms buffer swap
 
-        // Debug output (optional)
-        // print_audio_debug();  // Comment out to reduce serial traffic
-
-        // CRITICAL FIX: Reduce artificial throttle
-        // Changed from 10ms to 1ms to increase audio processing rate
-        // Before: 20-25 Hz audio (35-55ms latency)
-        // After: 40-50 Hz audio (25-45ms latency)
-        // 1ms yield prevents CPU starvation while allowing faster audio updates
+        // Yield to prevent CPU starvation
+        // 1ms yield allows 40-50 Hz audio processing rate
         vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
-*/
+
+// ============================================================================
+// GPU TASK - CORE 0 VISUAL RENDERING (NEW)
+// ============================================================================
+// This function runs on Core 0 and handles all visual rendering
+// - Pattern rendering at 100+ FPS
+// - LED transmission via RMT
+// - FPS tracking and diagnostics
+// - Never waits for audio (reads latest available data)
+void loop_gpu(void* param) {
+    Serial.println("[GPU_TASK] Starting on Core 0");
+    
+    static uint32_t start_time = millis();
+    
+    for (;;) {
+        // Track time for animation
+        float time = (millis() - start_time) / 1000.0f;
+
+        // Get current parameters (thread-safe read from active buffer)
+        const PatternParameters& params = get_params();
+
+        // BRIGHTNESS BINDING: Synchronize global_brightness with params.brightness
+        extern float global_brightness;
+        global_brightness = params.brightness;
+
+        // Draw current pattern with audio-reactive data (lock-free read from audio_front)
+        draw_current_pattern(time, params);
+
+        // Transmit to LEDs via RMT (non-blocking DMA)
+        transmit_leds();
+
+        // FPS tracking (minimal overhead)
+        watch_cpu_fps();
+        print_fps();
+        
+        // Small yield to prevent watchdog issues
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
+}
 
 // ============================================================================
 // SETUP - Initialize hardware, create tasks
@@ -208,108 +239,89 @@ void setup() {
     Serial.printf("  Starting pattern: %s\n", get_current_pattern().name);
 
     // ========================================================================
-    // AUDIO PIPELINE CONFIGURATION
+    // DUAL-CORE ARCHITECTURE ACTIVATION
     // ========================================================================
-    // Audio processing runs in main loop with ring buffer at 8ms cadence
-    // - 16kHz sample rate, 128-sample chunks
-    // - Goertzel FFT processing on 8ms boundary
-    // - Double-buffered audio_front/audio_back (lock-free reads from Core 0)
-    // - WiFi/OTA isolated on future Core 1 task (coming in next phase)
+    // Core 0: GPU rendering task (100+ FPS, never blocks)
+    // Core 1: Audio processing + network (main loop, can block on I2S)
+    // Synchronization: Lock-free double buffer with sequence counters
     // ========================================================================
-    Serial.println("Audio pipeline: ring buffer mode (16kHz, 128-chunk, 8ms cadence)");
+    Serial.println("Activating dual-core architecture...");
 
+    // Task handles for monitoring
+    TaskHandle_t gpu_task_handle = NULL;
+    TaskHandle_t audio_task_handle = NULL;
+
+    // Create GPU rendering task on Core 0
+    // INCREASED STACK: 12KB -> 16KB (4,288 bytes margin was insufficient)
+    BaseType_t gpu_result = xTaskCreatePinnedToCore(
+        loop_gpu,           // Task function
+        "loop_gpu",         // Task name
+        16384,              // Stack size (16KB for LED rendering + pattern complexity)
+        NULL,               // Parameters
+        1,                  // Priority (same as audio - no preemption preference)
+        &gpu_task_handle,   // Task handle for monitoring
+        0                   // Pin to Core 0
+    );
+
+    // Create audio processing task on Core 1
+    // INCREASED STACK: 8KB -> 12KB (1,692 bytes margin was dangerously low)
+    BaseType_t audio_result = xTaskCreatePinnedToCore(
+        audio_task,         // Task function
+        "audio_task",       // Task name
+        12288,              // Stack size (12KB for Goertzel + I2S + tempo detection)
+        NULL,               // Parameters
+        1,                  // Priority (same as GPU)
+        &audio_task_handle, // Task handle for monitoring
+        1                   // Pin to Core 1
+    );
+
+    // Validate task creation (CRITICAL: Must not fail)
+    if (gpu_result != pdPASS || gpu_task_handle == NULL) {
+        Serial.println("FATAL ERROR: GPU task creation failed!");
+        Serial.println("System cannot continue. Rebooting...");
+        delay(5000);
+        esp_restart();
+    }
+
+    if (audio_result != pdPASS || audio_task_handle == NULL) {
+        Serial.println("FATAL ERROR: Audio task creation failed!");
+        Serial.println("System cannot continue. Rebooting...");
+        delay(5000);
+        esp_restart();
+    }
+
+    Serial.println("Dual-core tasks created successfully:");
+    Serial.println("  Core 0: GPU rendering (100+ FPS target)");
+    Serial.printf("    Stack: 16KB (was 12KB, increased for safety)\n");
+    Serial.println("  Core 1: Audio processing + network");
+    Serial.printf("    Stack: 12KB (was 8KB, increased for safety)\n");
+    Serial.println("  Synchronization: Lock-free with sequence counters + memory barriers");
     Serial.println("Ready!");
     Serial.println("Upload new effects with:");
     Serial.printf("  pio run -t upload --upload-port %s.local\n", ArduinoOTA.getHostname());
 }
 
 // ============================================================================
-// MAIN LOOP - Runs on Core 0 @ 200+ FPS (pattern rendering only)
+// MAIN LOOP - Runs on Core 1 (Network + System Management)
 // ============================================================================
 void loop() {
-    // Core 0 main loop: pure pattern rendering without blocking
+    // Core 1 main loop: Network services and system management
+    // Audio processing now handled by dedicated audio_task on Core 1
+    // Visual rendering now handled by dedicated loop_gpu on Core 0
 
-    wifi_monitor_loop();  // Non-blocking WiFi status check (will move to Core 1)
-    ArduinoOTA.handle();  // Non-blocking OTA polling (will move to Core 1)
-
-    // ========================================================================
-    // AUDIO PROCESSING: Synchronized to I2S DMA cadence
-    // ========================================================================
-    // I2S configuration (16kHz, 128-chunk) naturally produces chunks every 8ms
-    // acquire_sample_chunk() blocks on portMAX_DELAY until next chunk ready
-    // This is the synchronization mechanism - no explicit timing needed
-    // DMA continuously buffers, so the block is brief (~<1ms typical)
-    // AP and VP decoupled: AP produces chunks at 125 Hz, VP reads latest available
-    // ========================================================================
-    run_audio_pipeline_once();
-
-    // CLUTTER REMOVED: Telemetry broadcast at 10Hz (add flag later if needed)
-    // Removed: cpu_monitor.update(), broadcast_realtime_data()
+    wifi_monitor_loop();  // WiFi status monitoring
+    ArduinoOTA.handle();  // OTA update handling
+    
+    // Optional: CPU monitoring and telemetry
     // Can be re-enabled with #define ENABLE_TELEMETRY
-
-    // Track time for animation
-    static uint32_t start_time = millis();
-    float time = (millis() - start_time) / 1000.0f;
-
-    // Get current parameters (thread-safe read from active buffer)
-    const PatternParameters& params = get_params();
-
-    // BRIGHTNESS BINDING: Synchronize global_brightness with params.brightness
-    extern float global_brightness;
-    global_brightness = params.brightness;
-
-    // Draw current pattern with audio-reactive data (lock-free read from audio_front)
-    draw_current_pattern(time, params);
-
-    // Transmit to LEDs via RMT (non-blocking DMA)
-    transmit_leds();
-
-    // FPS tracking (minimal overhead)
-    watch_cpu_fps();
-    print_fps();
+    // cpu_monitor.update();
+    // broadcast_realtime_data();
+    
+    // Small delay to prevent tight loop
+    delay(10);
 }
+
+#endif  // UNIT_TEST
+
 // All patterns are included from generated_patterns.h
-
-static inline void run_audio_pipeline_once() {
-    // Acquire and process audio chunk
-    // portMAX_DELAY in acquire_sample_chunk() blocks until I2S data ready
-    // This synchronization happens naturally via DMA, no explicit timing needed
-
-    // DIAGNOSTIC: Measure total audio pipeline time
-    uint32_t ap_start_us = micros();
-
-    acquire_sample_chunk();
-    calculate_magnitudes();
-    get_chromagram();
-
-    uint32_t ap_time_us = micros() - ap_start_us;
-    static uint32_t ap_times[16] = {0};
-    static uint8_t ap_index = 0;
-    ap_times[ap_index++ % 16] = ap_time_us;
-
-    // Log if audio pipeline takes longer than expected 8-10ms
-    if (ap_time_us > 15000) {  // More than 15ms suggests I2S blocking issue
-        Serial.printf("[AP_DIAG] Pipeline time: %lu us\n", ap_time_us);
-    }
-
-    // Beat detection pipeline
-    float peak_energy = 0.0f;
-    for (int i = 0; i < NUM_FREQS; i++) {
-        peak_energy = fmaxf(peak_energy, audio_back.spectrogram[i]);
-    }
-    update_novelty_curve(peak_energy);
-    smooth_tempi_curve();
-    detect_beats();
-
-    // Sync tempo confidence and per-bin data to snapshot
-    extern float tempo_confidence;
-    audio_back.tempo_confidence = tempo_confidence;
-    extern tempo tempi[NUM_TEMPI];
-    for (uint16_t i = 0; i < NUM_TEMPI; i++) {
-        audio_back.tempo_magnitude[i] = tempi[i].magnitude;
-        audio_back.tempo_phase[i] = tempi[i].phase;
-    }
-
-    // Commit audio frame
-    finish_audio_frame();
-}
+// Audio processing now handled by dedicated audio_task on Core 1

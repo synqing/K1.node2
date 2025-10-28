@@ -1,11 +1,14 @@
 ---
 title: Parameter Flow Diagram - palette_id Lifecycle
-author: Claude (SUPREME Analyst)
-date: 2025-10-27
-status: published
-intent: Visual representation of palette_id flow from UI to LEDs
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # Parameter Flow Diagram: palette_id Lifecycle
 
 ## Complete Flow (With Bugs Marked)

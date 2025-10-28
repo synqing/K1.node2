@@ -1,10 +1,14 @@
 ---
-author: Claude Agent (Software Architect)
-date: 2025-10-27
+title: Layer 3 Revised Implementation Plan
 status: draft
-intent: Detailed implementation plan for revised Layer 3 architecture (build-time analysis + validation)
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [plan]
+related_docs: []
 ---
-
 # Layer 3 Revised Implementation Plan
 
 **Status:** Draft - Awaiting Architectural Approval

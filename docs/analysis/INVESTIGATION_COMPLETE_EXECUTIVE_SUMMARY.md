@@ -1,3 +1,14 @@
+---
+title: FPS BOTTLENECK INVESTIGATION & ARCHITECTURAL ANALYSIS
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # FPS BOTTLENECK INVESTIGATION & ARCHITECTURAL ANALYSIS
 ## Executive Summary
 

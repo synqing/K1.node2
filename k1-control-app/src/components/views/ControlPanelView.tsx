@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { EffectSelector } from '../control/EffectSelector';
+import EffectSelector from '../control/EffectSelector';
 import { EffectParameters } from '../control/EffectParameters';
 import { ColorManagement } from '../control/ColorManagement';
 import { GlobalSettings } from '../control/GlobalSettings';
@@ -40,8 +40,8 @@ export function ControlPanelView() {
     setSelectedEffect(effect);
     const idx = effectToPatternIndex[effect];
     if (isConnected && typeof idx === 'number') {
-      // Send selection to device; ignore errors in UI thread but surface via provider
-      actions.selectPattern(String(idx)).catch(() => {});
+      // Send selection to device; provider surfaces errors
+      void actions.selectPattern(String(idx));
     }
   };
 

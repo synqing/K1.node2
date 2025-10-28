@@ -1,10 +1,14 @@
 ---
-author: SUPREME Analyst
-date: 2025-10-28
-status: published
-intent: Prioritized bottleneck matrix with severity, effort, and impact scores for FPS improvement
+title: FPS Bottleneck Matrix: Prioritized Fixes
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # FPS Bottleneck Matrix: Prioritized Fixes
 
 ## Overview
