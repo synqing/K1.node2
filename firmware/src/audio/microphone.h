@@ -93,10 +93,21 @@ void acquire_sample_chunk() {
 			// portMAX_DELAY: block until next chunk is ready (~8ms typical)
 			// This is the synchronization mechanism - no explicit timing needed
 			// DMA continuously buffers, so portMAX_DELAY returns quickly with valid data
+
+			// DIAGNOSTIC: Measure I2S blocking time
+			uint32_t i2s_start_us = micros();
 			esp_err_t i2s_result = i2s_channel_read(rx_handle, new_samples_raw, CHUNK_SIZE*sizeof(uint32_t), &bytes_read, portMAX_DELAY);
+			uint32_t i2s_block_us = micros() - i2s_start_us;
+
+			// Log if blocking takes longer than expected 8ms
+			if (i2s_block_us > 10000) {  // More than 10ms is suspicious
+				Serial.printf("[I2S_DIAG] Block time: %lu us\n", i2s_block_us);
+			}
+
 			if (i2s_result != ESP_OK) {
 				// I2S error - fill with silence and continue
 				memset(new_samples_raw, 0, sizeof(uint32_t) * CHUNK_SIZE);
+				Serial.printf("[I2S_ERROR] Read failed with code %d, block_us=%lu\n", i2s_result, i2s_block_us);
 			}
 		}
 		else{

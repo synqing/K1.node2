@@ -1,0 +1,60 @@
+digraph Emotiscope_v1_1 {
+  rankdir=LR;
+  node [shape=box, fontsize=10];
+
+  subgraph cluster_init {
+    label="Init";
+    A [label="setup()\nEMOTISCOPE_FIRMWARE.ino"];
+    A1 [label="init_system()\nsystem.h"];
+    A2 [label="init_fastled_driver()\nleds.h"];
+    A3 [label="spawn loop_gpu()\nCore 0"];
+    I2S [label="init_i2s_microphone()\nmicrophone.h:48"];
+    GW [label="init_window_lookup()\ngoertzel.h"];
+    GM [label="init_goertzel_constants_musical()\ngoertzel.h"];
+    T0 [label="init_tempo_goertzel_constants()\ntempo.h"];
+    V0 [label="init_vu()\nvu.h"];
+    A -> A1; A -> A2; A -> A3;
+    A1 -> I2S; A1 -> GW; A1 -> GM; A1 -> T0; A1 -> V0;
+  }
+
+  subgraph cluster_cpu {
+    label="Core 1: run_cpu (Audio/Web)";
+    C1 [label="acquire_sample_chunk()\nmicrophone.h:93"];
+    SH [label="sample_history[]", shape=note];
+    C2 [label="calculate_magnitudes()\ngoertzel.h:227"];
+    SG [label="spectrogram[]", shape=note];
+    SGS [label="spectrogram_smooth[]", shape=note];
+    C3 [label="get_chromagram()\ngoertzel.h:394"];
+    CG [label="chromagram[12]", shape=note];
+    C4 [label="run_vu()\nvu.h:26"];
+    VU [label="vu_level, vu_max", shape=note];
+    C5 [label="update_tempo()\ntempo.h:268"];
+    TM [label="tempi[i].magnitude", shape=note];
+    C1 -> SH; SH -> C2; C2 -> SG; C2 -> SGS; SGS -> C3; C3 -> CG; C4 -> VU; C5 -> TM;
+  }
+
+  subgraph cluster_gpu {
+    label="Core 0: run_gpu (Graphics)";
+    G1 [label="update_novelty()\ntempo.h:352"];
+    NV [label="novelty_curve[], vu_curve[]", shape=note];
+    G2 [label="update_tempi_phase(delta)\ntempo.h:417"];
+    TP [label="tempi[i].phase, beat", shape=note];
+    TC [label="tempo_confidence", shape=note];
+    G3 [label="update_auto_color()\nleds.h"];
+    G4 [label="clear_display()"];
+    G5 [label="light_modes[current].draw()\nlight_modes.h"];
+    M1 [label="draw_spectrum()\nspectrum.h"];
+    M2 [label="draw_pulse()\npulse.h"];
+    G6 [label="transition_engine.update()"]; G7 [label="apply_background()+UI"]; G8 [label="LPF→tonemap→warmth→WB→master→gamma"]; G9 [label="transmit_leds()\nFastLED or RMT"];
+    G1 -> NV; G2 -> TP; G2 -> TC; G5 -> M1; G5 -> M2;
+  }
+
+  subgraph cluster_leds { label="LED Pipeline"; L0 [label="leds[] (CRGBF)"]; L1 [label="quantize/convert"]; L2 [label="FastLED.show() or RMT"]; }
+
+  // Data deps
+  SGS -> G1 [style=dashed, label="flux"]; SG -> G5 [style=dashed]; SGS -> G5 [style=dashed]; CG -> G5 [style=dashed]; TC -> G5 [style=dashed]; VU -> G5 [style=dashed];
+
+  // Render chain
+  G4 -> L0; G5 -> L0; G6 -> L0; G7 -> L0; G8 -> L1; G9 -> L2;
+}
+

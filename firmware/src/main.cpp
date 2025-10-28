@@ -274,9 +274,23 @@ static inline void run_audio_pipeline_once() {
     // Acquire and process audio chunk
     // portMAX_DELAY in acquire_sample_chunk() blocks until I2S data ready
     // This synchronization happens naturally via DMA, no explicit timing needed
+
+    // DIAGNOSTIC: Measure total audio pipeline time
+    uint32_t ap_start_us = micros();
+
     acquire_sample_chunk();
     calculate_magnitudes();
     get_chromagram();
+
+    uint32_t ap_time_us = micros() - ap_start_us;
+    static uint32_t ap_times[16] = {0};
+    static uint8_t ap_index = 0;
+    ap_times[ap_index++ % 16] = ap_time_us;
+
+    // Log if audio pipeline takes longer than expected 8-10ms
+    if (ap_time_us > 15000) {  // More than 15ms suggests I2S blocking issue
+        Serial.printf("[AP_DIAG] Pipeline time: %lu us\n", ap_time_us);
+    }
 
     // Beat detection pipeline
     float peak_energy = 0.0f;
