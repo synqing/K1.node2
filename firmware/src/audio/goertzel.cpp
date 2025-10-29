@@ -128,7 +128,8 @@ bool get_audio_snapshot(AudioDataSnapshot* snapshot) {
 	// LOCK-FREE READ with sequence counter validation
 	// Retry if sequence changes during copy (torn read detection)
 	uint32_t seq1, seq2;
-	int max_retries = 100;  // Prevent infinite loop in extreme contention
+    // Increase retry budget to reduce spurious warnings under temporary contention
+    int max_retries = 1000;  // Prevent infinite loop in extreme contention
 	int retry_count = 0;
 
 	do {
@@ -591,4 +592,3 @@ void init_audio_stubs() {
 	// This function was used in Emotiscope for test data generation
 	// For K1, audio comes from the microphone, so this is a no-op
 }
-
