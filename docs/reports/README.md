@@ -44,6 +44,35 @@ Phase closure reports, deployment summaries, validation audits, and delivery not
 
 ---
 
+## Week 1 MIREX Beat Tracking Learning (2025-10-30)
+
+**Series:** Hands-on diagnostic learning for beat tracking metrics
+
+### Documents
+
+1. **week_1_completion_summary.md**
+   - **Status:** Complete (All objectives met)
+   - **Intent:** Executive summary validating Week 1 learning outcomes
+   - **Audience:** Project leads, Week 2+ implementers
+   - **Contents:** 5 objectives met, artifacts created, mental models established, readiness for Week 2
+   - **Time investment:** 3.5 hours → 40+ hours saved in Weeks 2-4
+
+2. **week_1_mirex_beat_tracking_learning_log.md**
+   - **Status:** Published (Comprehensive reference)
+   - **Intent:** Detailed learning log from observation → prediction → validation
+   - **Audience:** Beat tracking implementers, metrics debuggers
+   - **Contents:** 5 test scenarios, prediction validation, metric interpretations, tolerance window calibration
+   - **Size:** ~4,500 words
+
+3. **docs/resources/mirex_metrics_diagnostic_guide.md** (also created)
+   - **Status:** Published (Quick reference)
+   - **Intent:** Quick-reference guide for metric interpretation during implementation
+   - **Audience:** Week 2-4 developers (print and tape to desk)
+   - **Contents:** 10-word summaries, symptom-to-cause tables, common patterns, tolerance window
+   - **Size:** ~2,500 words
+
+---
+
 ## History of FPS Debugging
 
 ### Previous Analysis Documents (docs/analysis/)

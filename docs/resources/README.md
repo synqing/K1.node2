@@ -345,6 +345,23 @@ Note: Web endpoints are scaffolding; consult `webserver.cpp` in this repo for cu
 
 ---
 
+## Beat Tracking Learning Resources
+
+### Week 1: Diagnostic Metrics Understanding
+
+**File:** [mirex_metrics_diagnostic_guide.md](mirex_metrics_diagnostic_guide.md)
+
+Quick-reference guide for interpreting MIREX beat metrics during algorithm implementation:
+- 10-word summaries of F-measure, Cemgil, Goto
+- Symptom-to-cause diagnostic tables
+- Common error patterns from empirical testing
+- Tolerance window calibration (±70-80ms)
+- Metric interdependencies
+
+**For:** Week 2-4 beat tracking implementers
+
+---
+
 ## Current Status & Roadmap
 
 **Core System: COMPLETE** ✓
