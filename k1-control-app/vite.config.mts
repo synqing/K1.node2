@@ -1,5 +1,4 @@
-
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
   import fs from 'fs';
@@ -63,18 +62,6 @@ import { defineConfig } from 'vite';
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     reporters: ['basic', 'json'],
-    // Enable fetch for integration tests
-    pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
     // Enable fetch for integration tests
     pool: 'forks',
     poolOptions: {
