@@ -386,6 +386,41 @@ Located in: `docs/resources/`
 
 ---
 
+## Frontend Testing Playbook
+
+Standardizes how agents run and report frontend tests for the control app.
+
+- Tools: `vitest` (unit/component), `@testing-library/react`, `msw` (integration), `@playwright/test` (e2e), `storybook` (visual).
+- Scripts (run from `k1-control-app/`):
+  - `npm run test:component` → headless component/unit tests.
+  - `npm run test:ui` → interactive Vitest UI.
+  - `npm run test:e2e` → Playwright E2E.
+  - `npm run test:e2e:headed` → Playwright E2E (headed).
+  - `npm run storybook` → Storybook dev server at `http://localhost:6006/`.
+  - `npm run storybook:build` → Build static Storybook.
+- Structured outputs:
+  - Playwright writes JSON to `tools/artifacts/playwright-report.json`.
+  - Vitest includes a JSON reporter; agents can parse CLI JSON blocks when present.
+  - Dev server serves `/artifacts/*` to inspect JSON while app runs.
+- Agent reporting checklist:
+  - Include counts: total, passed, failed, skipped.
+  - For failures: file path, test name, assertion error, stack.
+  - Attach links to artifacts: `/artifacts/playwright-report.json` when dev server is running.
+  - Recommend next action (fix, quarantine, re-run with `--update` for snapshots if applicable).
+
+Examples in repo:
+- RTL component: `src/test/DeviceList.rtl.test.tsx`.
+- MSW integration: `src/test/DevicesIntegration.msw.test.tsx`.
+- E2E config: `k1-control-app/playwright.config.ts`.
+
+Guardrails:
+- Avoid changing production components in tests unless fixing a specific bug.
+- Prefer test-local components for API demos; wire into app only after maintainer approval.
+- Use `baseURL` in Playwright config; don’t hardcode full URLs in tests.
+- Keep test names action-oriented and succinct; avoid flaky timing — use `await`/`waitFor`.
+
+---
+
 ## Architecture Decision Records (ADRs)
 
 Located in: `docs/adr/`

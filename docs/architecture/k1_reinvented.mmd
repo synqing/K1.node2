@@ -1,0 +1,58 @@
+graph TD
+%% ============ INIT ============
+  subgraph INIT[Boot / Initialization]
+    S[setup()<br/>firmware/src/main.cpp] --> RMT[init_rmt_driver()<br/>led_driver.cpp:90]
+    S --> UART[init_uart_sync()]
+    S --> WIFI[WiFi/OTA init]
+    S --> FS[SPIFFS.begin()]
+    S --> AS[init_audio_stubs()]
+    S --> I2S[init_i2s_microphone()<br/>audio/microphone.h:53]
+    S --> ADS[init_audio_data_sync()<br/>audio/goertzel.cpp:81]
+    S --> GW[init_window_lookup()]
+    S --> GM[init_goertzel_constants_musical()]
+    S --> T0[init_tempo_goertzel_constants()]
+    S --> PR[init_params()+init_pattern_registry()]
+  end
+
+%% ============ MAIN LOOP ============
+  subgraph LOOP[Main loop (Core 0)<br/>firmware/src/main.cpp:loop()]
+    Lw[wifi/OTA/webserver]
+    tick[every ~20ms] --> AP[run_audio_pipeline_once()]
+    Lw --> Draw
+  end
+
+%% ============ AUDIO PIPELINE ============
+  subgraph AUDIO[Audio pipeline (single-core call) <br/>firmware/src/main.cpp:407]
+    A1[acquire_sample_chunk()<br/>audio/mic.h:101 (20ms timeout)] --> SH[sample_history[]]
+    A2[calculate_magnitudes()<br/>audio/goertzel.cpp:368] --> SG[spectrogram[]] & SGS[spectrogram_smooth[]]
+    A2 --> VU[audio_level (avg spectrum)]
+    A3[get_chromagram()<br/>audio/goertzel.cpp:518] --> CG[chromagram[12]]
+    A4a[peak_energy=max(spectrogram)] --> A4b[update_novelty_curve(peak_energy)]
+    A5[smooth_tempi_curve()] --> TM[tempi[i].magnitude]
+    A6[detect_beats()] --> TP[tempi[i].phase, beat] --> TC[tempo_confidence]
+    copy[copy into audio_back snapshot:<br/>SG/SGS/CG/VU/TC/TM/TP] --> COMMIT[finish_audio_frame()<br/>commit_audio_data()]
+    SH --> A2
+  end
+
+%% ============ SNAPSHOT ACCESS ============
+  subgraph SNAP[Audio Snapshot API]
+    GET[get_audio_snapshot()<br/>audio/goertzel.cpp:116]
+    MAC[PATTERN_AUDIO_START()<br/>pattern_audio_interface.h:70]
+  end
+
+%% ============ DRAW & TRANSMIT ============
+  subgraph RENDER[Pattern Render + LED TX]
+    Draw[draw_current_pattern()<br/>pattern_registry.h] --> P[Generated Patterns<br/>generated_patterns.h]
+    P -->|starts with| MAC
+    MAC -->|AUDIO_* macros| P
+    P --> L0[leds[] (CRGBF)]
+    TX[transmit_leds()<br/>led_driver.h:165] --> RMTTX[rmt_transmit()]
+    L0 --> Q[quantize_color(dithering,<br/>global_brightness)]
+    Q --> TX
+  end
+
+%% ============ FLOWS ============
+  tick --> AUDIO
+  AUDIO --> SNAP
+  SNAP --> RENDER
+

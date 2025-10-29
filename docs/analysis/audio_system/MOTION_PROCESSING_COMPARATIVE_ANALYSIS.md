@@ -1,3 +1,14 @@
+---
+title: Motion Processing Algorithm Comparative Analysis
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Motion Processing Algorithm Comparative Analysis
 ## Emotiscope-2.0 vs SENSORY_BRIDGE_FIRMWARE
 

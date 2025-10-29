@@ -1,10 +1,14 @@
 ---
-author: Claude Code Agent (SUPREME Analyst)
-date: 2025-10-27
-status: published
-intent: Root cause analysis and causal chains for webserver refactoring issues
+title: Webserver Refactoring: Root Cause Analysis
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # Webserver Refactoring: Root Cause Analysis
 
 ## Overview

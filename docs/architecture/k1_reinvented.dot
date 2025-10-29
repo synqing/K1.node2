@@ -1,0 +1,25 @@
+digraph K1_reinvented {
+  rankdir=LR;
+  node [shape=box, fontsize=10];
+
+  subgraph cluster_init {
+    label="Init";
+    S [label="setup()\nfirmware/src/main.cpp"];
+    RMT [label="init_rmt_driver()\nled_driver.cpp:90"];
+    UART [label="init_uart_sync()"]; WIFI [label="WiFi/OTA init"]; FS [label="SPIFFS.begin()"]; AS [label="init_audio_stubs()"]; I2S [label="init_i2s_microphone()\naudio/microphone.h:53"]; ADS [label="init_audio_data_sync()\naudio/goertzel.cpp:81"]; GW [label="init_window_lookup()"]; GM [label="init_goertzel_constants_musical()"]; T0 [label="init_tempo_goertzel_constants()"]; PR [label="init_params()+init_pattern_registry()"]; S -> RMT; S -> UART; S -> WIFI; S -> FS; S -> AS; S -> I2S; S -> ADS; S -> GW; S -> GM; S -> T0; S -> PR;
+  }
+
+  subgraph cluster_loop { label="Main loop (Core 0)"; Lw [label="wifi/OTA/webserver"]; tick [label="every ~20ms"]; AP [label="run_audio_pipeline_once()\nmain.cpp:407"]; Draw [label="draw_current_pattern()\npattern_registry.h"]; Lw -> Draw; tick -> AP; }
+
+  subgraph cluster_audio {
+    label="Audio pipeline";
+    A1 [label="acquire_sample_chunk()\naudio/mic.h:101 (20ms timeout)"]; SH [label="sample_history[]", shape=note]; A2 [label="calculate_magnitudes()\naudio/goertzel.cpp:368"]; SG [label="spectrogram[]", shape=note]; SGS [label="spectrogram_smooth[]", shape=note]; VU [label="audio_level", shape=note]; A3 [label="get_chromagram()\naudio/goertzel.cpp:518"]; CG [label="chromagram[12]", shape=note]; A4a [label="peak_energy=max(SG)"]; A4b [label="update_novelty_curve(peak)"]; A5 [label="smooth_tempi_curve()"]; TM [label="tempi[i].magnitude", shape=note]; A6 [label="detect_beats()"]; TP [label="tempi[i].phase, beat", shape=note]; TC [label="tempo_confidence", shape=note]; copy [label="copy SG/SGS/CG/VU/TC/TM/TP to audio_back"]; COMMIT [label="finish_audio_frame()\ncommit_audio_data()"]; A1 -> SH; SH -> A2; A2 -> SG; A2 -> SGS; A2 -> VU; A3 -> CG; SG -> A4a; A4a -> A4b; A4b -> A5; A5 -> TM; A6 -> TP; A6 -> TC; SG -> copy; SGS -> copy; CG -> copy; VU -> copy; TC -> copy; TM -> copy; TP -> copy; copy -> COMMIT;
+  }
+
+  subgraph cluster_snap { label="Audio Snapshot API"; GET [label="get_audio_snapshot()\naudio/goertzel.cpp:116"]; MAC [label="PATTERN_AUDIO_START()\npattern_audio_interface.h:70"]; GET -> MAC [style=dotted, label="AUDIO_* macros"]; }
+
+  subgraph cluster_render { label="Render & LED TX"; P [label="Generated Patterns\n(firmware/src/generated_patterns.h)"]; L0 [label="leds[] (CRGBF)"]; Q [label="quantize_color(dithering, global_brightness)"]; TX [label="transmit_leds()\nled_driver.h:165"]; RMTTX [label="rmt_transmit()"]; Draw -> P; P -> MAC; MAC -> P [style=dotted, label="reads snapshot"]; P -> L0; L0 -> Q; Q -> TX; TX -> RMTTX; }
+
+  AP -> A1; AP -> A2; AP -> A3; AP -> A5; AP -> A6; AP -> COMMIT; MAC -> GET;
+}
+

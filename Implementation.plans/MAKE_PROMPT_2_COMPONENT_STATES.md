@@ -1,3 +1,14 @@
+---
+title: Figma Make Agent Prompt 2: Component States & Interactions
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [plan]
+related_docs: []
+---
 # Figma Make Agent Prompt 2: Component States & Interactions
 
 **Priority**: 🥈 HIGH - Execute Second (depends on Prompt 1 tokens)

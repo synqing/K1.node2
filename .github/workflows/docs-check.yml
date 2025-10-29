@@ -1,0 +1,31 @@
+name: Docs Housekeeping
+
+on:
+  schedule:
+    - cron: '0 5 * * 1' # Every Monday at 05:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  docs-maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Generate docs inventory
+        run: node tools/src/docs-inventory.js
+      - name: Build docs dashboard
+        run: node tools/src/docs-dashboard.js
+      - name: Validate frontmatter (informational)
+        run: node tools/src/docs-frontmatter-check.js
+        continue-on-error: true
+      - name: Upload housekeeping artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-housekeeping
+          path: |
+            docs/docs_index.json
+            docs/Dashboard.md

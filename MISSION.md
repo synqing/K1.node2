@@ -8,13 +8,15 @@ Read this first. Before you touch code. Before you run builds. Before you optimi
 
 You are not joining a normal project.
 
-This is not a hobby. This is not a side exploration. This is not "let's see what we can build with LEDs." This is a commitment to proving that you can have **uncompromising artistic vision paired with uncompromising execution fidelity.**
+This is **proof that creative expression doesn't require gatekeeping.**
 
-Three years led to this moment. Eight different architectural approaches. Each one revealed the same lie: you have to choose between flexibility and performance. Between artistic freedom and speed. Between being able to create what you imagine and having it run fast enough to matter.
+Three years, eight architectural iterations, and one uncompromising vision: **Creative expression shouldn't be limited by technical skills, expensive equipment, or artistic training.**
+
+The old assumption: you have to choose between flexibility (creative) and performance (fast). Between what people imagine and what actually runs.
 
 That premise is a lie.
 
-This project exists to prove it's a lie.
+This project exists to prove it's a lie—and to build the infrastructure that makes creative accessibility real.
 
 ---
 
@@ -36,23 +38,39 @@ That distinction changes everything about what's possible.
 
 ## The Three Principles (Memorize These)
 
-**1. Separation of Concerns is a Spiritual Principle, Not Just Code Pattern**
+**1. Accessibility is the North Star**
 
-The computer creates. The device executes. Never confuse these roles. The moment you do, you've lost. You'll either end up with a rigid fast system or a flexible slow system. You've reintroduced the false choice.
+K1 exists because creative tools have gatekeepers. Music producers gatekeep music. Designers gatekeep visual aesthetics. Engineers gatekeep complex systems.
+
+K1 breaks those gates by translating expert knowledge into accessible interfaces.
+
+- The firmware makes 150+ FPS possible (not compromised)
+- The app makes pattern creation intuitive (not intimidating)
+- The AI makes creative intent realizable (not theoretical)
+
+Every technical decision should ask: **Does this expand who can create, or does it restrict it?**
+
+**2. Separation of Concerns is a Spiritual Principle, Not Just Code Pattern**
+
+The computer creates. The device executes. The human intends. Never confuse these roles.
+
+- Firmware: Execute compiled patterns at maximum fidelity (no interpretation)
+- App: Enable creative intent expression (node editor, semantic space)
+- AI: Translate {music embeddings + user intent} into viable patterns (no compromise)
 
 Keep them separate. Absolutely separate.
 
-**2. Intentionality is Non-Negotiable**
+**3. Intentionality is Non-Negotiable**
 
 Every choice matters. Every line of code. Every color in every palette. Every function. Every architectural decision.
 
 We rejected rainbows not because of taste but because a rainbow represents the absence of choice. It's what you get when you don't decide what you want to say. In this project, accepting the generic is a betrayal.
 
-This means: if you're adding a feature, you better know *why*. If you're making an architectural decision, it should serve the core mission. If you find yourself adding code that doesn't directly enable beauty, you delete it.
+This means: if you're adding a feature, you better know *why*. If you're making an architectural decision, it should serve the core mission. If you find yourself adding code that doesn't directly enable accessibility, you delete it.
 
 Ruthlessly. Without regret.
 
-**3. Minimalism is Uncompromising Purity**
+**4. Minimalism is Uncompromising Purity**
 
 1,200 lines of code. That's not efficient. That's *radical*.
 

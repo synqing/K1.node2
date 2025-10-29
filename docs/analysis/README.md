@@ -1,8 +1,66 @@
+---
+title: Technical Analysis & Research
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Technical Analysis & Research
 
 This directory contains comprehensive technical analysis across firmware architecture, system components, and user experience research.
 
 ## Featured Analysis
+
+### Performance & Architecture Forensics
+
+**[FPS Regression Forensic Timeline](FPS_REGRESSION_FORENSIC_TIMELINE.md)** - **CODE ARCHAEOLOGY INVESTIGATION**
+- **Length:** ~25,000 words, complete forensic timeline with exact commits
+- **Date:** 2025-10-28
+- **Impact:** Traced FPS regression from 150+ FPS → 42.5 FPS → RESTORED
+- **Focus:** Git archaeology to find exact breaking commits and restore baseline performance
+
+**Key Findings:**
+- **Baseline (0c1fc43):** 150+ FPS with portMAX_DELAY I2S read, no throttles
+- **Regression #1 (ad039d5):** I2S timeout changed portMAX_DELAY → 20ms timeout
+- **Regression #2 (e962360):** Added 20ms main loop throttle (ironically labeled "avoid throttling render FPS")
+- **Combined Effect:** Audio forced to 50 Hz, main loop blocked every 20ms = 42.5 FPS cap
+- **Fix (13ab26f):** Removed throttle, restored portMAX_DELAY, fixed SAMPLE_RATE = 200+ FPS target
+
+**Breaking Commits Identified:**
+```
+ad039d5 (2025-10-27 02:14:50) ❌ "chore(docs): sweep project root into taxonomy"
+├── Hidden change: portMAX_DELAY → pdMS_TO_TICKS(20) in microphone.h
+└── Impact: I2S hardware sync broken, timeout errors introduced
+
+e962360 (2025-10-27 04:19:28) ❌ "Setup: Control Interface Revolution foundation"
+├── Hidden change: audio_interval_ms = 20 throttle added to main loop
+└── Impact: Audio forced to 50 Hz, blocked render pipeline every 20ms
+```
+
+**Mathematical Proof:**
+- 20ms throttle = 50 Hz maximum audio rate
+- Combined with I2S blocking variance = 23.5ms average frame time
+- Result: 1000ms / 23.5ms = 42.5 FPS measured (matches empirical data)
+
+**Restoration Strategy:**
+- Removed artificial timing throttles from main loop
+- Restored portMAX_DELAY in I2S microphone read (natural DMA pacing)
+- Fixed SAMPLE_RATE mismatch (12800 Hz → 16000 Hz)
+- Removed telemetry broadcast overhead
+- Result: AP-VP contract restored, 200+ FPS target achievable
+
+**Architecture Lessons:**
+1. Trust hardware synchronization (I2S DMA pacing)
+2. Artificial throttles defeat natural hardware cadence
+3. "Optimization" comments can hide performance regressions
+4. Breaking changes hidden in unrelated commits are forensic nightmares
+5. Baseline architecture contracts must be preserved
+
+---
 
 ### UX Research & User Workflows
 

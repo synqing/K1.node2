@@ -3,6 +3,7 @@
 
 #pragma once
 #include "parameters.h"
+#include "logging/logger.h"
 
 // Pattern function signature
 // All patterns receive time and parameters, write to global leds[] buffer
@@ -53,12 +54,12 @@ inline bool select_pattern_by_id(const char* id) {
     for (uint8_t i = 0; i < g_num_patterns; i++) {
         if (strcmp(g_pattern_registry[i].id, id) == 0) {
             g_current_pattern_index = i;
-            Serial.printf("[PATTERN SELECT] Changed to: %s (index %d)\n",
+            LOG_INFO(TAG_GPU, "Pattern changed to: %s (index %d)",
                 g_pattern_registry[i].name, i);
             return true;
         }
     }
-    Serial.printf("[PATTERN SELECT] ERROR: Pattern '%s' not found\n", id);
+    LOG_ERROR(TAG_GPU, "Pattern '%s' not found", id);
     return false;
 }
 

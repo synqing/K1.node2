@@ -1,3 +1,14 @@
+---
+title: K1.reinvented Research & Planning - START HERE
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # K1.reinvented Research & Planning - START HERE
 
 Welcome! This folder contains **~44,000 words** of comprehensive research, analysis, and implementation planning for the K1.reinvented audio-reactive LED controller.

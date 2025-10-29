@@ -1,3 +1,14 @@
+---
+title: Webserver.cpp Split & Refactoring Proposal
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Webserver.cpp Split & Refactoring Proposal
 
 **Author:** SUPREME Analyst (Claude)

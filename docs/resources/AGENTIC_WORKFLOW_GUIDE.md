@@ -1,3 +1,14 @@
+---
+title: Agentic Workflow Guide: workflow-orchestrator + code-operations-skills
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Agentic Workflow Guide: workflow-orchestrator + code-operations-skills
 
 A comprehensive guide to using workflow automation and code manipulation tools together for maximum development velocity.

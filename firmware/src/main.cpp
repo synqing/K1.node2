@@ -4,6 +4,9 @@
 #include <SPIFFS.h>
 #include <driver/uart.h>
 
+// Skip main setup/loop during unit tests (tests provide their own)
+#ifndef UNIT_TEST
+
 #include "types.h"
 #include "led_driver.h"
 #include "profiler.h"
@@ -19,6 +22,7 @@
 #include "cpu_monitor.h"
 #include "connection_state.h"
 #include "wifi_monitor.h"
+#include "logging/logger.h"
 
 // Configuration (hardcoded for Phase A simplicity)
 #define WIFI_SSID "VX220-013F"
@@ -43,27 +47,26 @@ static bool network_services_started = false;
 
 void handle_wifi_connected() {
     connection_logf("INFO", "WiFi connected callback fired");
-    Serial.print("Connected! IP: ");
-    Serial.println(WiFi.localIP());
+    LOG_INFO(TAG_WIFI, "Connected! IP: %s", WiFi.localIP().toString().c_str());
 
     ArduinoOTA.begin();
 
     if (!network_services_started) {
-        Serial.println("Initializing web server...");
+        LOG_INFO(TAG_WEB, "Initializing web server...");
         init_webserver();
-        
-        Serial.println("Initializing CPU monitor...");
+
+        LOG_INFO(TAG_CORE0, "Initializing CPU monitor...");
         cpu_monitor.init();
-        
+
         network_services_started = true;
     }
 
-    Serial.printf("  Control UI: http://%s.local/\n", ArduinoOTA.getHostname());
+    LOG_INFO(TAG_WEB, "Control UI: http://%s.local", ArduinoOTA.getHostname());
 }
 
 void handle_wifi_disconnected() {
     connection_logf("WARN", "WiFi disconnected callback");
-    Serial.println("WiFi connection lost, attempting recovery...");
+    LOG_WARN(TAG_WIFI, "WiFi connection lost, attempting recovery...");
 }
 
 // ============================================================================
@@ -130,22 +133,22 @@ void send_uart_sync_frame() {
 // ============================================================================
 // AUDIO TASK - Runs on Core 1 @ ~100 Hz (audio processing only)
 // ============================================================================
+// This function runs on Core 1 and handles all audio processing
+// - Microphone sample acquisition (I2S, blocking - isolated to Core 1)
+// - Goertzel frequency analysis (CPU-intensive)
+// - Chromagram computation (pitch class analysis)
+// - Beat detection and tempo tracking
+// - Lock-free buffer synchronization with Core 0
 void audio_task(void* param) {
-    // Audio runs independently from rendering
-    // This task handles:
-    // - Microphone sample acquisition (I2S, blocking)
-    // - Goertzel frequency analysis (CPU-intensive)
-    // - Chromagram computation (light)
-    // - Beat detection and tempo tracking
-    // - Buffer synchronization (mutexes)
-
+    LOG_INFO(TAG_CORE1, "AUDIO_TASK Starting on Core 1");
+    
     while (true) {
-        // Process audio chunk
+        // Process audio chunk (I2S blocking isolated to Core 1)
         acquire_sample_chunk();        // Blocks on I2S if needed (acceptable here)
         calculate_magnitudes();        // ~15-25ms Goertzel computation
         get_chromagram();              // ~1ms pitch aggregation
 
-        // BEAT DETECTION PIPELINE (NEW - FIX FOR TEMPO_CONFIDENCE)
+        // BEAT DETECTION PIPELINE
         // Calculate spectral novelty as peak energy in current frame
         float peak_energy = 0.0f;
         for (int i = 0; i < NUM_FREQS; i++) {
@@ -164,7 +167,7 @@ void audio_task(void* param) {
         extern float tempo_confidence;  // From tempo.cpp
         audio_back.tempo_confidence = tempo_confidence;
 
-        // CRITICAL FIX: SYNC TEMPO MAGNITUDE AND PHASE ARRAYS
+        // SYNC TEMPO MAGNITUDE AND PHASE ARRAYS
         // Copy per-tempo-bin magnitude and phase data from tempo calculation to audio snapshot
         // This enables Tempiscope and Beat_Tunnel patterns to access individual tempo bin data
         extern tempo tempi[NUM_TEMPI];  // From tempo.cpp (64 tempo hypotheses)
@@ -173,17 +176,50 @@ void audio_task(void* param) {
             audio_back.tempo_phase[i] = tempi[i].phase;          // -π to +π per bin
         }
 
-        // Buffer synchronization
+        // Lock-free buffer synchronization with Core 0
         finish_audio_frame();          // ~0-5ms buffer swap
 
-        // Debug output (optional)
-        // print_audio_debug();  // Comment out to reduce serial traffic
+        // Yield to prevent CPU starvation
+        // 1ms yield allows 40-50 Hz audio processing rate
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
+}
 
-        // CRITICAL FIX: Reduce artificial throttle
-        // Changed from 10ms to 1ms to increase audio processing rate
-        // Before: 20-25 Hz audio (35-55ms latency)
-        // After: 40-50 Hz audio (25-45ms latency)
-        // 1ms yield prevents CPU starvation while allowing faster audio updates
+// ============================================================================
+// GPU TASK - CORE 0 VISUAL RENDERING (NEW)
+// ============================================================================
+// This function runs on Core 0 and handles all visual rendering
+// - Pattern rendering at 100+ FPS
+// - LED transmission via RMT
+// - FPS tracking and diagnostics
+// - Never waits for audio (reads latest available data)
+void loop_gpu(void* param) {
+    LOG_INFO(TAG_CORE0, "GPU_TASK Starting on Core 0");
+    
+    static uint32_t start_time = millis();
+    
+    for (;;) {
+        // Track time for animation
+        float time = (millis() - start_time) / 1000.0f;
+
+        // Get current parameters (thread-safe read from active buffer)
+        const PatternParameters& params = get_params();
+
+        // BRIGHTNESS BINDING: Synchronize global_brightness with params.brightness
+        extern float global_brightness;
+        global_brightness = params.brightness;
+
+        // Draw current pattern with audio-reactive data (lock-free read from audio_front)
+        draw_current_pattern(time, params);
+
+        // Transmit to LEDs via RMT (non-blocking DMA)
+        transmit_leds();
+
+        // FPS tracking (minimal overhead)
+        watch_cpu_fps();
+        print_fps();
+        
+        // Small yield to prevent watchdog issues
         vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
@@ -193,10 +229,10 @@ void audio_task(void* param) {
 // ============================================================================
 void setup() {
     Serial.begin(2000000);
-    Serial.println("\n\n=== K1.reinvented Starting ===");
+    LOG_INFO(TAG_CORE0, "=== K1.reinvented Starting ===");
 
     // Initialize LED driver
-    Serial.println("Initializing LED driver...");
+    LOG_INFO(TAG_LED, "Initializing LED driver...");
     init_rmt_driver();
 
     // Initialize UART for s3z daisy chain sync
@@ -218,103 +254,137 @@ void setup() {
     // Initialize OTA
     ArduinoOTA.setHostname("k1-reinvented");
     ArduinoOTA.onStart([]() {
-        Serial.println("OTA Update starting...");
+        LOG_INFO(TAG_CORE0, "OTA Update starting...");
     });
     ArduinoOTA.onEnd([]() {
-        Serial.println("\nOTA Update complete!");
+        LOG_INFO(TAG_CORE0, "OTA Update complete!");
     });
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+        LOG_DEBUG(TAG_CORE0, "Progress: %u%%", (progress / (total / 100)));
     });
     ArduinoOTA.onError([](ota_error_t error) {
-        Serial.printf("Error[%u]: ", error);
-        if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-        else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-        else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-        else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-        else if (error == OTA_END_ERROR) Serial.println("End Failed");
+        const char* error_msg = "Unknown";
+        switch (error) {
+            case OTA_AUTH_ERROR:    error_msg = "Auth Failed"; break;
+            case OTA_BEGIN_ERROR:   error_msg = "Begin Failed"; break;
+            case OTA_CONNECT_ERROR: error_msg = "Connect Failed"; break;
+            case OTA_RECEIVE_ERROR: error_msg = "Receive Failed"; break;
+            case OTA_END_ERROR:     error_msg = "End Failed"; break;
+        }
+        LOG_ERROR(TAG_CORE0, "OTA Error[%u]: %s", error, error_msg);
     });
 
-    // Initialize SPIFFS filesystem for serving static web assets
-    // NOTE: Use begin(true) to format on fail - ensures SPIFFS is initialized
-    // The uploadfs command will populate the files afterward
-    Serial.println("Initializing SPIFFS...");
+    // SPIFFS enumeration REMOVED - was blocking startup 100-500ms
+    // Initialize SPIFFS silently and defer enumeration to background task
+    LOG_INFO(TAG_CORE0, "Initializing SPIFFS...");
     if (!SPIFFS.begin(true)) {
-        Serial.println("ERROR: SPIFFS initialization failed - web UI will not be available");
+        LOG_ERROR(TAG_CORE0, "SPIFFS initialization failed - web UI will not be available");
     } else {
-        Serial.println("SPIFFS mounted successfully");
-        // List SPIFFS contents for debugging
-        File root = SPIFFS.open("/");
-        File file = root.openNextFile();
-        Serial.println("SPIFFS Contents:");
-        int file_count = 0;
-        while(file) {
-            Serial.printf("  %s (%d bytes)\n", file.name(), file.size());
-            file = root.openNextFile();
-            file_count++;
-        }
-        if (file_count == 0) {
-            Serial.println("  (SPIFFS is empty - run 'pio run --target uploadfs' to upload web files)");
-        }
+        LOG_INFO(TAG_CORE0, "SPIFFS mounted successfully");
+        // Lazy enumeration removed; can be added to status endpoint if needed
     }
 
     // Initialize audio stubs (demo audio-reactive globals)
-    Serial.println("Initializing audio-reactive stubs...");
+    LOG_INFO(TAG_AUDIO, "Initializing audio-reactive stubs...");
     init_audio_stubs();
 
     // Initialize SPH0645 microphone I2S input
-    Serial.println("Initializing SPH0645 microphone...");
+    LOG_INFO(TAG_I2S, "Initializing SPH0645 microphone...");
     init_i2s_microphone();
 
     // PHASE 1: Initialize audio data synchronization (double-buffering)
-    Serial.println("Initializing audio data sync...");
+    LOG_INFO(TAG_SYNC, "Initializing audio data sync...");
     init_audio_data_sync();
 
     // Initialize Goertzel DFT constants and window function
-    Serial.println("Initializing Goertzel DFT...");
+    LOG_INFO(TAG_AUDIO, "Initializing Goertzel DFT...");
     init_window_lookup();
     init_goertzel_constants_musical();
 
     // Initialize tempo detection (beat detection pipeline)
-    Serial.println("Initializing tempo detection...");
+    LOG_INFO(TAG_TEMPO, "Initializing tempo detection...");
     init_tempo_goertzel_constants();
 
     // Initialize parameter system
-    Serial.println("Initializing parameters...");
+    LOG_INFO(TAG_CORE0, "Initializing parameters...");
     init_params();
 
     // Initialize pattern registry
-    Serial.println("Initializing pattern registry...");
+    LOG_INFO(TAG_CORE0, "Initializing pattern registry...");
     init_pattern_registry();
-    Serial.printf("  Loaded %d patterns\n", g_num_patterns);
-    Serial.printf("  Starting pattern: %s\n", get_current_pattern().name);
+    LOG_INFO(TAG_CORE0, "Loaded %d patterns", g_num_patterns);
+    LOG_INFO(TAG_CORE0, "Starting pattern: %s", get_current_pattern().name);
 
-    // Initialize web server
     // ========================================================================
-    // CREATE AUDIO TASK ON CORE 1
+    // DUAL-CORE ARCHITECTURE ACTIVATION
     // ========================================================================
-    // This task runs independently:
-    // - Core 1: Audio processing (100 Hz nominal, 20-25 Hz actual)
-    // - Core 0: Pattern rendering (this loop, 200+ FPS target)
-    //
-    // Memory: 8 KB stack (typical usage 6-7 KB based on Goertzel complexity)
-    // Priority: 10 (high, but lower than WiFi stack priority 24)
+    // Core 0: GPU rendering task (100+ FPS, never blocks)
+    // Core 1: Audio processing + network (main loop, can block on I2S)
+    // Synchronization: Lock-free double buffer with sequence counters
     // ========================================================================
+    LOG_INFO(TAG_CORE0, "Activating dual-core architecture...");
 
+    // Task handles for monitoring
+    TaskHandle_t gpu_task_handle = NULL;
+    TaskHandle_t audio_task_handle = NULL;
 
-    // Single-core mode: run audio pipeline inside main loop
-    Serial.println("Single-core mode: audio runs in main loop");
+    // Create GPU rendering task on Core 0
+    // INCREASED STACK: 12KB -> 16KB (4,288 bytes margin was insufficient)
+    BaseType_t gpu_result = xTaskCreatePinnedToCore(
+        loop_gpu,           // Task function
+        "loop_gpu",         // Task name
+        16384,              // Stack size (16KB for LED rendering + pattern complexity)
+        NULL,               // Parameters
+        1,                  // Priority (same as audio - no preemption preference)
+        &gpu_task_handle,   // Task handle for monitoring
+        0                   // Pin to Core 0
+    );
 
-    Serial.println("Ready!");
-    Serial.println("Upload new effects with:");
-    Serial.printf("  pio run -t upload --upload-port %s.local\n", ArduinoOTA.getHostname());
+    // Create audio processing task on Core 1
+    // INCREASED STACK: 8KB -> 12KB (1,692 bytes margin was dangerously low)
+    BaseType_t audio_result = xTaskCreatePinnedToCore(
+        audio_task,         // Task function
+        "audio_task",       // Task name
+        12288,              // Stack size (12KB for Goertzel + I2S + tempo detection)
+        NULL,               // Parameters
+        1,                  // Priority (same as GPU)
+        &audio_task_handle, // Task handle for monitoring
+        1                   // Pin to Core 1
+    );
+
+    // Validate task creation (CRITICAL: Must not fail)
+    if (gpu_result != pdPASS || gpu_task_handle == NULL) {
+        LOG_ERROR(TAG_GPU, "FATAL ERROR: GPU task creation failed!");
+        LOG_ERROR(TAG_CORE0, "System cannot continue. Rebooting...");
+        delay(5000);
+        esp_restart();
+    }
+
+    if (audio_result != pdPASS || audio_task_handle == NULL) {
+        LOG_ERROR(TAG_AUDIO, "FATAL ERROR: Audio task creation failed!");
+        LOG_ERROR(TAG_CORE0, "System cannot continue. Rebooting...");
+        delay(5000);
+        esp_restart();
+    }
+
+    LOG_INFO(TAG_CORE0, "Dual-core tasks created successfully:");
+    LOG_INFO(TAG_GPU, "Core 0: GPU rendering (100+ FPS target)");
+    LOG_DEBUG(TAG_GPU, "Stack: 16KB (was 12KB, increased for safety)");
+    LOG_INFO(TAG_AUDIO, "Core 1: Audio processing + network");
+    LOG_DEBUG(TAG_AUDIO, "Stack: 12KB (was 8KB, increased for safety)");
+    LOG_DEBUG(TAG_SYNC, "Synchronization: Lock-free with sequence counters + memory barriers");
+    LOG_INFO(TAG_CORE0, "Ready!");
+    LOG_INFO(TAG_CORE0, "Upload new effects with:");
+    LOG_INFO(TAG_CORE0, "pio run -t upload --upload-port %s.local", ArduinoOTA.getHostname());
 }
 
 // ============================================================================
-// MAIN LOOP - Runs on Core 0 @ 200+ FPS (pattern rendering only)
+// MAIN LOOP - Runs on Core 1 (Network + System Management)
 // ============================================================================
 void loop() {
-    wifi_monitor_loop();
+    // Core 1 main loop: Network services and system management
+    // Audio processing now handled by dedicated audio_task on Core 1
+    // Visual rendering now handled by dedicated loop_gpu on Core 0
 
     // Handle OTA updates (non-blocking check)
     ArduinoOTA.handle();
@@ -369,32 +439,8 @@ void loop() {
     watch_cpu_fps();
     print_fps();
 }
+
+#endif  // UNIT_TEST
+
 // All patterns are included from generated_patterns.h
-
-static inline void run_audio_pipeline_once() {
-    // Acquire and process audio in the same thread as rendering
-    acquire_sample_chunk();
-    calculate_magnitudes();
-    get_chromagram();
-
-    // Beat detection pipeline
-    float peak_energy = 0.0f;
-    for (int i = 0; i < NUM_FREQS; i++) {
-        peak_energy = fmaxf(peak_energy, audio_back.spectrogram[i]);
-    }
-    update_novelty_curve(peak_energy);
-    smooth_tempi_curve();
-    detect_beats();
-
-    // Sync tempo confidence and per-bin data to snapshot
-    extern float tempo_confidence;
-    audio_back.tempo_confidence = tempo_confidence;
-    extern tempo tempi[NUM_TEMPI];
-    for (uint16_t i = 0; i < NUM_TEMPI; i++) {
-        audio_back.tempo_magnitude[i] = tempi[i].magnitude;
-        audio_back.tempo_phase[i] = tempi[i].phase;
-    }
-
-    // Commit audio frame
-    finish_audio_frame();
-}
+// Audio processing now handled by dedicated audio_task on Core 1

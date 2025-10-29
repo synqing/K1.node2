@@ -1,10 +1,14 @@
 ---
-author: Business Analyst (Claude Agent)
-date: 2025-10-27
-status: published
-intent: Comprehensive UX research and user workflow analysis for K1 Control App with data-driven recommendations
+title: K1 Control App: UX Research & User Workflow Analysis
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # K1 Control App: UX Research & User Workflow Analysis
 
 ## Executive Summary

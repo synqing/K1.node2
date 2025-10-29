@@ -1,4 +1,5 @@
 #include "cpu_monitor.h"
+#include "logging/logger.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -17,14 +18,14 @@ CPUMonitor::CPUMonitor() : last_update_ms(0), initialized(false) {
 void CPUMonitor::init() {
     // Check if runtime stats are enabled
     #if configGENERATE_RUN_TIME_STATS == 1
-        Serial.println("CPU Monitor: Runtime stats enabled");
+        LOG_INFO(TAG_MEMORY, "CPU Monitor: Runtime stats enabled");
         initialized = true;
         last_update_ms = millis();
         
         // Initial update to set baseline
         update();
     #else
-        Serial.println("CPU Monitor: Runtime stats not enabled, using fallback method");
+        LOG_WARN(TAG_MEMORY, "CPU Monitor: Runtime stats not enabled, using fallback method");
         // Use a simpler estimation method based on available heap
         initialized = true;
         last_update_ms = millis();
@@ -67,7 +68,7 @@ void CPUMonitor::updateCoreStats() {
         // Get task statistics
         char* stats_buffer = (char*)malloc(2048);
         if (stats_buffer == nullptr) {
-            Serial.println("CPU Monitor: Failed to allocate stats buffer");
+            LOG_ERROR(TAG_MEMORY, "Failed to allocate stats buffer");
             return;
         }
         
@@ -76,7 +77,7 @@ void CPUMonitor::updateCoreStats() {
         if (parseTaskStats(stats_buffer)) {
             // Successfully parsed stats
         } else {
-            Serial.println("CPU Monitor: Failed to parse task stats");
+            LOG_ERROR(TAG_MEMORY, "Failed to parse task stats");
         }
         
         free(stats_buffer);

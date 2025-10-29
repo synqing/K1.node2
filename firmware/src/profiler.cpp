@@ -1,4 +1,5 @@
 #include "profiler.h"
+#include "logging/logger.h"
 
 // Definitions
 float FPS_CPU = 0;
@@ -44,16 +45,8 @@ void print_fps() {
         float avg_rmt_wait_ms = (float)ACCUM_RMT_WAIT_US / frames / 1000.0f;
         float avg_rmt_tx_ms = (float)ACCUM_RMT_TRANSMIT_US / frames / 1000.0f;
 
-        Serial.print("FPS: ");
-        Serial.println(FPS_CPU, 1);
-        Serial.print("avg_ms render/quantize/wait/tx: ");
-        Serial.print(avg_render_ms, 2);
-        Serial.print(" / ");
-        Serial.print(avg_quantize_ms, 2);
-        Serial.print(" / ");
-        Serial.print(avg_rmt_wait_ms, 2);
-        Serial.print(" / ");
-        Serial.println(avg_rmt_tx_ms, 2);
+        LOG_DEBUG(TAG_PROFILE, "FPS: %.1f", FPS_CPU);
+        LOG_DEBUG(TAG_PROFILE, "avg_ms render/quantize/wait/tx: %.2f / %.2f / %.2f / %.2f", avg_render_ms, avg_quantize_ms, avg_rmt_wait_ms, avg_rmt_tx_ms);
 
         // Reset accumulators
         ACCUM_RENDER_US = 0;

@@ -1,3 +1,14 @@
+---
+title: Debug Capabilities Guide
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Debug Capabilities Guide
 
 This document outlines the comprehensive debugging features available in the K1 Control App for development and troubleshooting.

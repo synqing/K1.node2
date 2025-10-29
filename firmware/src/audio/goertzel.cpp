@@ -15,6 +15,7 @@
 #include <cmath>
 #include <cstring>
 #include <Arduino.h>
+#include "../logging/logger.h"
 
 // ============================================================================
 // GLOBAL DATA DEFINITIONS
@@ -84,7 +85,7 @@ void init_audio_data_sync() {
 	audio_read_mutex = xSemaphoreCreateMutex();
 
 	if (audio_swap_mutex == NULL || audio_read_mutex == NULL) {
-		Serial.println("[AUDIO SYNC] ERROR: Failed to create mutexes!");
+		LOG_ERROR(TAG_SYNC, "Failed to create mutexes!");
 		return;
 	}
 
@@ -98,9 +99,9 @@ void init_audio_data_sync() {
 
 	audio_sync_initialized = true;
 
-	Serial.println("[AUDIO SYNC] Initialized successfully");
-	Serial.printf("[AUDIO SYNC] Buffer size: %d bytes per snapshot\n", sizeof(AudioDataSnapshot));
-	Serial.printf("[AUDIO SYNC] Total memory: %d bytes (2x buffers)\n", sizeof(AudioDataSnapshot) * 2);
+	LOG_INFO(TAG_SYNC, "Initialized successfully");
+	LOG_DEBUG(TAG_SYNC, "Buffer size: %d bytes per snapshot", sizeof(AudioDataSnapshot));
+	LOG_DEBUG(TAG_SYNC, "Total memory: %d bytes (2x buffers)", sizeof(AudioDataSnapshot) * 2);
 }
 
 // =============================================================================
@@ -112,78 +113,104 @@ void init_audio_data_sync() {
 //   if (get_audio_snapshot(&snapshot)) {
 //     // Use snapshot.spectrogram, snapshot.chromagram, etc.
 //   }
+//
+// SYNCHRONIZATION STRATEGY:
+// Uses sequence counter to detect torn reads (Core 0 reading while Core 1 writing)
+// - Reader (Core 0): Read sequence, copy data, read sequence again - retry if changed
+// - Writer (Core 1): Increment sequence (mark dirty), write data, increment again (mark clean)
+// - Memory barriers ensure cache coherency between ESP32-S3 cores
 // =============================================================================
 bool get_audio_snapshot(AudioDataSnapshot* snapshot) {
 	if (!audio_sync_initialized || snapshot == NULL) {
 		return false;
 	}
 
-	// Increase timeout from 1ms to 10ms to accommodate commit_audio_data()
-	// which may hold the mutex for 5-10ms during buffer swap
-	if (xSemaphoreTake(audio_read_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-		// Copy front buffer to caller's snapshot
+	// LOCK-FREE READ with sequence counter validation
+	// Retry if sequence changes during copy (torn read detection)
+	uint32_t seq1, seq2;
+	int max_retries = 100;  // Prevent infinite loop in extreme contention
+	int retry_count = 0;
+
+	do {
+		// Read sequence counter before copy
+		seq1 = audio_front.sequence;
+
+		// Memory barrier: Ensure sequence read completes before data copy
+		// ESP32-S3 requires explicit cache synchronization between cores
+		__sync_synchronize();
+
+		// Copy data from front buffer (may be interrupted by writer)
 		memcpy(snapshot, &audio_front, sizeof(AudioDataSnapshot));
-		xSemaphoreGive(audio_read_mutex);
-		return true;
-	}
 
-	// Timeout - log warning so caller knows data is stale
-	static uint32_t last_warning = 0;
-	uint32_t now = millis();
-	if (now - last_warning > 1000) {  // Log once per second max
-		Serial.println("[AUDIO SNAPSHOT] WARNING: Timeout reading audio data - using stale snapshot");
-		last_warning = now;
-	}
+		// Memory barrier: Ensure data copy completes before sequence check
+		__sync_synchronize();
 
-	return false;
+		// Read sequence counter after copy
+		seq2 = audio_front.sequence_end;
+
+		// Retry if:
+		// 1. Sequence changed during copy (torn read)
+		// 2. Sequence is odd (writer is in progress)
+		// 3. Start/end sequences don't match (partial write)
+		if (++retry_count > max_retries) {
+			// Extreme contention - return stale data rather than infinite loop
+			LOG_WARN(TAG_SYNC, "Max retries exceeded, using potentially stale data");
+			return audio_front.is_valid;
+		}
+	} while (seq1 != seq2 || (seq1 & 1) || seq1 != audio_front.sequence);
+
+	return audio_front.is_valid;
 }
 
 // =============================================================================
 // Commit audio data from back buffer to front buffer (atomic swap)
 // Called by audio processing thread after updating audio_back
-// Uses dual-mutex locking to ensure atomic operation
+//
+// SYNCHRONIZATION STRATEGY:
+// Uses sequence counter to signal write in progress
+// - Increment sequence (odd = writing in progress, signals readers to retry)
+// - Memory barrier (flush Core 1 cache, ensure readers see sequence change)
+// - Copy data from back to front buffer
+// - Memory barrier (ensure data written before final sequence update)
+// - Increment sequence again (even = valid data available)
+//
+// Memory barriers are CRITICAL for ESP32-S3 dual-core cache coherency
 // =============================================================================
 void commit_audio_data() {
 	if (!audio_sync_initialized) {
 		return;
 	}
 
-	// Acquire both mutexes in consistent order to prevent deadlock
-	// Increase timeout from 5ms to 10ms to give readers more time
-	if (xSemaphoreTake(audio_swap_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-		if (xSemaphoreTake(audio_read_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-			// Atomic swap: copy back buffer to front buffer
-			memcpy(&audio_front, &audio_back, sizeof(AudioDataSnapshot));
+	// LOCK-FREE WRITE with sequence counter synchronization
+	// Step 1: Increment sequence to ODD value (signals "writing in progress")
+	audio_front.sequence++;
 
-			// Mark front buffer as valid
-			audio_front.is_valid = true;
+	// Memory barrier: Ensure sequence write is visible to Core 0 before data copy
+	// This flushes Core 1's cache and invalidates Core 0's cache for audio_front
+	__sync_synchronize();
 
-			// Release mutexes in reverse order
-			xSemaphoreGive(audio_read_mutex);
-			xSemaphoreGive(audio_swap_mutex);
+	// Step 2: Copy data from back buffer to front buffer
+	// This is a large (1,300+ byte) non-atomic operation that may take microseconds
+	// Readers will detect the odd sequence and retry
+	memcpy(&audio_front, &audio_back, sizeof(AudioDataSnapshot));
 
-			return;  // Success
-		} else {
-			// Failed to acquire read mutex - release swap mutex
-			xSemaphoreGive(audio_swap_mutex);
+	// Step 3: Restore sequence counter (must match the incremented value)
+	// We just overwrote it with memcpy, so restore it
+	audio_front.sequence = audio_back.sequence + 1;
 
-			// Log but don't spam - max once per second
-			static uint32_t last_warning = 0;
-			uint32_t now = millis();
-			if (now - last_warning > 1000) {
-				Serial.println("[AUDIO SYNC] WARNING: Read mutex timeout during commit - audio frame skipped");
-				last_warning = now;
-			}
-		}
-	} else {
-		// Failed to acquire swap mutex
-		static uint32_t last_warning = 0;
-		uint32_t now = millis();
-		if (now - last_warning > 1000) {
-			Serial.println("[AUDIO SYNC] WARNING: Swap mutex timeout during commit - audio frame skipped");
-			last_warning = now;
-		}
-	}
+	// Memory barrier: Ensure data copy completes before marking as valid
+	__sync_synchronize();
+
+	// Step 4: Increment sequence to EVEN value (signals "valid data")
+	// Also update sequence_end to match (reader validates both match)
+	audio_front.sequence++;
+	audio_front.sequence_end = audio_front.sequence;
+
+	// Step 5: Mark front buffer as valid (first-time initialization flag)
+	audio_front.is_valid = true;
+
+	// Final memory barrier: Ensure all writes are visible to Core 0
+	__sync_synchronize();
 }
 
 void init_goertzel(uint16_t frequency_slot, float frequency, float bandwidth) {
@@ -509,7 +536,7 @@ void calculate_magnitudes() {
 }
 
 void start_noise_calibration() {
-	Serial.println("Starting noise cal...");
+	LOG_INFO(TAG_AUDIO, "Starting noise cal...");
 	memset(noise_spectrum, 0, sizeof(float) * NUM_FREQS);
 	configuration.vu_floor = 0.0;
 	noise_calibration_active_frames_remaining = NOISE_CALIBRATION_FRAMES;

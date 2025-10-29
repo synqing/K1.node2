@@ -1,3 +1,14 @@
+---
+title: ColorManagement Line Reduction Analysis: 744 → 120 Lines
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # ColorManagement Line Reduction Analysis: 744 → 120 Lines
 
 **Reduction**: 624 lines eliminated (84% reduction)  

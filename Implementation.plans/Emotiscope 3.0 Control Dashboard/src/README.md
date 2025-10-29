@@ -1,3 +1,14 @@
+---
+title: Emotiscope 2.0 Control Dashboard
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [plan]
+related_docs: []
+---
 # Emotiscope 2.0 Control Dashboard
 
 A high-fidelity prototype for a dual-platform (web + Tauri-based macOS) interface that controls an audio-reactive LED system.

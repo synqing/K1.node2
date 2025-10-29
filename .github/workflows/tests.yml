@@ -1,0 +1,46 @@
+name: CI Tests (Vitest + Playwright)
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install app dependencies
+        run: npm --prefix k1-control-app ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Type check (non-blocking)
+        run: npm --prefix k1-control-app run type-check
+        continue-on-error: true
+
+      - name: Run Vitest (JSON report)
+        run: npx --prefix k1-control-app vitest --run --reporter=json --outputFile ../tools/artifacts/vitest-report.json
+
+      - name: Run Playwright E2E (root config)
+        run: npx playwright test
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: |
+            tools/artifacts/
+            playwright-report/

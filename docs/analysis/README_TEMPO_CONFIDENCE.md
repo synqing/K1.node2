@@ -1,3 +1,14 @@
+---
+title: Tempo Confidence Investigation - Complete Documentation
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Tempo Confidence Investigation - Complete Documentation
 
 **Investigation Completed:** 2025-10-27  

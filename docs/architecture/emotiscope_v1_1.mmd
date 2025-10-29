@@ -1,0 +1,61 @@
+graph TD
+%% ============ INIT ============
+  subgraph INIT[Boot / Initialization]
+    A[setup()<br/>EMOTISCOPE_FIRMWARE.ino] --> A1[init_system()<br/>system.h]
+    A --> A2[init_fastled_driver()<br/>leds.h]
+    A --> A3[xTaskCreate loop_gpu()<br/>Core 0]
+    A1 --> I2S[init_i2s_microphone()<br/>microphone.h:48]
+    A1 --> GW[init_window_lookup()<br/>goertzel.h]
+    A1 --> GM[init_goertzel_constants_musical()<br/>goertzel.h]
+    A1 --> T0[init_tempo_goertzel_constants()<br/>tempo.h]
+    A1 --> V0[init_vu()<br/>vu.h]
+  end
+
+%% ============ AUDIO CORE ============
+  subgraph CPU[Core 1: Audio/Web loop (run_cpu)<br/>cpu_core.h:15]
+    C1[acquire_sample_chunk()<br/>microphone.h:93] --> SH[sample_history[]]
+    C2[calculate_magnitudes()<br/>goertzel.h:227] --> SG[spectrogram[]] & SGS[spectrogram_smooth[]]
+    C3[get_chromagram()<br/>goertzel.h:394] --> CG[chromagram[12]]
+    C4[run_vu()<br/>vu.h:26] --> VU[vu_level, vu_max]
+    C5[update_tempo()<br/>tempo.h:268] --> TM[tempi[i].magnitude]
+    C6[misc: FPS, serial, cmd, btn]
+    SH --> C2
+    SGS --> C3
+  end
+
+%% ============ GPU CORE ============
+  subgraph GPU[Core 0: Graphics loop (run_gpu)<br/>gpu_core.h:17]
+    G1[update_novelty()<br/>tempo.h:352] --> NV[novelty_curve[], vu_curve[]]
+    G2[update_tempi_phase(delta)<br/>tempo.h:417] --> TP[tempi[i].phase, beat] --> TC[tempo_confidence]
+    G3[update_auto_color()<br/>leds.h]
+    G4[clear_display()]
+    G5[light_modes[current].draw()<br/>light_modes.h]
+      G5 -->|examples| M1[draw_spectrum()<br/>spectrum.h]
+      G5 --> M2[draw_pulse()<br/>pulse.h]
+    G6[transition_engine.update()]
+    G7[apply_background()+UI overlay]
+    G8[filters: LPF→tonemap→warmth→WB→master→gamma]
+    G9[transmit_leds()<br/>FastLED or RMT]
+  end
+
+%% ============ DATA DEPENDENCIES ============
+  SGS -.->|spectral flux| G1
+  SG -.-> G5
+  SGS -.-> G5
+  CG -.-> G5
+  TC -.-> G5
+  VU -.-> G5
+
+%% ============ RENDER TO LEDS ============
+  subgraph LEDS[LED Pipeline]
+    L0[leds[] (CRGBF)] --> L1[quantize/convert]
+    L1 --> L2[FastLED.show() or RMT]
+  end
+
+  G4 --> L0
+  G5 --> L0
+  G6 --> L0
+  G7 --> L0
+  G8 --> L1
+  G9 --> L2
+

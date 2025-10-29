@@ -33,24 +33,30 @@ export function Sidebar({ isConnected, connectionStatus: _, onConnect, connectio
     setIpValid(validateIP(value));
   };
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!validateIP(connectionIP)) {
       toast.error('Invalid IP address format');
       return;
     }
 
     setIsConnecting(true);
-    setTimeout(() => {
-      onConnect();
-      setIsConnecting(false);
-      if (!isConnected) {
+    try {
+      if (isConnected) {
+        await actions.disconnect();
+        toast.info('Disconnected from device');
+      } else {
+        await actions.connect(connectionIP);
         toast.success('Connected to device', {
           description: `Connected to ${connectionIP}`
         });
-      } else {
-        toast.info('Disconnected from device');
       }
-    }, 1500);
+    } catch (error) {
+      toast.error('Connection failed', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      });
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   // Backup/restore handler functions

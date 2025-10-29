@@ -1,3 +1,14 @@
+---
+title: Exact Fix Locations & Code Patches
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Exact Fix Locations & Code Patches
 
 Complete line-by-line fixes for all 5 bottleneck issues. Copy-paste ready.

@@ -1,3 +1,14 @@
+---
+title: Betweenness Controls — Quick Reference
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Betweenness Controls — Quick Reference
 
 This condensed reference lists the supported domain selectors and normalization schemes for `k1_graph_bench`, with minimal syntax and examples. See `host/libgraph/User_Guide.md` for full details.

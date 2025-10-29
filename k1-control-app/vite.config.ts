@@ -5,7 +5,38 @@ import { defineConfig } from 'vite';
   import fs from 'fs';
 
   export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'serve-artifacts',
+      configureServer(server) {
+        const artifactsDir = path.resolve(__dirname, '../tools/artifacts');
+        try { if (!fs.existsSync(artifactsDir)) fs.mkdirSync(artifactsDir, { recursive: true }); } catch {}
+        server.middlewares.use('/artifacts', (req, res, next) => {
+          const reqPath = req.url || '/';
+          const fileRel = reqPath.replace(/^\//, '');
+          const fileAbs = path.join(artifactsDir, fileRel);
+          if (fs.existsSync(fileAbs) && fs.statSync(fileAbs).isFile()) {
+            const ext = path.extname(fileAbs).toLowerCase();
+            const type = ext === '.json' ? 'application/json'
+              : ext === '.dot' ? 'text/vnd.graphviz'
+              : ext === '.txt' ? 'text/plain'
+              : 'application/octet-stream';
+            res.setHeader('Content-Type', type);
+            res.end(fs.readFileSync(fileAbs));
+            return;
+          }
+          next();
+        });
+        const originalPrint = server.printUrls?.bind(server);
+        server.printUrls = () => {
+          if (originalPrint) originalPrint();
+          const info = server.config.logger?.info ?? console.log;
+          info(`  Artifacts served from ${artifactsDir} at /artifacts`);
+        };
+      },
+    },
+  ],
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     alias: {
@@ -26,38 +57,12 @@ import { defineConfig } from 'vite';
       strict: false,
       allow: ['..']
     },
-    // Dev middleware to serve CI artifacts from tools/artifacts at /artifacts
-    configureServer(server) {
-      const artifactsDir = path.resolve(__dirname, '../tools/artifacts');
-      try { if (!fs.existsSync(artifactsDir)) fs.mkdirSync(artifactsDir, { recursive: true }); } catch {}
-      server.middlewares.use('/artifacts', (req, res, next) => {
-        const reqPath = req.url || '/';
-        const fileRel = reqPath.replace(/^\//, '');
-        const fileAbs = path.join(artifactsDir, fileRel);
-        if (fs.existsSync(fileAbs) && fs.statSync(fileAbs).isFile()) {
-          const ext = path.extname(fileAbs).toLowerCase();
-          const type = ext === '.json' ? 'application/json'
-            : ext === '.dot' ? 'text/vnd.graphviz'
-            : ext === '.txt' ? 'text/plain'
-            : 'application/octet-stream';
-          res.setHeader('Content-Type', type);
-          res.end(fs.readFileSync(fileAbs));
-          return;
-        }
-        next();
-      });
-      const originalPrint = server.printUrls?.bind(server);
-      server.printUrls = () => {
-        if (originalPrint) originalPrint();
-        const info = server.config.logger?.info ?? console.log;
-        info(`  Artifacts served from ${artifactsDir} at /artifacts`);
-      };
-    },
   },
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
+    reporters: ['basic', 'json'],
     // Enable fetch for integration tests
     pool: 'forks',
     poolOptions: {

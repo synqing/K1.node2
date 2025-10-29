@@ -1,11 +1,14 @@
 ---
 title: Parameter Flow Trace - palette_id Investigation
-author: Claude (SUPREME Analyst)
-date: 2025-10-27
-status: completed
-intent: Trace complete lifecycle of palette_id parameter from API to LED rendering, identify bugs
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # Parameter Flow Trace: palette_id from API → LED Rendering
 
 ## Executive Summary

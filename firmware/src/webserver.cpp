@@ -18,6 +18,7 @@
 #include "webserver_request_handler.h"    // Request handler base class and context
 #include "webserver_param_validator.h"    // Parameter validation utilities
 #include <SPIFFS.h>                       // For serving static web files
+#include "logging/logger.h"               // Centralized logging
 
 // Forward declaration: WebSocket event handler
 static void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
@@ -96,12 +97,24 @@ public:
         uint32_t heap_total = ESP.getHeapSize();
         float memory_percent = ((float)(heap_total - heap_free) / (float)heap_total) * 100.0f;
 
-        StaticJsonDocument<256> doc;
+        // Ensure CPU monitor has a fresh sample before reporting
+        // (safe to call; it internally handles timing windows)
+        cpu_monitor.update();
+        float cpu_percent = cpu_monitor.getAverageCPUUsage();
+
+        StaticJsonDocument<512> doc;
         doc["fps"] = FPS_CPU;
         doc["frame_time_us"] = frame_time_us;
-        doc["cpu_percent"] = 0; // TODO: Implement CPU usage calculation
+        doc["cpu_percent"] = cpu_percent;
         doc["memory_percent"] = memory_percent;
         doc["memory_free_kb"] = heap_free / 1024;
+        doc["memory_total_kb"] = heap_total / 1024;
+
+        // Include FPS history samples (length 16)
+        JsonArray fps_history = doc.createNestedArray("fps_history");
+        for (int i = 0; i < 16; ++i) {
+            fps_history.add(FPS_CPU_SAMPLES[i]);
+        }
 
         String output;
         serializeJson(doc, output);
@@ -208,7 +221,7 @@ public:
             ValidationResult result = validate_microphone_gain(gain);
             if (result.valid) {
                 configuration.microphone_gain = result.value;
-                Serial.printf("[AUDIO CONFIG] Microphone gain updated to %.2fx\n", result.value);
+                LOG_INFO(TAG_AUDIO, "Microphone gain updated to %.2fx", result.value);
             } else {
                 ctx.sendError(400, "invalid_value", result.error_message);
                 return;
@@ -461,6 +474,10 @@ void init_webserver() {
         .api-test { background: #1a3a3a; padding: 10px; margin: 10px 0; border-left: 3px solid #ffd700; }
         a { color: #ffd700; text-decoration: none; }
         a:hover { text-decoration: underline; }
+        .card { background: #1a1a1a; padding: 12px; border-radius: 8px; margin: 16px 0; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .metric { font-size: 14px; color: #ccc; }
+        .value { font-size: 24px; color: #fff; }
     </style>
 </head>
 <body>
@@ -472,6 +489,25 @@ void init_webserver() {
             <h2>Status: ✅ Online</h2>
             <p>Web server is running and accepting connections.</p>
             <p>All REST APIs are operational for pattern control and configuration.</p>
+        </div>
+
+        <div class="card">
+            <h2>Performance</h2>
+            <div class="grid">
+                <div>
+                    <div class="metric">CPU</div>
+                    <div class="value"><span id="cpuPercent">—</span>%</div>
+                </div>
+                <div>
+                    <div class="metric">FPS</div>
+                    <div class="value"><span id="fps">—</span></div>
+                </div>
+                <div>
+                    <div class="metric">Memory</div>
+                    <div class="value"><span id="memoryPercent">—</span>% (<span id="freeKb">—</span> KB free)</div>
+                </div>
+            </div>
+            <small id="perfSource" style="color:#888">Source: detecting…</small>
         </div>
 
         <h2>Available APIs</h2>
@@ -494,6 +530,65 @@ void init_webserver() {
 
         <p><small>Phase 1: Webserver refactoring complete. Moving to Phase 2: Request handler modularization.</small></p>
     </div>
+    <script>
+    (function(){
+      const els = {
+        cpu: document.getElementById('cpuPercent'),
+        fps: document.getElementById('fps'),
+        memPct: document.getElementById('memoryPercent'),
+        freeKb: document.getElementById('freeKb'),
+        src: document.getElementById('perfSource'),
+      };
+
+      function setValue(el, val, suffix='') {
+        if (!el) return;
+        if (val === undefined || val === null || Number.isNaN(val)) {
+          el.textContent = '—';
+        } else {
+          const num = typeof val === 'number' ? val.toFixed(1) : val;
+          el.textContent = num + (suffix || '');
+        }
+      }
+
+      function applyPerf(perf) {
+        if (!perf) return;
+        setValue(els.cpu, perf.cpu_percent);
+        setValue(els.fps, perf.fps);
+        setValue(els.memPct, perf.memory_percent);
+        setValue(els.freeKb, perf.memory_free_kb, '');
+      }
+
+      // WebSocket first, REST fallback
+      let ws;
+      try {
+        ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+        ws.onopen = function(){ if (els.src) els.src.textContent = 'Source: WebSocket'; };
+        ws.onmessage = function(evt){
+          try {
+            const msg = JSON.parse(evt.data);
+            if (msg && msg.type === 'realtime' && msg.performance) {
+              applyPerf(msg.performance);
+            }
+          } catch (e) {}
+        };
+        ws.onerror = function(){ startRestFallback(); };
+        ws.onclose = function(){ startRestFallback(); };
+      } catch(e) { startRestFallback(); }
+
+      let restTimer;
+      function startRestFallback(){
+        if (els.src) els.src.textContent = 'Source: REST';
+        if (restTimer) return;
+        restTimer = setInterval(async function(){
+          try {
+            const res = await fetch('/api/device/performance');
+            const json = await res.json();
+            applyPerf(json);
+          } catch(e) { /* ignore */ }
+        }, 2000);
+      }
+    })();
+    </script>
 </body>
 </html>)";
         request->send(200, "text/html", html);
@@ -520,26 +615,26 @@ void init_webserver() {
 
     // Initialize mDNS for device discovery
     if (MDNS.begin("k1-reinvented")) {
-        Serial.println("mDNS responder started: k1-reinvented.local");
-        
+        LOG_INFO(TAG_WEB, "mDNS responder started: k1-reinvented.local");
+
         // Add service advertisement for HTTP server
         MDNS.addService("http", "tcp", 80);
         MDNS.addServiceTxt("http", "tcp", "device", "K1.reinvented");
         MDNS.addServiceTxt("http", "tcp", "version", "2.0");
         MDNS.addServiceTxt("http", "tcp", "api", "/api");
-        
+
         // Add service advertisement for WebSocket
         MDNS.addService("ws", "tcp", 80);
         MDNS.addServiceTxt("ws", "tcp", "path", "/ws");
         MDNS.addServiceTxt("ws", "tcp", "protocol", "K1RealtimeData");
     } else {
-        Serial.println("Error starting mDNS responder");
+        LOG_ERROR(TAG_WEB, "Error starting mDNS responder");
     }
 
     // Start server
     server.begin();
-    Serial.println("Web server started on port 80");
-    Serial.println("WebSocket server available at /ws");
+    LOG_INFO(TAG_WEB, "Web server started on port 80");
+    LOG_INFO(TAG_WEB, "WebSocket server available at /ws");
 }
 
 // Handle web server (AsyncWebServer is non-blocking, so this is a no-op)
@@ -559,7 +654,7 @@ void handle_webserver() {
 static void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
     switch (type) {
         case WS_EVT_CONNECT:
-            Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+            LOG_DEBUG(TAG_WEB, "WebSocket client #%u connected from %s", client->id(), client->remoteIP().toString().c_str());
             // Send initial state to new client
             {
                 StaticJsonDocument<512> doc;
@@ -572,9 +667,9 @@ static void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *clien
                 client->text(message);
             }
             break;
-            
+
         case WS_EVT_DISCONNECT:
-            Serial.printf("WebSocket client #%u disconnected\n", client->id());
+            LOG_DEBUG(TAG_WEB, "WebSocket client #%u disconnected", client->id());
             break;
             
         case WS_EVT_DATA:
@@ -583,7 +678,7 @@ static void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *clien
                 if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
                     // Handle incoming WebSocket message (for future bidirectional communication)
                     data[len] = 0; // Null terminate
-                    Serial.printf("WebSocket message from client #%u: %s\n", client->id(), (char*)data);
+                    LOG_DEBUG(TAG_WEB, "WebSocket message from client #%u: %s", client->id(), (char*)data);
                     
                     // Echo back for now (can be extended for commands)
                     StaticJsonDocument<256> response;
@@ -607,6 +702,19 @@ static void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *clien
 // Broadcast real-time data to all connected WebSocket clients
 void broadcast_realtime_data() {
     if (ws.count() == 0) return; // No clients connected
+
+    // Lightweight rate limiting based on current WiFi link options
+    // - Default interval: 100ms
+    // - If forced b/g-only or HT20 (narrow bandwidth), relax to 200ms
+    static uint32_t last_broadcast_ms = 0;
+    WifiLinkOptions opts;
+    wifi_monitor_get_link_options(opts);
+    const uint32_t interval_ms = (opts.force_bg_only || opts.force_ht20) ? 200u : 100u;
+    uint32_t now = millis();
+    if (now - last_broadcast_ms < interval_ms) {
+        return;
+    }
+    last_broadcast_ms = now;
     
     StaticJsonDocument<1024> doc;
     doc["type"] = "realtime";

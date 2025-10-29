@@ -1,10 +1,14 @@
 ---
-author: Deep Technical Analyst (Claude)
-date: 2025-10-26
-status: published
-intent: Step-by-step implementation guide for LED driver header-to-implementation split refactoring
+title: LED Driver Refactoring - Implementation Runbook
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [plan]
+related_docs: []
 ---
-
 # LED Driver Refactoring - Implementation Runbook
 
 ## Overview

@@ -9,6 +9,8 @@
 
 #include "types.h"
 #include <math.h>
+#include "audio/goertzel.h"  // For clip_float()
+#include "led_driver.h"      // For NUM_LEDS (must be after types.h)
 
 // Constants from original Emotiscope
 #define NUM_RESERVED_DOTS 8

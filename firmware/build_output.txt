@@ -1,0 +1,221 @@
+Processing esp32-s3-devkitc-1 (platform: espressif32; board: esp32-s3-devkitc-1; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32-s3-devkitc-1.html
+PLATFORM: Espressif 32 (51.3.6) > Espressif ESP32-S3-DevKitC-1-N8 (8 MB QD, No PSRAM)
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (esp-builtin) On-board (esp-builtin) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES: 
+ - framework-arduinoespressif32 @ 3.0.7 
+ - framework-arduinoespressif32-libs @ 5.1.0+sha.632e0c2a9f 
+ - tool-esptoolpy @ 4.8.1 
+ - tool-mklittlefs @ 3.2.0 
+ - tool-riscv32-esp-elf-gdb @ 12.1.0+20221002 
+ - tool-xtensa-esp-elf-gdb @ 12.1.0+20221002 
+ - toolchain-riscv32-esp @ 12.2.0+20230208 
+ - toolchain-xtensa-esp32s3 @ 12.2.0+20230208
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 44 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- ArduinoOTA @ 3.0.7
+|-- ESPAsyncWebServer @ 3.5.1+sha.23ae702
+|-- AsyncTCP @ 3.3.2+sha.c3584ed
+|-- ArduinoJson @ 6.21.5
+|-- SPIFFS @ 3.0.7
+|-- WiFi @ 3.0.7
+|-- ESPmDNS @ 3.0.7
+|-- Preferences @ 3.0.7
+Building in release mode
+Compiling .pio/build/esp32-s3-devkitc-1/src/audio/goertzel.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/src/audio/tempo.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/src/connection_state.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/src/cpu_monitor.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/src/emotiscope_helpers.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/src/led_driver.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/src/main.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/src/parameters.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/src/pattern_registry.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/src/profiler.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/src/webserver.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/src/wifi_monitor.cpp.o
+Building .pio/build/esp32-s3-devkitc-1/bootloader.bin
+Generating partitions .pio/build/esp32-s3-devkitc-1/partitions.bin
+esptool.py v4.8.1.1
+Creating esp32s3 image...
+Merged 1 ELF section
+Successfully created esp32s3 image.
+Compiling .pio/build/esp32-s3-devkitc-1/liba51/Network/NetworkClient.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/liba51/Network/NetworkEvents.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/liba51/Network/NetworkInterface.cpp.o
+src/audio/goertzel.cpp: In function 'void commit_audio_data()':
+src/audio/goertzel.cpp:185:21: warning: '++' expression of 'volatile'-qualified type is deprecated [-Wvolatile]
+  185 |         audio_front.sequence++;
+      |         ~~~~~~~~~~~~^~~~~~~~
+src/audio/goertzel.cpp:205:21: warning: '++' expression of 'volatile'-qualified type is deprecated [-Wvolatile]
+  205 |         audio_front.sequence++;
+      |         ~~~~~~~~~~~~^~~~~~~~
+Compiling .pio/build/esp32-s3-devkitc-1/liba51/Network/NetworkManager.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/liba51/Network/NetworkServer.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/liba51/Network/NetworkUdp.cpp.o
+src/profiler.cpp: In function 'void watch_cpu_fps()':
+src/profiler.cpp:22:9: warning: '++' expression of 'volatile'-qualified type is deprecated [-Wvolatile]
+   22 |         FRAMES_COUNTED++;
+      |         ^~~~~~~~~~~~~~
+In file included from src/emotiscope_helpers.h:13,
+                 from src/emotiscope_helpers.cpp:5:
+src/led_driver.h: In function 'void quantize_color(bool)':
+src/led_driver.h:139:27: warning: compound assignment with 'volatile'-qualified left operand is deprecated [-Wvolatile]
+  139 |         ACCUM_QUANTIZE_US += (micros() - t0);
+      |         ~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+src/led_driver.h: In function 'void transmit_leds()':
+src/led_driver.h:150:27: warning: compound assignment with 'volatile'-qualified left operand is deprecated [-Wvolatile]
+  150 |         ACCUM_RMT_WAIT_US += (micros() - t_wait0);
+      |         ~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+src/led_driver.h:170:31: warning: compound assignment with 'volatile'-qualified left operand is deprecated [-Wvolatile]
+  170 |         ACCUM_RMT_TRANSMIT_US += (micros() - t_tx0);
+      |         ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~
+Compiling .pio/build/esp32-s3-devkitc-1/lib76b/Update/HttpsOTAUpdate.cpp.o
+In file included from src/led_driver.cpp:5:
+src/led_driver.h: In function 'void quantize_color(bool)':
+src/led_driver.h:139:27: warning: compound assignment with 'volatile'-qualified left operand is deprecated [-Wvolatile]
+  139 |         ACCUM_QUANTIZE_US += (micros() - t0);
+      |         ~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+src/led_driver.h: In function 'void transmit_leds()':
+src/led_driver.h:150:27: warning: compound assignment with 'volatile'-qualified left operand is deprecated [-Wvolatile]
+  150 |         ACCUM_RMT_WAIT_US += (micros() - t_wait0);
+      |         ~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+src/led_driver.h:170:31: warning: compound assignment with 'volatile'-qualified left operand is deprecated [-Wvolatile]
+  170 |         ACCUM_RMT_TRANSMIT_US += (micros() - t_tx0);
+      |         ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~
+Compiling .pio/build/esp32-s3-devkitc-1/lib76b/Update/Updater.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/libc2c/ESPmDNS/ESPmDNS.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/libe94/ArduinoOTA/ArduinoOTA.cpp.o
+In file included from src/main.cpp:7:
+src/led_driver.h: In function 'void quantize_color(bool)':
+src/led_driver.h:139:27: warning: compound assignment with 'volatile'-qualified left operand is deprecated [-Wvolatile]
+  139 |         ACCUM_QUANTIZE_US += (micros() - t0);
+      |         ~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+src/led_driver.h: In function 'void transmit_leds()':
+src/led_driver.h:150:27: warning: compound assignment with 'volatile'-qualified left operand is deprecated [-Wvolatile]
+  150 |         ACCUM_RMT_WAIT_US += (micros() - t_wait0);
+      |         ~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+src/led_driver.h:170:31: warning: compound assignment with 'volatile'-qualified left operand is deprecated [-Wvolatile]
+  170 |         ACCUM_RMT_TRANSMIT_US += (micros() - t_tx0);
+      |         ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~
+Compiling .pio/build/esp32-s3-devkitc-1/liba27/AsyncTCP@src-5eecd0d947e8c61fa37a4eac706dc0b0/AsyncTCP.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib615/FS/FS.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib615/FS/vfs_api.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib67d/WebServer/Parsing.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib67d/WebServer/WebServer.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib67d/WebServer/detail/mimetable.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/libfc8/WiFi/AP.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/libfc8/WiFi/STA.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/libfc8/WiFi/WiFi.cpp.o
+Archiving .pio/build/esp32-s3-devkitc-1/liba51/libNetwork.a
+Archiving .pio/build/esp32-s3-devkitc-1/lib76b/libUpdate.a
+Archiving .pio/build/esp32-s3-devkitc-1/libc2c/libESPmDNS.a
+Indexing .pio/build/esp32-s3-devkitc-1/liba51/libNetwork.a
+Indexing .pio/build/esp32-s3-devkitc-1/lib76b/libUpdate.a
+Indexing .pio/build/esp32-s3-devkitc-1/libc2c/libESPmDNS.a
+Compiling .pio/build/esp32-s3-devkitc-1/libfc8/WiFi/WiFiAP.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/libfc8/WiFi/WiFiGeneric.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/libfc8/WiFi/WiFiMulti.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/libfc8/WiFi/WiFiSTA.cpp.o
+Archiving .pio/build/esp32-s3-devkitc-1/liba27/libAsyncTCP@src-5eecd0d947e8c61fa37a4eac706dc0b0.a
+Indexing .pio/build/esp32-s3-devkitc-1/liba27/libAsyncTCP@src-5eecd0d947e8c61fa37a4eac706dc0b0.a
+Compiling .pio/build/esp32-s3-devkitc-1/libfc8/WiFi/WiFiScan.cpp.o
+Archiving .pio/build/esp32-s3-devkitc-1/libe94/libArduinoOTA.a
+Indexing .pio/build/esp32-s3-devkitc-1/libe94/libArduinoOTA.a
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/AsyncEventSource.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/AsyncJson.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/AsyncMessagePack.cpp.o
+Archiving .pio/build/esp32-s3-devkitc-1/lib615/libFS.a
+Indexing .pio/build/esp32-s3-devkitc-1/lib615/libFS.a
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/AsyncWebHeader.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/AsyncWebSocket.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/BackPort_SHA1Builder.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/ChunkPrint.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/Middleware.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/WebAuthentication.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/WebHandlers.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/WebRequest.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/WebResponses.cpp.o
+Archiving .pio/build/esp32-s3-devkitc-1/lib67d/libWebServer.a
+Indexing .pio/build/esp32-s3-devkitc-1/lib67d/libWebServer.a
+Compiling .pio/build/esp32-s3-devkitc-1/lib0ef/ESPAsyncWebServer/WebServer.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/lib492/SPIFFS/SPIFFS.cpp.o
+Archiving .pio/build/esp32-s3-devkitc-1/libfc8/libWiFi.a
+Indexing .pio/build/esp32-s3-devkitc-1/libfc8/libWiFi.a
+Compiling .pio/build/esp32-s3-devkitc-1/lib076/Preferences/Preferences.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/Esp.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/FirmwareMSC.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/FunctionalInterrupt.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/HEXBuilder.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/HWCDC.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/HardwareSerial.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/IPAddress.cpp.o
+Archiving .pio/build/esp32-s3-devkitc-1/lib076/libPreferences.a
+Indexing .pio/build/esp32-s3-devkitc-1/lib076/libPreferences.a
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/MD5Builder.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/MacAddress.cpp.o
+Archiving .pio/build/esp32-s3-devkitc-1/lib492/libSPIFFS.a
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/Print.cpp.o
+Indexing .pio/build/esp32-s3-devkitc-1/lib492/libSPIFFS.a
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/SHA1Builder.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/StreamString.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/USB.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/USBCDC.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/USBMSC.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/base64.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/cbuf.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/chip-debug-report.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-adc.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-bt.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-cpu.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-dac.c.o
+Archiving .pio/build/esp32-s3-devkitc-1/lib0ef/libESPAsyncWebServer.a
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-gpio.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-i2c-slave.c.o
+Indexing .pio/build/esp32-s3-devkitc-1/lib0ef/libESPAsyncWebServer.a
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-i2c.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-ledc.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-matrix.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-misc.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-periman.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-psram.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-rgb-led.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-rmt.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-sigmadelta.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-spi.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-time.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-timer.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-tinyusb.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-touch.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/esp32-hal-uart.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/firmware_msc_fat.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/libb64/cdecode.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/libb64/cencode.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/main.cpp.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/stdlib_noniso.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/wiring_pulse.c.o
+Compiling .pio/build/esp32-s3-devkitc-1/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/esp32-s3-devkitc-1/libFrameworkArduino.a
+Indexing .pio/build/esp32-s3-devkitc-1/libFrameworkArduino.a
+Linking .pio/build/esp32-s3-devkitc-1/firmware.elf
+Retrieving maximum program size .pio/build/esp32-s3-devkitc-1/firmware.elf
+Checking size .pio/build/esp32-s3-devkitc-1/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [====      ]  36.8% (used 120584 bytes from 327680 bytes)
+Flash: [======    ]  60.4% (used 1186545 bytes from 1966080 bytes)
+Building .pio/build/esp32-s3-devkitc-1/firmware.bin
+esptool.py v4.8.1.1
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 22.17 seconds =========================

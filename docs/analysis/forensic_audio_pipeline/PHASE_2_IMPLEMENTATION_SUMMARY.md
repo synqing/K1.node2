@@ -1,3 +1,14 @@
+---
+title: Phase 2: Pattern Audio Interface - Implementation Summary
+status: draft
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
+---
 # Phase 2: Pattern Audio Interface - Implementation Summary
 
 ## Executive Summary

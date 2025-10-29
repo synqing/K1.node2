@@ -1,10 +1,14 @@
 ---
-author: Deep Technical Analyst (Claude)
-date: 2025-10-26
-status: published
-intent: Visual diagrams showing LED driver refactoring strategy, compilation impact, and function organization
+title: LED Driver Refactoring - Visual Diagrams
+status: approved
+version: v1.0
+owner: [Docs Maintainers]
+reviewers: [Engineering Leads]
+last_updated: 2025-10-28
+next_review_due: 2026-01-26
+tags: [docs]
+related_docs: []
 ---
-
 # LED Driver Refactoring - Visual Diagrams
 
 ## 1. Current Architecture (Header-Only)

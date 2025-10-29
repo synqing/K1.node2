@@ -4,6 +4,7 @@
 
 #include "led_driver.h"  // For NUM_LEDS and CRGBF definition
 #include "emotiscope_helpers.h"
+#include "audio/goertzel.h"  // For clip_float() and NUM_LEDS
 
 extern CRGBF leds[NUM_LEDS];
 
