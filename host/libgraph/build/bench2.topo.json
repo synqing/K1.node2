@@ -1,5 +1,0 @@
-{
-  "graph": { "directed": true, "N": 60, "M": 324 },
-  "topo_sort_ms": 0,
-  "source": "generated:layers=10,width=6"
-}
