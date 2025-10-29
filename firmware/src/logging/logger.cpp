@@ -1,4 +1,6 @@
 #include "logger.h"
+#include "ring_buffer_logger.h"
+#include "rate_limiter.h"
 #include <cstdio>
 #include <cstring>
 
@@ -18,6 +20,14 @@ static char timestamp_buffer[LOG_MAX_TIMESTAMP_LEN];
 
 // Last flush time for batching (if enabled)
 static uint32_t last_flush_ms = 0;
+
+// Runtime verbosity level (can be changed without recompile)
+static uint8_t runtime_verbosity = LOG_LEVEL_DEBUG;
+
+// Statistics tracking
+static Logger::LoggerStats stats = {0, 0, 0, 0, 0};
+static uint32_t last_rate_calc_ms = 0;
+static uint32_t messages_this_second = 0;
 
 // Tag filtering table (only if enabled)
 #if LOG_ENABLE_TAG_FILTERING
@@ -66,6 +76,12 @@ void init() {
     Serial.println("\n========================================");
     Serial.println("K1.reinvented Logging System Initialized");
     Serial.println("========================================\n");
+
+    // Initialize ring buffer logger (Phase 2A)
+    RingBufferLogger::init();
+
+    // Initialize rate limiter (Phase 2B)
+    RateLimiter::init();
 }
 
 // ============================================================================
@@ -153,6 +169,44 @@ void log_internal(char tag, uint8_t severity, const char* format, va_list args) 
         return;
     }
 
+    // ========================================================================
+    // PHASE 2C: RUNTIME VERBOSITY FILTERING
+    // ========================================================================
+    // Check runtime verbosity level (allows dynamic log level adjustment)
+    // Only proceed if severity meets the current runtime threshold
+    if (severity > runtime_verbosity) {
+        return;
+    }
+
+    // ========================================================================
+    // PHASE 2B: RATE LIMITING CHECK (Early exit before mutex)
+    // ========================================================================
+    // Check rate limit BEFORE expensive message formatting and mutex acquisition
+    // ERROR severity always passes through (never rate limited)
+    // This early-exit reduces contention on mutex and improves performance
+    #if LOG_ENABLE_RATE_LIMITING
+    if (severity != LOG_LEVEL_ERROR && RateLimiter::should_limit(tag)) {
+        // Message rate limited - drop it
+        // Statistics tracked in rate limiter (dropped_count incremented)
+        return;
+    }
+    #endif
+
+    // ========================================================================
+    // PHASE 2C: STATISTICS TRACKING
+    // ========================================================================
+    // Track total messages logged
+    stats.total_logged++;
+    messages_this_second++;
+
+    // Update current rate (rolling 1-second window)
+    uint32_t now_ms = millis();
+    if (now_ms - last_rate_calc_ms >= 1000) {
+        stats.current_rate_msgs_sec = messages_this_second;
+        messages_this_second = 0;
+        last_rate_calc_ms = now_ms;
+    }
+
     // Format the user's message into format_buffer first
     // This prevents vsnprintf from walking off the end if format is malicious
     int format_len = vsnprintf(format_buffer, LOG_FORMAT_BUFFER_SIZE, format, args);
@@ -196,26 +250,23 @@ void log_internal(char tag, uint8_t severity, const char* format, va_list args) 
     }
 
     // ========================================================================
-    // THREAD-SAFE SERIAL OUTPUT
+    // THREAD-SAFE SERIAL OUTPUT (Phase 2A: Non-blocking ring buffer)
     // ========================================================================
-    // Acquire mutex to ensure atomic message transmission
-    // This prevents multiple threads from interleaving log output
+    // Write message to ring buffer (non-blocking, <10 μs)
+    // Background UART writer task on Core 1 drains buffer asynchronously
+    // This eliminates Serial.flush() blocking (500+ μs) from critical path
 
-    if (log_mutex != nullptr) {
-        if (xSemaphoreTake(log_mutex, pdMS_TO_TICKS(LOG_MUTEX_WAIT_MS)) == pdTRUE) {
-            // Mutex acquired - safe to write to Serial
-            Serial.write((const uint8_t*)message_buffer, strlen(message_buffer));
-            Serial.flush();
-            xSemaphoreGive(log_mutex);
-        } else {
-            // Mutex timeout - log in degraded mode without synchronization
-            // This prevents deadlock if logging is called from ISR or during boot
-            Serial.write((const uint8_t*)message_buffer, strlen(message_buffer));
-        }
-    } else {
-        // Mutex not initialized - output directly (degraded mode)
-        Serial.write((const uint8_t*)message_buffer, strlen(message_buffer));
+    size_t message_len = strlen(message_buffer);
+
+    if (!RingBufferLogger::write_message(message_buffer, message_len)) {
+        // Message dropped due to buffer overflow
+        // This is tracked in ring buffer overflow counter
+        // No action needed here - overflow counter increments automatically
     }
+
+    // Note: Mutex is now used only for message formatting (above)
+    // Serial transmission happens asynchronously on Core 1
+    // This reduces mutex hold time from 500-1000 μs to <10 μs
 }
 
 // ============================================================================
@@ -231,6 +282,103 @@ void flush() {
     } else {
         Serial.flush();
     }
+}
+
+// ============================================================================
+// RUNTIME CONFIGURATION API IMPLEMENTATION
+// ============================================================================
+
+uint8_t get_verbosity() {
+    return runtime_verbosity;
+}
+
+void set_verbosity(uint8_t level) {
+    // Validate level (0-3)
+    if (level <= LOG_LEVEL_DEBUG) {
+        runtime_verbosity = level;
+    }
+}
+
+bool get_tag_enabled(char tag) {
+    // Check tag filter table
+    #if LOG_ENABLE_TAG_FILTERING
+    for (size_t i = 0; i < tag_filter_count; i++) {
+        if (tag_filter[i].tag == tag) {
+            return tag_filter[i].enabled;
+        }
+    }
+    // Unknown tag - enabled by default
+    return true;
+    #else
+    // Tag filtering disabled at compile time
+    (void)tag;
+    return true;
+    #endif
+}
+
+void set_tag_enabled(char tag, bool enabled) {
+    #if LOG_ENABLE_TAG_FILTERING
+    // Find tag in filter table and update
+    for (size_t i = 0; i < tag_filter_count; i++) {
+        if (tag_filter[i].tag == tag) {
+            tag_filter[i].enabled = enabled;
+            return;
+        }
+    }
+    // If tag not found, it will default to enabled
+    #else
+    (void)tag;
+    (void)enabled;
+    #endif
+}
+
+uint32_t get_tag_rate_limit(char tag) {
+    return RateLimiter::get_limit(tag);
+}
+
+void set_tag_rate_limit(char tag, uint32_t msgs_per_sec) {
+    // Validate range: 1-10000 msgs/sec
+    if (msgs_per_sec >= 1 && msgs_per_sec <= 10000) {
+        RateLimiter::set_limit(tag, msgs_per_sec);
+    }
+}
+
+LoggerStats get_stats() {
+    // Update buffer utilization from ring buffer
+    stats.buffer_utilization_pct = RingBufferLogger::get_buffer_utilization();
+
+    // Update dropped count from ring buffer overflow + rate limiter
+    uint32_t ring_buffer_drops = RingBufferLogger::get_overflow_count();
+
+    // Sum dropped counts from all rate limiters
+    uint32_t rate_limiter_drops = 0;
+    const char all_tags[] = {TAG_AUDIO, TAG_I2S, TAG_LED, TAG_GPU, TAG_TEMPO,
+                             TAG_BEAT, TAG_SYNC, TAG_WIFI, TAG_WEB,
+                             TAG_CORE0, TAG_CORE1, TAG_MEMORY, TAG_PROFILE};
+    for (char tag : all_tags) {
+        rate_limiter_drops += RateLimiter::get_dropped_count(tag);
+    }
+
+    stats.total_dropped = ring_buffer_drops + rate_limiter_drops;
+
+    return stats;
+}
+
+void reset_stats() {
+    stats.total_logged = 0;
+    stats.total_dropped = 0;
+    stats.current_rate_msgs_sec = 0;
+    stats.buffer_utilization_pct = 0;
+    stats.mutex_timeouts = 0;
+
+    messages_this_second = 0;
+    last_rate_calc_ms = millis();
+
+    // Reset ring buffer overflow counter
+    RingBufferLogger::reset_overflow_count();
+
+    // Reset rate limiter statistics
+    RateLimiter::reset_stats();
 }
 
 } // namespace Logger
