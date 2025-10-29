@@ -12,6 +12,7 @@ __pycache__/
 reference/*.txt
 estimates/*.txt
 results/
+data/
 
 # OS artifacts
 .DS_Store

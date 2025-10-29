@@ -6,7 +6,7 @@ This directory contains scripts for evaluating beat detection algorithms against
 
 We use two scripts to support the validation timeline:
 - **`eval_single.py`**: Learn the metrics on one track (Week 1)
-- **`batch_evaluate.py`**: Validate on all 217 SMC files (Week 3)
+- **`batch_evaluate.py`**: Validate on all 1000 GTZAN files (Week 3)
 
 Both scripts call `mir_eval.beat.evaluate` directly—no frameworks, no gates, no magic. Just transparent metrics and data.
 
@@ -35,7 +35,9 @@ Example estimate file (algorithm output):
 ## Folders
 
 - **`reference/`**: Ground truth beat annotations (one .txt file per track)
+  - Pre-populated with **1000 GTZAN-Rhythm reference files** (see `data/GTZAN_DATASET_SETUP.md`)
 - **`estimates/`**: Algorithm output (same basenames as reference/)
+- **`data/`**: External dataset storage (see `data/GTZAN_DATASET_SETUP.md` for details)
 
 ## Installation
 
