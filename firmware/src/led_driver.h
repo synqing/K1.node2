@@ -8,6 +8,7 @@
 #include "types.h"
 #include "profiler.h"
 #include "parameters.h"  // Access get_params() for dithering flag
+#include "logging/logger.h"
 
 #define LED_DATA_PIN ( 5 )
 
@@ -150,7 +151,7 @@ IRAM_ATTR static inline void transmit_leds() {
 	ACCUM_RMT_WAIT_US += (micros() - t_wait0);
 	if (wait_result != ESP_OK) {
 		// RMT transmission timeout - not critical, just continue
-		Serial.println("[LED] RMT transmission timeout");
+		LOG_WARN(TAG_LED, "RMT transmission timeout");
 	}
 
 	// Clear the 8-bit buffer

@@ -15,6 +15,7 @@
 #include <cmath>
 #include <cstring>
 #include <Arduino.h>
+#include "../logging/logger.h"
 
 // ============================================================================
 // GLOBAL DATA DEFINITIONS
@@ -84,7 +85,7 @@ void init_audio_data_sync() {
 	audio_read_mutex = xSemaphoreCreateMutex();
 
 	if (audio_swap_mutex == NULL || audio_read_mutex == NULL) {
-		Serial.println("[AUDIO SYNC] ERROR: Failed to create mutexes!");
+		LOG_ERROR(TAG_SYNC, "Failed to create mutexes!");
 		return;
 	}
 
@@ -98,9 +99,9 @@ void init_audio_data_sync() {
 
 	audio_sync_initialized = true;
 
-	Serial.println("[AUDIO SYNC] Initialized successfully");
-	Serial.printf("[AUDIO SYNC] Buffer size: %d bytes per snapshot\n", sizeof(AudioDataSnapshot));
-	Serial.printf("[AUDIO SYNC] Total memory: %d bytes (2x buffers)\n", sizeof(AudioDataSnapshot) * 2);
+	LOG_INFO(TAG_SYNC, "Initialized successfully");
+	LOG_DEBUG(TAG_SYNC, "Buffer size: %d bytes per snapshot", sizeof(AudioDataSnapshot));
+	LOG_DEBUG(TAG_SYNC, "Total memory: %d bytes (2x buffers)", sizeof(AudioDataSnapshot) * 2);
 }
 
 // =============================================================================
@@ -153,7 +154,7 @@ bool get_audio_snapshot(AudioDataSnapshot* snapshot) {
 		// 3. Start/end sequences don't match (partial write)
 		if (++retry_count > max_retries) {
 			// Extreme contention - return stale data rather than infinite loop
-			Serial.println("[AUDIO_SYNC] WARNING: Max retries exceeded, using potentially stale data");
+			LOG_WARN(TAG_SYNC, "Max retries exceeded, using potentially stale data");
 			return audio_front.is_valid;
 		}
 	} while (seq1 != seq2 || (seq1 & 1) || seq1 != audio_front.sequence);
@@ -535,7 +536,7 @@ void calculate_magnitudes() {
 }
 
 void start_noise_calibration() {
-	Serial.println("Starting noise cal...");
+	LOG_INFO(TAG_AUDIO, "Starting noise cal...");
 	memset(noise_spectrum, 0, sizeof(float) * NUM_FREQS);
 	configuration.vu_floor = 0.0;
 	noise_calibration_active_frames_remaining = NOISE_CALIBRATION_FRAMES;

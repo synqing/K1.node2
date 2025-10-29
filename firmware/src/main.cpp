@@ -21,6 +21,7 @@
 #include "cpu_monitor.h"
 #include "connection_state.h"
 #include "wifi_monitor.h"
+#include "logging/logger.h"
 
 // Configuration (hardcoded for Phase A simplicity)
 #define WIFI_SSID "VX220-013F"
@@ -37,27 +38,26 @@ static bool network_services_started = false;
 
 void handle_wifi_connected() {
     connection_logf("INFO", "WiFi connected callback fired");
-    Serial.print("Connected! IP: ");
-    Serial.println(WiFi.localIP());
+    LOG_INFO(TAG_WIFI, "Connected! IP: %s", WiFi.localIP().toString().c_str());
 
     ArduinoOTA.begin();
 
     if (!network_services_started) {
-        Serial.println("Initializing web server...");
+        LOG_INFO(TAG_WEB, "Initializing web server...");
         init_webserver();
-        
-        Serial.println("Initializing CPU monitor...");
+
+        LOG_INFO(TAG_CORE0, "Initializing CPU monitor...");
         cpu_monitor.init();
-        
+
         network_services_started = true;
     }
 
-    Serial.printf("  Control UI: http://%s.local/\n", ArduinoOTA.getHostname());
+    LOG_INFO(TAG_WEB, "Control UI: http://%s.local", ArduinoOTA.getHostname());
 }
 
 void handle_wifi_disconnected() {
     connection_logf("WARN", "WiFi disconnected callback");
-    Serial.println("WiFi connection lost, attempting recovery...");
+    LOG_WARN(TAG_WIFI, "WiFi connection lost, attempting recovery...");
 }
 
 // ============================================================================
@@ -70,7 +70,7 @@ void handle_wifi_disconnected() {
 // - Beat detection and tempo tracking
 // - Lock-free buffer synchronization with Core 0
 void audio_task(void* param) {
-    Serial.println("[AUDIO_TASK] Starting on Core 1");
+    LOG_INFO(TAG_CORE1, "AUDIO_TASK Starting on Core 1");
     
     while (true) {
         // Process audio chunk (I2S blocking isolated to Core 1)
@@ -124,7 +124,7 @@ void audio_task(void* param) {
 // - FPS tracking and diagnostics
 // - Never waits for audio (reads latest available data)
 void loop_gpu(void* param) {
-    Serial.println("[GPU_TASK] Starting on Core 0");
+    LOG_INFO(TAG_CORE0, "GPU_TASK Starting on Core 0");
     
     static uint32_t start_time = millis();
     
@@ -159,10 +159,10 @@ void loop_gpu(void* param) {
 // ============================================================================
 void setup() {
     Serial.begin(2000000);
-    Serial.println("\n\n=== K1.reinvented Starting ===");
+    LOG_INFO(TAG_CORE0, "=== K1.reinvented Starting ===");
 
     // Initialize LED driver
-    Serial.println("Initializing LED driver...");
+    LOG_INFO(TAG_LED, "Initializing LED driver...");
     init_rmt_driver();
 
     // Configure WiFi link options (defaults retain current stable behavior)
@@ -180,63 +180,66 @@ void setup() {
     // Initialize OTA
     ArduinoOTA.setHostname("k1-reinvented");
     ArduinoOTA.onStart([]() {
-        Serial.println("OTA Update starting...");
+        LOG_INFO(TAG_CORE0, "OTA Update starting...");
     });
     ArduinoOTA.onEnd([]() {
-        Serial.println("\nOTA Update complete!");
+        LOG_INFO(TAG_CORE0, "OTA Update complete!");
     });
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+        LOG_DEBUG(TAG_CORE0, "Progress: %u%%", (progress / (total / 100)));
     });
     ArduinoOTA.onError([](ota_error_t error) {
-        Serial.printf("Error[%u]: ", error);
-        if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-        else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-        else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-        else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-        else if (error == OTA_END_ERROR) Serial.println("End Failed");
+        const char* error_msg = "Unknown";
+        switch (error) {
+            case OTA_AUTH_ERROR:    error_msg = "Auth Failed"; break;
+            case OTA_BEGIN_ERROR:   error_msg = "Begin Failed"; break;
+            case OTA_CONNECT_ERROR: error_msg = "Connect Failed"; break;
+            case OTA_RECEIVE_ERROR: error_msg = "Receive Failed"; break;
+            case OTA_END_ERROR:     error_msg = "End Failed"; break;
+        }
+        LOG_ERROR(TAG_CORE0, "OTA Error[%u]: %s", error, error_msg);
     });
 
     // SPIFFS enumeration REMOVED - was blocking startup 100-500ms
     // Initialize SPIFFS silently and defer enumeration to background task
-    Serial.println("Initializing SPIFFS...");
+    LOG_INFO(TAG_CORE0, "Initializing SPIFFS...");
     if (!SPIFFS.begin(true)) {
-        Serial.println("ERROR: SPIFFS initialization failed - web UI will not be available");
+        LOG_ERROR(TAG_CORE0, "SPIFFS initialization failed - web UI will not be available");
     } else {
-        Serial.println("SPIFFS mounted successfully");
+        LOG_INFO(TAG_CORE0, "SPIFFS mounted successfully");
         // Lazy enumeration removed; can be added to status endpoint if needed
     }
 
     // Initialize audio stubs (demo audio-reactive globals)
-    Serial.println("Initializing audio-reactive stubs...");
+    LOG_INFO(TAG_AUDIO, "Initializing audio-reactive stubs...");
     init_audio_stubs();
 
     // Initialize SPH0645 microphone I2S input
-    Serial.println("Initializing SPH0645 microphone...");
+    LOG_INFO(TAG_I2S, "Initializing SPH0645 microphone...");
     init_i2s_microphone();
 
     // PHASE 1: Initialize audio data synchronization (double-buffering)
-    Serial.println("Initializing audio data sync...");
+    LOG_INFO(TAG_SYNC, "Initializing audio data sync...");
     init_audio_data_sync();
 
     // Initialize Goertzel DFT constants and window function
-    Serial.println("Initializing Goertzel DFT...");
+    LOG_INFO(TAG_AUDIO, "Initializing Goertzel DFT...");
     init_window_lookup();
     init_goertzel_constants_musical();
 
     // Initialize tempo detection (beat detection pipeline)
-    Serial.println("Initializing tempo detection...");
+    LOG_INFO(TAG_TEMPO, "Initializing tempo detection...");
     init_tempo_goertzel_constants();
 
     // Initialize parameter system
-    Serial.println("Initializing parameters...");
+    LOG_INFO(TAG_CORE0, "Initializing parameters...");
     init_params();
 
     // Initialize pattern registry
-    Serial.println("Initializing pattern registry...");
+    LOG_INFO(TAG_CORE0, "Initializing pattern registry...");
     init_pattern_registry();
-    Serial.printf("  Loaded %d patterns\n", g_num_patterns);
-    Serial.printf("  Starting pattern: %s\n", get_current_pattern().name);
+    LOG_INFO(TAG_CORE0, "Loaded %d patterns", g_num_patterns);
+    LOG_INFO(TAG_CORE0, "Starting pattern: %s", get_current_pattern().name);
 
     // ========================================================================
     // DUAL-CORE ARCHITECTURE ACTIVATION
@@ -245,7 +248,7 @@ void setup() {
     // Core 1: Audio processing + network (main loop, can block on I2S)
     // Synchronization: Lock-free double buffer with sequence counters
     // ========================================================================
-    Serial.println("Activating dual-core architecture...");
+    LOG_INFO(TAG_CORE0, "Activating dual-core architecture...");
 
     // Task handles for monitoring
     TaskHandle_t gpu_task_handle = NULL;
@@ -277,28 +280,28 @@ void setup() {
 
     // Validate task creation (CRITICAL: Must not fail)
     if (gpu_result != pdPASS || gpu_task_handle == NULL) {
-        Serial.println("FATAL ERROR: GPU task creation failed!");
-        Serial.println("System cannot continue. Rebooting...");
+        LOG_ERROR(TAG_GPU, "FATAL ERROR: GPU task creation failed!");
+        LOG_ERROR(TAG_CORE0, "System cannot continue. Rebooting...");
         delay(5000);
         esp_restart();
     }
 
     if (audio_result != pdPASS || audio_task_handle == NULL) {
-        Serial.println("FATAL ERROR: Audio task creation failed!");
-        Serial.println("System cannot continue. Rebooting...");
+        LOG_ERROR(TAG_AUDIO, "FATAL ERROR: Audio task creation failed!");
+        LOG_ERROR(TAG_CORE0, "System cannot continue. Rebooting...");
         delay(5000);
         esp_restart();
     }
 
-    Serial.println("Dual-core tasks created successfully:");
-    Serial.println("  Core 0: GPU rendering (100+ FPS target)");
-    Serial.printf("    Stack: 16KB (was 12KB, increased for safety)\n");
-    Serial.println("  Core 1: Audio processing + network");
-    Serial.printf("    Stack: 12KB (was 8KB, increased for safety)\n");
-    Serial.println("  Synchronization: Lock-free with sequence counters + memory barriers");
-    Serial.println("Ready!");
-    Serial.println("Upload new effects with:");
-    Serial.printf("  pio run -t upload --upload-port %s.local\n", ArduinoOTA.getHostname());
+    LOG_INFO(TAG_CORE0, "Dual-core tasks created successfully:");
+    LOG_INFO(TAG_GPU, "Core 0: GPU rendering (100+ FPS target)");
+    LOG_DEBUG(TAG_GPU, "Stack: 16KB (was 12KB, increased for safety)");
+    LOG_INFO(TAG_AUDIO, "Core 1: Audio processing + network");
+    LOG_DEBUG(TAG_AUDIO, "Stack: 12KB (was 8KB, increased for safety)");
+    LOG_DEBUG(TAG_SYNC, "Synchronization: Lock-free with sequence counters + memory barriers");
+    LOG_INFO(TAG_CORE0, "Ready!");
+    LOG_INFO(TAG_CORE0, "Upload new effects with:");
+    LOG_INFO(TAG_CORE0, "pio run -t upload --upload-port %s.local", ArduinoOTA.getHostname());
 }
 
 // ============================================================================

@@ -12,6 +12,7 @@
 
 #include "driver/i2s_std.h"
 #include "driver/gpio.h"
+#include "../logging/logger.h"
 
 // Define I2S pins for SPH0645 microphone (standard I2S, NOT PDM)
 #define I2S_BCLK_PIN  14  // BCLK (Bit Clock)
@@ -101,13 +102,13 @@ void acquire_sample_chunk() {
 
 			// Log if blocking takes longer than expected 8ms
 			if (i2s_block_us > 10000) {  // More than 10ms is suspicious
-				Serial.printf("[I2S_DIAG] Block time: %lu us\n", i2s_block_us);
+				LOG_DEBUG(TAG_I2S, "Block time: %lu us", i2s_block_us);
 			}
 
 			if (i2s_result != ESP_OK) {
 				// I2S error - fill with silence and continue
 				memset(new_samples_raw, 0, sizeof(uint32_t) * CHUNK_SIZE);
-				Serial.printf("[I2S_ERROR] Read failed with code %d, block_us=%lu\n", i2s_result, i2s_block_us);
+				LOG_ERROR(TAG_I2S, "Read failed with code %d, block_us=%lu", i2s_result, i2s_block_us);
 			}
 		}
 		else{

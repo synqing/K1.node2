@@ -11,6 +11,7 @@
 #include "pattern_audio_interface.h"
 #include "palettes.h"
 #include "emotiscope_helpers.h"
+#include "logging/logger.h"
 #include <math.h>
 
 extern CRGBF leds[NUM_LEDS];
@@ -526,7 +527,7 @@ void draw_pulse(float time, const PatternParameters& params) {
 	uint32_t now = millis();
 	if (now - last_diagnostic > 1000) {
 		last_diagnostic = now;
-		Serial.printf("[PULSE] audio_available=%d, tempo_confidence=%.2f, brightness=%.2f, speed=%.2f\n",
+		LOG_DEBUG(TAG_GPU, "[PULSE] audio_available=%d, tempo_confidence=%.2f, brightness=%.2f, speed=%.2f",
 			(int)audio_available, AUDIO_TEMPO_CONFIDENCE, params.brightness, params.speed);
 	}
 
@@ -649,7 +650,7 @@ void draw_tempiscope(float time, const PatternParameters& params) {
 	uint32_t now = millis();
 	if (now - last_diagnostic > 1000) {
 		last_diagnostic = now;
-		Serial.printf("[TEMPISCOPE] audio_available=%d, tempo_confidence=%.2f, brightness=%.2f, speed=%.2f\n",
+		LOG_DEBUG(TAG_GPU, "[TEMPISCOPE] audio_available=%d, tempo_confidence=%.2f, brightness=%.2f, speed=%.2f",
 			(int)audio_available, AUDIO_TEMPO_CONFIDENCE, params.brightness, params.speed);
 	}
 
@@ -734,7 +735,7 @@ void draw_beat_tunnel(float time, const PatternParameters& params) {
 	uint32_t now = millis();
 	if (now - last_diagnostic > 1000) {
 		last_diagnostic = now;
-		Serial.printf("[BEAT_TUNNEL] audio_available=%d, tempo_confidence=%.2f, brightness=%.2f, speed=%.2f\n",
+		LOG_DEBUG(TAG_GPU, "[BEAT_TUNNEL] audio_available=%d, tempo_confidence=%.2f, brightness=%.2f, speed=%.2f",
 			(int)audio_available, AUDIO_TEMPO_CONFIDENCE, params.brightness, params.speed);
 	}
 
