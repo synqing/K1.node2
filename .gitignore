@@ -6,6 +6,12 @@ codegen/node_modules/
 layer3_dsp_desktop/build/
 *.bin
 *.elf
+host/libgraph/build/
+k1-control-app/build/Testing/
+playwright-report/
+test-results/
+scripts/__pycache__/
+firmware/compile_commands.json
 
 # Generated files
 firmware/src/generated_effect.h
