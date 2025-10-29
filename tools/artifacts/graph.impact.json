@@ -1,0 +1,36 @@
+{
+  "changed": [
+    "Core",
+    "Audio"
+  ],
+  "impacted": [
+    "Core",
+    "Audio",
+    "Graph",
+    "Mixer",
+    "Visual",
+    "Renderer"
+  ],
+  "edges": [
+    [
+      "Core",
+      "Graph"
+    ],
+    [
+      "Graph",
+      "Audio"
+    ],
+    [
+      "Graph",
+      "Visual"
+    ],
+    [
+      "Audio",
+      "Mixer"
+    ],
+    [
+      "Visual",
+      "Renderer"
+    ]
+  ]
+}

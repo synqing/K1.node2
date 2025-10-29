@@ -1,0 +1,8 @@
+Backup Created: Mon Oct 27 12:25:59 AWST 2025
+Backup Path: /Users/spectrasynq/Workspace_Management/Software/K1.reinvented/codegen/backups/system_backup_20251027_122559
+Files Backed Up:
+- firmware/src/generated_patterns.h
+- codegen/src/ (complete directory)
+
+Restore Command:
+./test_environment.sh restore 20251027_122559

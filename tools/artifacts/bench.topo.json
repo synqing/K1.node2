@@ -1,0 +1,5 @@
+{
+  "graph": { "directed": true, "N": 100000, "M": 49750000 },
+  "topo_sort_ms": 49,
+  "source": "generated:layers=200,width=500"
+}

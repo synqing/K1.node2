@@ -1,0 +1,12 @@
+{
+  "macros": [
+    "K1_DEBUG",
+    "ASSERT"
+  ],
+  "risky_reads": [
+    {
+      "file": "firmware/src/webserver.cpp",
+      "pattern": "memcpy"
+    }
+  ]
+}

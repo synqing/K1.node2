@@ -64,10 +64,11 @@ esp_err_t rmt_new_led_strip_encoder(const led_strip_encoder_config_t *config, rm
 	strip_encoder.base.del    = rmt_del_led_strip_encoder;
 	strip_encoder.base.reset  = rmt_led_strip_encoder_reset;
 
-	// Different led strip might have its own timing requirements, following parameter is for WS2812
+	// WS2812B timing @ 10 MHz resolution (100 ns per tick)
+	// Historical fast settings from prior performant commit
 	rmt_bytes_encoder_config_t bytes_encoder_config = {
-		.bit0 = { 4, 1, 6, 0 },
-		.bit1 = { 7, 1, 6, 0 },
+		.bit0 = { 4, 1, 6, 0 },   // ~0.4us high, ~0.6us low (1.0us total)
+		.bit1 = { 7, 1, 6, 0 },   // ~0.7us high, ~0.6us low (1.3us total)
 		.flags = { .msb_first = 1 }
 	};
 
@@ -75,6 +76,7 @@ esp_err_t rmt_new_led_strip_encoder(const led_strip_encoder_config_t *config, rm
 	rmt_copy_encoder_config_t copy_encoder_config = {};
 	rmt_new_copy_encoder(&copy_encoder_config, &strip_encoder.copy_encoder);
 
+	// Reset: 50us using two low phases (matches prior config)
 	strip_encoder.reset_code = (rmt_symbol_word_t) { 250, 0, 250, 0 };
 
 	*ret_encoder = &strip_encoder.base;
@@ -88,13 +90,13 @@ esp_err_t rmt_new_led_strip_encoder(const led_strip_encoder_config_t *config, rm
 void init_rmt_driver() {
 	printf("init_rmt_driver\n");
 	rmt_tx_channel_config_t tx_chan_config = {
-		.gpio_num = (gpio_num_t)LED_DATA_PIN,	// GPIO number
-		.clk_src = RMT_CLK_SRC_DEFAULT,	 // select source clock
-		.resolution_hz = 10000000,		 // 10 MHz tick resolution, i.e., 1 tick = 0.1 µs
-		.mem_block_symbols = 64,		 // memory block size, 64 * 4 = 256 Bytes
-		.trans_queue_depth = 4,			 // set the number of transactions that can be pending in the background
+		.gpio_num = (gpio_num_t)LED_DATA_PIN,  // GPIO number
+		.clk_src = RMT_CLK_SRC_DEFAULT,        // default source clock
+		.resolution_hz = 10000000,             // 10 MHz tick resolution (1 tick = 0.1us)
+		.mem_block_symbols = 64,               // 64 * 4 = 256 bytes
+		.trans_queue_depth = 4,                // pending transactions depth
 		.intr_priority = 99,
-		.flags = { .with_dma = 0 },
+		.flags = { .with_dma = 0 },            // DMA disabled (historical setting)
 	};
 
 	printf("rmt_new_tx_channel\n");

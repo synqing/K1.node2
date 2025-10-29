@@ -1,0 +1,57 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "kind": "Gradient",
+      "ports": {
+        "in": [
+          "float"
+        ],
+        "out": [
+          "color"
+        ]
+      },
+      "props": {
+        "centerOrigin": true
+      }
+    },
+    {
+      "id": 2,
+      "kind": "Blend",
+      "ports": {
+        "in": [
+          "color",
+          "color"
+        ],
+        "out": [
+          "color"
+        ]
+      },
+      "props": {
+        "centerOrigin": true
+      }
+    },
+    {
+      "id": 3,
+      "kind": "Output",
+      "ports": {
+        "in": [
+          "color"
+        ],
+        "out": []
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": 1,
+      "to": 2,
+      "type": "color"
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "type": "color"
+    }
+  ]
+}

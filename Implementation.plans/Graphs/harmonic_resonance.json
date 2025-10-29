@@ -1,0 +1,94 @@
+{
+  "name": "Harmonic Resonance",
+  "description": "Chromagram-based harmonic visualization. Musical pitch classes radiate from center in concentric rings.",
+  "artistic_intent": "CENTER-ORIGIN harmonic rings: fundamental at center, harmonics expand outward. 12-tone chromatic scale.",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [21, 255, 0, 50],
+    [42, 255, 50, 0],
+    [64, 255, 100, 0],
+    [85, 200, 200, 0],
+    [106, 100, 255, 50],
+    [128, 0, 200, 100],
+    [149, 50, 100, 200],
+    [170, 100, 0, 255],
+    [191, 200, 0, 200],
+    [212, 255, 0, 100],
+    [234, 255, 100, 0],
+    [255, 255, 200, 50]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "CENTER-ORIGIN: distance from center"
+    },
+    {
+      "id": "chroma_c",
+      "type": "chromagram",
+      "parameters": { "pitch": 0 },
+      "description": "C note energy (fundamental)"
+    },
+    {
+      "id": "chroma_e",
+      "type": "chromagram",
+      "parameters": { "pitch": 4 },
+      "description": "E note energy (major third)"
+    },
+    {
+      "id": "chroma_g",
+      "type": "chromagram",
+      "parameters": { "pitch": 7 },
+      "description": "G note energy (perfect fifth)"
+    },
+    {
+      "id": "harmonic_sum",
+      "type": "add",
+      "inputs": ["chroma_c", "chroma_e"],
+      "description": "Combine C and E harmonics"
+    },
+    {
+      "id": "harmonic_total",
+      "type": "add",
+      "inputs": ["harmonic_sum", "chroma_g"],
+      "description": "Add G for major triad detection"
+    },
+    {
+      "id": "position_harmonic_scale",
+      "type": "multiply",
+      "inputs": ["position", "harmonic_total"],
+      "description": "Scale position by harmonic strength"
+    },
+    {
+      "id": "harmonic_boost",
+      "type": "scale",
+      "inputs": ["harmonic_total"],
+      "parameters": { "factor": 0.5 },
+      "description": "Boost harmonic signal for visibility"
+    },
+    {
+      "id": "final_position",
+      "type": "add",
+      "inputs": ["position_harmonic_scale", "harmonic_boost"],
+      "description": "Combine position gradient with harmonic energy"
+    },
+    {
+      "id": "output",
+      "type": "palette_interpolate",
+      "inputs": ["final_position"],
+      "description": "Harmonic color wheel: 12 colors for 12 pitch classes"
+    }
+  ],
+  "wires": [
+    { "from": "chroma_c", "to": "harmonic_sum" },
+    { "from": "chroma_e", "to": "harmonic_sum" },
+    { "from": "harmonic_sum", "to": "harmonic_total" },
+    { "from": "chroma_g", "to": "harmonic_total" },
+    { "from": "position", "to": "position_harmonic_scale" },
+    { "from": "harmonic_total", "to": "position_harmonic_scale" },
+    { "from": "harmonic_total", "to": "harmonic_boost" },
+    { "from": "position_harmonic_scale", "to": "final_position" },
+    { "from": "harmonic_boost", "to": "final_position" },
+    { "from": "final_position", "to": "output" }
+  ]
+}

@@ -1,0 +1,19 @@
+
+name: K1 Host Suite QA
+on:
+  push: { branches: [ main, master ] }
+  pull_request: { branches: [ main, master ] }
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: tools } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm run qa
+      - uses: actions/upload-artifact@v4
+        with: { name: k1-host-suite-artifacts, path: tools/artifacts/** }

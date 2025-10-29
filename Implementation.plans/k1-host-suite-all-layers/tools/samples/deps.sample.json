@@ -1,0 +1,38 @@
+{
+  "nodes": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F"
+  ],
+  "edges": [
+    {
+      "from": "A",
+      "to": "B",
+      "kind": "code"
+    },
+    {
+      "from": "B",
+      "to": "C",
+      "kind": "code"
+    },
+    {
+      "from": "C",
+      "to": "D",
+      "kind": "asset"
+    },
+    {
+      "from": "A",
+      "to": "E",
+      "kind": "config"
+    },
+    {
+      "from": "E",
+      "to": "F",
+      "kind": "code"
+    }
+  ],
+  "directed": true
+}

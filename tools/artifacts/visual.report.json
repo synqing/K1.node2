@@ -1,0 +1,5 @@
+{
+  "pixel_mismatch_pct": 0.02,
+  "lab_delta_avg": 1.1,
+  "motion_proxy": 0.4
+}

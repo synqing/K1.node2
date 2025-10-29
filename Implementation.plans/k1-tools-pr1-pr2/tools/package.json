@@ -1,0 +1,21 @@
+{
+  "name": "@k1/tools",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "qa": "bash ./scripts/qa-pipeline.sh",
+    "qa:graph": "tsx ./agents/graph-theorist.ts",
+    "qa:deps": "tsx ./agents/dep-cartographer.ts",
+    "qa:estimate": "tsx ./agents/perf-oracle.ts",
+    "qa:validate": "tsx ./agents/semantic-arbiter.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.12",
+    "tsx": "^4.16.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.3"
+  }
+}

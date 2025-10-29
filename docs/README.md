@@ -23,6 +23,14 @@
 - Execution artifacts (runbooks, roadmaps, backlogs) now live in `../Implementation.plans/`.
 - Tooling and automation assets belong in `../tools/` (see `../tools/claude_skill_pack`).
 - Planning doc canonical home: `planning/` (e.g. `AUDIO_MIGRATION_PLAN.md`).
+ - Quick reference: `resources/BETWEENNESS_CONTROLS_QUICK_REFERENCE.md` for libgraph betweenness domains & normalization.
+
+## Recent Additions
+- `analysis/palette_system_forensic_analysis.md` — Complete forensic investigation of palette selection failures (2025-10-27)
+- `analysis/control_system_bottleneck_matrix.md` — Prioritized bottleneck analysis with severity scores (2025-10-27)  
+- `reports/k1_system_audit_phase1_completion.md` — Phase 1 audit completion and deployment decision (2025-10-27)
+ - `resources/BETWEENNESS_CONTROLS_QUICK_REFERENCE.md` — Condensed selector/normalization reference for libgraph (2025-10-27)
 
 ## Last Updated
+- 2025-10-27 — Added K1 system audit analysis and reports (Claude SUPREME Analyst)
 - 2024-05-18 — Workspace taxonomy refresh (Codex)

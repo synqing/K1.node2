@@ -1,0 +1,22 @@
+{
+  "$schema": "https://www.speedscope.app/file-format-schema.json",
+  "shared": {
+    "frames": [
+      {
+        "name": "main"
+      },
+      {
+        "name": "topo"
+      }
+    ]
+  },
+  "profiles": [
+    {
+      "type": "sampled",
+      "name": "host-suite",
+      "unit": "milliseconds",
+      "startValue": 0,
+      "endValue": 49
+    }
+  ]
+}

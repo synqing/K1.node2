@@ -1,0 +1,62 @@
+{
+  "name": "Audio Test",
+  "description": "Test pattern with audio reactivity",
+  "palette": "test",
+  "palette_data": [
+    [0, 0, 0, 0],
+    [128, 255, 0, 0],
+    [255, 255, 255, 255]
+  ],
+  "nodes": [
+    {
+      "id": "position",
+      "type": "position_gradient",
+      "description": "Maps distance from center (0.0 at center → 1.0 at edges)"
+    },
+    {
+      "id": "bass",
+      "type": "spectrum_range",
+      "parameters": {
+        "band": "low"
+      },
+      "description": "Bass frequency range"
+    },
+    {
+      "id": "beat",
+      "type": "beat",
+      "parameters": {
+        "tempo_bin": -1
+      },
+      "description": "Beat detection"
+    },
+    {
+      "id": "multiply",
+      "type": "multiply",
+      "inputs": ["position", "bass"],
+      "description": "Modulate position by bass"
+    },
+    {
+      "id": "palette",
+      "type": "palette_interpolate",
+      "inputs": ["multiply"],
+      "parameters": {
+        "palette": "test"
+      },
+      "description": "Output colors"
+    }
+  ],
+  "wires": [
+    {
+      "from": "position",
+      "to": "multiply"
+    },
+    {
+      "from": "bass",
+      "to": "multiply"
+    },
+    {
+      "from": "multiply",
+      "to": "palette"
+    }
+  ]
+}
