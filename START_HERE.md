@@ -175,6 +175,25 @@ When all of that is true, you're ready for Phase B.
 
 ---
 
+## Frontend Dashboard Entry (No‑glass)
+
+The default frontend lives under `webapp/` and runs on Vite.
+
+Start the No‑glass Control Dashboard locally:
+
+```bash
+cd webapp
+npm install
+npm run dev -- --port 3001
+```
+
+Notes:
+- `k1-control-app/` has been archived to `archive/k1-control-app/` (history preserved).
+- Use a Chromium‑based browser (Chrome/Edge) to access Web Serial features.
+- Preview: `http://localhost:3001/`
+
+---
+
 ## One More Thing
 
 You are not just fixing bugs or implementing features.

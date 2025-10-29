@@ -31,7 +31,8 @@ related_docs: []
 4. Archive superseded content under `analysis/archive/` or `reports/archive/` instead of deleting outright.
 
 ## Cross-References
-- Execution artifacts (runbooks, roadmaps, backlogs) now live in `../Implementation.plans/`.
+- Execution artifacts (runbooks, roadmaps, backlogs) now live in `../Implementation.plans/` (legacy planning area).
+- Frontend dashboard lives under `../webapp/` (No‑glass Control Dashboard). Start with `npm run dev -- --port 3001`.
 - Tooling and automation assets belong in `../tools/` (see `../tools/claude_skill_pack`).
 - Planning doc canonical home: `planning/` (e.g. `AUDIO_MIGRATION_PLAN.md`).
  - Quick reference: `resources/BETWEENNESS_CONTROLS_QUICK_REFERENCE.md` for libgraph betweenness domains & normalization.
