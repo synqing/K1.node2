@@ -14,6 +14,11 @@ estimates/*.txt
 results/
 data/
 
+# But keep documentation and extraction scripts
+!data/**/*.md
+!data/**/extract_beats.py
+!data/**/README.md
+
 # OS artifacts
 .DS_Store
 *.swp

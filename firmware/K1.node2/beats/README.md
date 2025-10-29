@@ -6,9 +6,15 @@ This directory contains scripts for evaluating beat detection algorithms against
 
 We use two scripts to support the validation timeline:
 - **`eval_single.py`**: Learn the metrics on one track (Week 1)
-- **`batch_evaluate.py`**: Validate on all 1000 GTZAN files (Week 3)
+- **`batch_evaluate.py`**: Validate on all tracks (Week 3+)
 
 Both scripts call `mir_eval.beat.evaluate` directly—no frameworks, no gates, no magic. Just transparent metrics and data.
+
+**Two datasets available:**
+- **GTZAN-Rhythm v2**: 1000 tracks across 10 genres (balanced validation)
+- **Harmonix Set**: 912 pop tracks (genre-specific validation)
+
+See `data/GTZAN_DATASET_SETUP.md` and `data/HARMONIX_DATASET_SETUP.md` for dataset-specific details.
 
 ## Input Format
 
@@ -36,8 +42,12 @@ Example estimate file (algorithm output):
 
 - **`reference/`**: Ground truth beat annotations (one .txt file per track)
   - Pre-populated with **1000 GTZAN-Rhythm reference files** (see `data/GTZAN_DATASET_SETUP.md`)
+  - Also includes **912 Harmonix Set reference files** (see `data/HARMONIX_DATASET_SETUP.md`)
 - **`estimates/`**: Algorithm output (same basenames as reference/)
-- **`data/`**: External dataset storage (see `data/GTZAN_DATASET_SETUP.md` for details)
+- **`data/`**: External dataset storage
+  - `data/gtzan/`: GTZAN-Rhythm dataset (1000 tracks, 10 genres)
+  - `data/harmonix/`: Harmonix Set dataset (912 pop tracks)
+  - See `data/GTZAN_DATASET_SETUP.md` and `data/HARMONIX_DATASET_SETUP.md` for details
 
 ## Installation
 
@@ -144,13 +154,25 @@ All metrics are computed by `mir_eval.beat.evaluate` per MIREX standard:
 
 ## Reproduction & Datasets
 
-To reproduce Week 3 results, you need the SMC dataset:
+Two production-ready datasets are integrated:
+
+**GTZAN-Rhythm v2** (1000 tracks, 10 genres):
 ```bash
-git clone https://github.com/marl/smcdb.git
-cp smcdb/annotations/beats/*.txt reference/
+cd data/gtzan
+python extract_beats.py  # (if needed; extraction already complete)
+# reference/ contains 1000 beat annotation files
 ```
 
-See `docs/analysis/MIREX_BEAT_TRACKING_COMPLETE_GUIDE.md` for full dataset details and links.
+**Harmonix Set** (912 pop tracks):
+```bash
+cd data/harmonix
+python extract_beats.py  # (if needed; extraction already complete)
+# reference/ contains 912 beat annotation files
+```
+
+See `data/GTZAN_DATASET_SETUP.md` and `data/HARMONIX_DATASET_SETUP.md` for complete setup details.
+
+For historical context and broader MIREX reference, see `docs/analysis/MIREX_BEAT_TRACKING_COMPLETE_GUIDE.md`.
 
 ## Troubleshooting
 
@@ -172,7 +194,14 @@ For now, focus on understanding raw metrics and algorithm performance.
 
 ## See Also
 
+**Dataset Documentation:**
+- `data/GTZAN_DATASET_SETUP.md` — GTZAN-Rhythm v2 setup (1000 tracks, 10 genres)
+- `data/HARMONIX_DATASET_SETUP.md` — Harmonix Set setup (912 pop tracks)
+
+**Validation Timeline:**
 - `Implementation.plans/runbooks/MIREX_BEAT_VALIDATION_CHECKLIST.md` — Week 1-4 timeline
+
+**MIREX Reference:**
 - `docs/analysis/MIREX_BEAT_TRACKING_COMPLETE_GUIDE.md` — Full MIREX reference and state-of-the-art baselines
 - Official MIREX: https://www.music-ir.org/mirex/abstracts/2006/beat_tracking.pdf
 
