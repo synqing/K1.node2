@@ -2,7 +2,30 @@
 #include <WiFi.h>
 #include <ArduinoOTA.h>
 #include <SPIFFS.h>
-#include <driver/uart.h>
+// Prefer real ESP-IDF UART header; fall back to editor-only stubs if unavailable
+#if __has_include(<driver/uart.h>)
+#  include <driver/uart.h>
+#else
+#  include <stddef.h>
+#  include <stdint.h>
+   typedef int esp_err_t;
+   typedef int uart_port_t;
+#  ifndef ESP_OK
+#    define ESP_OK 0
+#  endif
+#  ifndef UART_NUM_1
+#    define UART_NUM_1 1
+#  endif
+#  ifndef UART_PIN_NO_CHANGE
+#    define UART_PIN_NO_CHANGE (-1)
+#  endif
+   typedef struct { int dummy; } uart_config_t;
+   // Minimal prototypes referenced in gated UART sync code
+   esp_err_t uart_driver_install(uart_port_t, int, int, int, void*, int);
+   esp_err_t uart_param_config(uart_port_t, const uart_config_t*);
+   esp_err_t uart_set_pin(uart_port_t, int, int, int, int);
+   int uart_write_bytes(uart_port_t, const char*, size_t);
+#endif
 
 // Skip main setup/loop during unit tests (tests provide their own)
 #ifndef UNIT_TEST
@@ -72,6 +95,7 @@ void handle_wifi_disconnected() {
 // ============================================================================
 // UART DAISY CHAIN - SYNCHRONIZE SECONDARY DEVICE (s3z)
 // ============================================================================
+#if ENABLE_UART_SYNC
 void init_uart_sync() {
     uart_config_t uart_config = {
         .baud_rate = UART_BAUD,
@@ -90,7 +114,9 @@ void init_uart_sync() {
 
     Serial.println("UART1 initialized for s3z daisy chain sync");
 }
+#endif
 
+#if ENABLE_UART_SYNC
 void send_uart_sync_frame() {
     static uint32_t last_frame = 0;
     static uint32_t packets_sent = 0;
@@ -129,6 +155,10 @@ void send_uart_sync_frame() {
 
     last_frame = current_frame;
 }
+#else
+// No-op when UART sync is disabled
+static inline void send_uart_sync_frame() {}
+#endif
 
 // ============================================================================
 // AUDIO TASK - Runs on Core 1 @ ~100 Hz (audio processing only)
@@ -186,6 +216,40 @@ void audio_task(void* param) {
 }
 
 // ============================================================================
+// SINGLE-SHOT AUDIO PIPELINE (used by Core 1 main loop cadence)
+// ============================================================================
+static inline void run_audio_pipeline_once() {
+    // Process audio chunk (I2S blocking isolated to Core 1)
+    acquire_sample_chunk();        // Blocks on I2S if needed (acceptable here)
+    calculate_magnitudes();        // ~15-25ms Goertzel computation
+    get_chromagram();              // ~1ms pitch aggregation
+
+    // BEAT DETECTION PIPELINE
+    float peak_energy = 0.0f;
+    for (int i = 0; i < NUM_FREQS; i++) {
+        peak_energy = fmaxf(peak_energy, audio_back.spectrogram[i]);
+    }
+
+    update_novelty_curve(peak_energy);
+    smooth_tempi_curve();          // ~2-5ms tempo magnitude calculation
+    detect_beats();                // ~1ms beat confidence calculation
+
+    // SYNC TEMPO CONFIDENCE TO AUDIO SNAPSHOT
+    extern float tempo_confidence;  // From tempo.cpp
+    audio_back.tempo_confidence = tempo_confidence;
+
+    // SYNC TEMPO MAGNITUDE AND PHASE ARRAYS
+    extern tempo tempi[NUM_TEMPI];  // From tempo.cpp (64 tempo hypotheses)
+    for (uint16_t i = 0; i < NUM_TEMPI; i++) {
+        audio_back.tempo_magnitude[i] = tempi[i].magnitude;
+        audio_back.tempo_phase[i] = tempi[i].phase;
+    }
+
+    // Lock-free buffer synchronization with Core 0
+    finish_audio_frame();
+}
+
+// ============================================================================
 // GPU TASK - CORE 0 VISUAL RENDERING (NEW)
 // ============================================================================
 // This function runs on Core 0 and handles all visual rendering
@@ -235,9 +299,11 @@ void setup() {
     LOG_INFO(TAG_LED, "Initializing LED driver...");
     init_rmt_driver();
 
-    // Initialize UART for s3z daisy chain sync
+    // Initialize UART for s3z daisy chain sync (gated)
+#if ENABLE_UART_SYNC
     Serial.println("Initializing UART daisy chain sync...");
     init_uart_sync();
+#endif
 
     // Configure WiFi link options (defaults retain current stable behavior)
     WifiLinkOptions wifi_opts;
@@ -444,3 +510,7 @@ void loop() {
 
 // All patterns are included from generated_patterns.h
 // Audio processing now handled by dedicated audio_task on Core 1
+// Gate UART daisy-chain sync behind a feature flag
+#ifndef ENABLE_UART_SYNC
+#define ENABLE_UART_SYNC 0
+#endif

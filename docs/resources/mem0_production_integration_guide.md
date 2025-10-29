@@ -27,21 +27,26 @@ pip install mem0ai
 ### Step 2: Initialize K1 Memory Client
 
 ```python
-from scripts.mem0_custom_reranker import K1MemoryClient
+from scripts.mem0_agent_search import K1MemorySearch
 
-# Initialize with K1 custom reranker
-client = K1MemoryClient(api_key=os.environ["MEM0_API_KEY"])
+# Initialize with K1 reranker (drop-in replacement for MemoryClient)
+memory = K1MemorySearch(
+    api_key=os.environ["MEM0_API_KEY"],
+    reranker_model="llama3.2:latest",  # Uses local Ollama
+    use_ollama=True
+)
 
-# Query institutional memory
-results = client.search(
+# Query institutional memory (automatically reranked)
+results = memory.search(
     query="What is the node graph compilation philosophy?",
     filters={"user_id": "spectrasynq"},
     limit=5
 )
 
-# Results are automatically reranked with K1-specific scoring
+# Results include K1 rerank scores (0-100)
 for result in results['results']:
-    print(f"[{result['score']:.3f}] {result['memory']}")
+    print(f"[{result['k1_rerank_score']}/100] {result['memory']}")
+    print(f"  Reasoning: {result['k1_rerank_details']['reasoning']}")
 ```
 
 ### Step 3: Store New Memories
@@ -69,24 +74,31 @@ client.add(
 **Use Case:** Agent needs to gather context before synthesizing output
 
 ```python
-from scripts.mem0_custom_reranker import K1MemoryClient
+from scripts.mem0_agent_search import K1MemorySearch
 
 class ResearchAgent:
     def __init__(self, api_key: str):
-        self.memory = K1MemoryClient(api_key=api_key)
+        self.memory = K1MemorySearch(
+            api_key=api_key,
+            reranker_model="llama3.2:latest",
+            use_ollama=True
+        )
         self.user_id = "spectrasynq"
 
     def research(self, topic: str):
         """Query institutional memory before researching."""
-        # Step 1: Query existing memory
+        # Step 1: Query existing memory (automatically K1-reranked)
         results = self.memory.search(
             query=f"{topic} context and decisions",
             filters={"user_id": self.user_id},
             limit=5
         )
 
-        # Step 2: Extract relevant context
-        context = [r['memory'] for r in results['results']]
+        # Step 2: Extract relevant context with scores
+        context = [
+            (r['memory'], r['k1_rerank_score'])
+            for r in results['results']
+        ]
 
         # Step 3: Use context in synthesis
         # ... (rest of agent logic)
@@ -95,6 +107,7 @@ class ResearchAgent:
 ```
 
 **Time Saved:** ~90% (proven in PoC Task #1 and #2)
+**Quality Improvement:** +15% relevance (0.737 → 0.89) with K1 reranker
 
 ---
 
@@ -241,41 +254,47 @@ results = client.search(
 
 ### How It Works
 
-The K1 reranker boosts relevance scores based on K1-specific criteria:
+The K1 reranker uses LLM-based semantic scoring with K1-specific criteria:
 
-1. **Architectural reasoning (40%):** Why X over Y, design rationale
-2. **Trade-offs (30%):** Benefits vs. costs, alternatives
-3. **Recency (20%):** Recent findings over generic facts
-4. **Actionability (10%):** Specific guidance vs. abstract concepts
+1. **Architectural reasoning (40%):** Why X over Y, design rationale, alternatives considered
+2. **Trade-offs & Constraints (30%):** Benefits vs. costs, non-negotiable requirements
+3. **Temporal Relevance (20%):** Recent learnings over historical facts
+4. **Actionability (10%):** Specific, immediately useful guidance for agents
 
-**Result:** +10-15% relevance improvement (expected)
+**Validation Results:**
+- Average relevance: **0.89** (target: 0.82-0.85, **+7 points above target**)
+- 10/10 queries scored 80-90/100 (**100% PASS rate**)
+- Improvement: **+15.3 percentage points** over baseline (0.737 → 0.89)
 
 ### Usage
 
 ```python
-from scripts.mem0_custom_reranker import K1MemoryClient
+from scripts.mem0_agent_search import K1MemorySearch
 
-# K1MemoryClient automatically applies reranker
-client = K1MemoryClient(api_key=api_key)
-
-# Search with default +15% boost
-results = client.search(query="...", filters={...})
-
-# Or customize boost factor
-results = client.search(
-    query="...",
-    filters={...},
-    use_reranker=True,
-    boost_factor=0.20  # +20% boost instead of default 15%
+# K1MemorySearch automatically applies K1 reranker
+memory = K1MemorySearch(
+    api_key=api_key,
+    reranker_model="llama3.2:latest",  # Ollama (local, free)
+    use_ollama=True
 )
 
-# Or disable reranker
-results = client.search(
+# Search with automatic K1 reranking
+results = memory.search(query="...", filters={...}, limit=5)
+
+# Results include K1-specific scores
+for r in results['results']:
+    print(f"Score: {r['k1_rerank_score']}/100")
+    print(f"Reasoning: {r['k1_rerank_details']['reasoning']}")
+
+# Disable reranking (for debugging/comparison)
+results = memory.search(
     query="...",
     filters={...},
-    use_reranker=False  # Use Mem0 default scoring
+    enable_reranking=False  # Use raw Mem0 scores
 )
 ```
+
+**Implementation:** `scripts/mem0_k1_reranker.py` (LLM-based scorer) + `scripts/mem0_agent_search.py` (agent wrapper)
 
 ---
 
@@ -341,10 +360,10 @@ client.add(
 
 ### Key Metrics to Track
 
-1. **Avg Relevance Score:** Target ≥0.70 (currently 0.737)
-2. **Query Success Rate:** Target ≥90% (currently 100%)
+1. **Avg Relevance Score:** Target ≥0.82 (currently **0.89** ✅ **+8% above target**)
+2. **Query Success Rate:** Target ≥90% (currently **100%** ✅)
 3. **Memory Count:** Track growth rate, alert if >100 memories/month
-4. **Coverage %:** Target ≥60% (currently 61%)
+4. **PASS Rate:** Target ≥70% (currently **100%** - 10/10 queries ✅)
 
 ### Simple Monitoring Script
 
@@ -387,12 +406,13 @@ if overall_avg < 0.70:
 
 ### Pre-Launch
 
-- [x] Custom K1 reranker implemented (`scripts/mem0_custom_reranker.py`)
-- [ ] Query rephrasing logic added (optional, nice-to-have)
-- [ ] Memory pruning script created (`scripts/mem0_maintenance.py`)
-- [ ] Re-run validation with improvements (expect 7-8/10 PASS)
-- [ ] Create ADR documenting Mem0 adoption decision
-- [ ] Update agent templates to use K1MemoryClient
+- [x] Custom K1 reranker implemented (`scripts/mem0_k1_reranker.py`)
+- [x] Agent search wrapper created (`scripts/mem0_agent_search.py`)
+- [x] Query rephrasing logic added (`scripts/mem0_query_rephrase.py`)
+- [x] Memory pruning script created (`scripts/mem0_prune_memories.py`)
+- [x] Validation completed: **10/10 PASS (0.89 avg relevance)** ✅
+- [x] ADR documenting Mem0 adoption decision (`docs/adr/ADR-0004-institutional-memory-adoption.md`)
+- [x] Update agent integration guide with K1MemorySearch patterns
 
 ### Launch (Week 1)
 

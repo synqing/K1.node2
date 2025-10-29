@@ -64,20 +64,22 @@ esp_err_t rmt_new_led_strip_encoder(const led_strip_encoder_config_t *config, rm
 	strip_encoder.base.del    = rmt_del_led_strip_encoder;
 	strip_encoder.base.reset  = rmt_led_strip_encoder_reset;
 
-	// WS2812B timing @ 10 MHz resolution (100 ns per tick)
-	// Historical fast settings from prior performant commit
-	rmt_bytes_encoder_config_t bytes_encoder_config = {
-		.bit0 = { 4, 1, 6, 0 },   // ~0.4us high, ~0.6us low (1.0us total)
-		.bit1 = { 7, 1, 6, 0 },   // ~0.7us high, ~0.6us low (1.3us total)
-		.flags = { .msb_first = 1 }
-	};
+    // WS2812B timing @ 20 MHz resolution (50 ns per tick)
+    // Spec target: T0H≈0.35us, T0L≈0.9us, T1H≈0.7us, T1L≈0.55us, period≈1.25us
+    // Tick counts (@50ns): T0H=7, T0L=18, T1H=14, T1L=11
+    // These values are commonly robust across batches while matching spec closely.
+    rmt_bytes_encoder_config_t bytes_encoder_config = {
+        .bit0 = { 7, 1, 18, 0 },  // ~0.35us high, ~0.90us low (1.25us total)
+        .bit1 = { 14, 1, 11, 0 }, // ~0.70us high, ~0.55us low (1.25us total)
+        .flags = { .msb_first = 1 }
+    };
 
 	rmt_new_bytes_encoder(&bytes_encoder_config, &strip_encoder.bytes_encoder);
 	rmt_copy_encoder_config_t copy_encoder_config = {};
 	rmt_new_copy_encoder(&copy_encoder_config, &strip_encoder.copy_encoder);
 
-	// Reset: 50us using two low phases (matches prior config)
-	strip_encoder.reset_code = (rmt_symbol_word_t) { 250, 0, 250, 0 };
+    // Reset: ≥50us low. At 20 MHz, 50us = 1000 ticks. Double to ensure latch.
+    strip_encoder.reset_code = (rmt_symbol_word_t) { 1000, 0, 1000, 0 };
 
 	*ret_encoder = &strip_encoder.base;
 	return ESP_OK;
@@ -88,24 +90,24 @@ esp_err_t rmt_new_led_strip_encoder(const led_strip_encoder_config_t *config, rm
 // ============================================================================
 
 void init_rmt_driver() {
-	printf("init_rmt_driver\n");
-	rmt_tx_channel_config_t tx_chan_config = {
-		.gpio_num = (gpio_num_t)LED_DATA_PIN,  // GPIO number
-		.clk_src = RMT_CLK_SRC_DEFAULT,        // default source clock
-		.resolution_hz = 10000000,             // 10 MHz tick resolution (1 tick = 0.1us)
-		.mem_block_symbols = 64,               // 64 * 4 = 256 bytes
-		.trans_queue_depth = 4,                // pending transactions depth
-		.intr_priority = 99,
-		.flags = { .with_dma = 0 },            // DMA disabled (historical setting)
-	};
+    printf("init_rmt_driver\n");
+    rmt_tx_channel_config_t tx_chan_config = {
+        .gpio_num = (gpio_num_t)LED_DATA_PIN,  // GPIO number
+        .clk_src = RMT_CLK_SRC_DEFAULT,        // default source clock
+        .resolution_hz = 20000000,             // 20 MHz tick resolution (1 tick = 0.05us)
+        .mem_block_symbols = 64,               // 64 * 4 = 256 bytes
+        .trans_queue_depth = 4,                // pending transactions depth
+        .intr_priority = 99,
+        .flags = { .with_dma = 1 },            // DMA enabled to reduce ISR pressure
+    };
 
 	printf("rmt_new_tx_channel\n");
 	ESP_ERROR_CHECK(rmt_new_tx_channel(&tx_chan_config, &tx_chan));
 
-	ESP_LOGI(TAG, "Install led strip encoder");
-	led_strip_encoder_config_t encoder_config = {
-		.resolution = 10000000,
-	};
+    ESP_LOGI(TAG, "Install led strip encoder");
+    led_strip_encoder_config_t encoder_config = {
+        .resolution = 20000000,
+    };
 	printf("rmt_new_led_strip_encoder\n");
 	ESP_ERROR_CHECK(rmt_new_led_strip_encoder(&encoder_config, &led_encoder));
 

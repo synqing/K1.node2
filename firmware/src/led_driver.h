@@ -1,10 +1,60 @@
 #pragma once
 
 #include <Arduino.h>
-#include <driver/rmt_tx.h>
-#include <driver/rmt_encoder.h>
-#include <esp_check.h>
-#include <esp_log.h>
+#include <string.h>
+
+// Prefer ESP-IDF v5 split RMT headers; fall back gracefully for editor tooling
+#if __has_include(<driver/rmt_tx.h>)
+#  include <driver/rmt_tx.h>
+#  include <driver/rmt_encoder.h>
+#elif __has_include(<driver/rmt.h>)
+#  include <driver/rmt.h>
+#else
+// If neither header is available (e.g., indexer/IntelliSense), provide minimal stubs
+#  include <stddef.h>
+#  include <stdint.h>
+   typedef int esp_err_t;
+   typedef void* rmt_channel_handle_t;
+   typedef void* rmt_encoder_handle_t;
+   typedef enum {
+       RMT_ENCODING_RESET = 0,
+       RMT_ENCODING_COMPLETE = 1,
+       RMT_ENCODING_MEM_FULL = 2
+   } rmt_encode_state_t;
+   typedef struct {
+       size_t (*encode)(void*, rmt_channel_handle_t, const void*, size_t, rmt_encode_state_t*);
+       esp_err_t (*reset)(void*);
+       esp_err_t (*del)(void*);
+   } rmt_encoder_t;
+   typedef struct {
+       uint16_t duration0; uint16_t level0;
+       uint16_t duration1; uint16_t level1;
+   } rmt_symbol_word_t;
+   typedef struct {
+       uint32_t loop_count;
+       struct { unsigned eot_level:1; unsigned queue_nonblocking:1; } flags;
+   } rmt_transmit_config_t;
+   // Prototypes used by this header when building editor index only
+   esp_err_t rmt_tx_wait_all_done(rmt_channel_handle_t channel, uint32_t timeout_ms);
+   esp_err_t rmt_transmit(rmt_channel_handle_t channel, rmt_encoder_handle_t encoder,
+                          const void *data, size_t data_size, const rmt_transmit_config_t *config);
+#endif
+
+#if __has_include(<esp_check.h>)
+#  include <esp_check.h>
+#endif
+#if __has_include(<esp_log.h>)
+#  include <esp_log.h>
+#endif
+
+#ifndef __containerof
+#  include <stddef.h>
+#  define __containerof(ptr, type, member) ((type *)((char *)(ptr) - offsetof(type, member)))
+#endif
+
+#ifndef pdMS_TO_TICKS
+#  define pdMS_TO_TICKS(x) (x)
+#endif
 #include "types.h"
 #include "profiler.h"
 #include "parameters.h"  // Access get_params() for dithering flag
@@ -143,16 +193,25 @@ inline void quantize_color(bool temporal_dithering) {
 // IRAM_ATTR function must be in header for memory placement
 // Made static to ensure internal linkage (each TU gets its own copy)
 IRAM_ATTR static inline void transmit_leds() {
-	// Wait here if previous frame transmission has not yet completed
-	// Use 10ms timeout for RMT completion
-	// If TX takes longer than 10ms, something is wrong (normal is <1ms)
-	uint32_t t_wait0 = micros();
-	esp_err_t wait_result = rmt_tx_wait_all_done(tx_chan, pdMS_TO_TICKS(10));
-	ACCUM_RMT_WAIT_US += (micros() - t_wait0);
-	if (wait_result != ESP_OK) {
-		// RMT transmission timeout - not critical, just continue
-		LOG_WARN(TAG_LED, "RMT transmission timeout");
-	}
+    // Wait here if previous frame transmission has not yet completed
+    // Use 10ms timeout for RMT completion
+    // If TX takes longer than 10ms, something is wrong (normal is <1ms)
+    uint32_t t_wait0 = micros();
+    // Increase timeout to be safely above worst-case frame time and scheduler jitter
+    // 180 LEDs @ ~30us/LED ≈ 5.4ms + reset; 20-30ms gives margin under load
+    esp_err_t wait_result = rmt_tx_wait_all_done(tx_chan, pdMS_TO_TICKS(30));
+    ACCUM_RMT_WAIT_US += (micros() - t_wait0);
+    if (wait_result != ESP_OK) {
+        // RMT transmission timeout: skip this frame to let hardware catch up
+        // Rate-limit warning to avoid log spam
+        static uint32_t last_warn_ms = 0;
+        uint32_t now_ms = millis();
+        if (now_ms - last_warn_ms > 1000) {
+            LOG_WARN(TAG_LED, "RMT transmission timeout (skipping frame)");
+            last_warn_ms = now_ms;
+        }
+        return;
+    }
 
 	// Clear the 8-bit buffer
 	memset(raw_led_data, 0, NUM_LEDS*3);
@@ -167,6 +226,14 @@ IRAM_ATTR static inline void transmit_leds() {
 
 	// Transmit to LEDs
 	uint32_t t_tx0 = micros();
-	rmt_transmit(tx_chan, led_encoder, raw_led_data, NUM_LEDS*3, &tx_config);
-	ACCUM_RMT_TRANSMIT_US += (micros() - t_tx0);
+    esp_err_t tx_ret = rmt_transmit(tx_chan, led_encoder, raw_led_data, NUM_LEDS*3, &tx_config);
+    if (tx_ret != ESP_OK) {
+        static uint32_t last_err_ms = 0;
+        uint32_t now_ms = millis();
+        if (now_ms - last_err_ms > 1000) {
+            LOG_WARN(TAG_LED, "rmt_transmit error: %d", (int)tx_ret);
+            last_err_ms = now_ms;
+        }
+    }
+    ACCUM_RMT_TRANSMIT_US += (micros() - t_tx0);
 }
