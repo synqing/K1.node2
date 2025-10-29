@@ -71,18 +71,6 @@ import { defineConfig } from 'vite';
       },
     },
   },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
-    // Enable fetch for integration tests
-    pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
-  },
   // Reduce console noise in development
   logLevel: 'warn',
 });
