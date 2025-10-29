@@ -13,8 +13,13 @@ Both scripts call `mir_eval.beat.evaluate` directly—no frameworks, no gates, n
 **Two datasets available:**
 - **GTZAN-Rhythm v2**: 1000 tracks across 10 genres (balanced validation)
 - **Harmonix Set**: 912 pop tracks (genre-specific validation)
+  - Also includes **pre-computed mel-spectrograms** (1.8 GB, 912 tracks) for ML-based beat detection
 
 See `data/GTZAN_DATASET_SETUP.md` and `data/HARMONIX_DATASET_SETUP.md` for dataset-specific details.
+
+**Utilities:**
+- **`melspecs_loader.py`**: Transparent utility for loading and inspecting mel-spectrograms (manual-first approach)
+- See `data/HARMONIX_MELSPECS_DATASET.md` for complete feature engineering guide
 
 ## Input Format
 
@@ -197,6 +202,10 @@ For now, focus on understanding raw metrics and algorithm performance.
 **Dataset Documentation:**
 - `data/GTZAN_DATASET_SETUP.md` — GTZAN-Rhythm v2 setup (1000 tracks, 10 genres)
 - `data/HARMONIX_DATASET_SETUP.md` — Harmonix Set setup (912 pop tracks)
+- `data/HARMONIX_MELSPECS_DATASET.md` — Pre-computed mel-spectrograms for ML-based beat tracking
+
+**Utilities:**
+- `melspecs_loader.py` — Load and inspect Harmonix mel-spectrograms (see usage examples in docstring)
 
 **Validation Timeline:**
 - `Implementation.plans/runbooks/MIREX_BEAT_VALIDATION_CHECKLIST.md` — Week 1-4 timeline
