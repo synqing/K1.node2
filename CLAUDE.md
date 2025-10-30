@@ -92,6 +92,28 @@ If a step cannot be completed, halt and escalate rather than leaving a partially
 
 ### Research Analyst
 
+**Prerequisites - Query Institutional Memory:**
+Before starting research, query Mem0 for existing context:
+
+```python
+from scripts.mem0_agent_search import K1MemorySearch
+memory = K1MemorySearch(
+    api_key=os.environ["MEM0_API_KEY"],
+    reranker_model="llama3.2:latest",
+    use_ollama=True
+)
+
+# Query for related research and decisions
+results = memory.search(
+    query=f"What research exists on {topic}? What decisions were made?",
+    filters={"user_id": "spectrasynq"},
+    limit=5
+)
+```
+
+Review top 3-5 K1-reranked results (80-90/100 scores) to understand existing work, decisions, and constraints.
+
+**Workflow:**
 - Outputs: deep technical comparisons, forensic reports, exploratory notes.
 - Default destination: `docs/analysis/`.
 - Responsibilities: ensure hypotheses, methodology, and findings sections are explicit; archive superseded drafts
@@ -99,6 +121,32 @@ If a step cannot be completed, halt and escalate rather than leaving a partially
 
 ### SUPREME Analyst (Forensic Deep-Dive Specialist)
 
+**Prerequisites - Query Institutional Memory:**
+Before starting forensic analysis, query Mem0 for subsystem context:
+
+```python
+from scripts.mem0_agent_search import K1MemorySearch
+memory = K1MemorySearch(
+    api_key=os.environ["MEM0_API_KEY"],
+    reranker_model="llama3.2:latest",
+    use_ollama=True
+)
+
+# Query for subsystem architectural constraints and known issues
+results = memory.search(
+    query=f"What are the architectural constraints and known bottlenecks for {subsystem}?",
+    filters={"user_id": "spectrasynq"},
+    limit=5
+)
+```
+
+Review top 3-5 K1-reranked results to understand:
+- Existing architectural decisions (avoid re-analysis)
+- Known constraints and trade-offs
+- Previous bottlenecks or performance issues
+- Related ADRs or design documents
+
+**Workflow:**
 - **Tier 1: Discovery & Analysis**
 - Outputs: forensic scan results, bottleneck matrices, root cause analysis, improvement recommendations.
 - Default destination: `docs/analysis/{subsystem}/` (e.g., `docs/analysis/audio_pipeline/`)
@@ -111,6 +159,32 @@ If a step cannot be completed, halt and escalate rather than leaving a partially
 
 ### ULTRA Choreographer (Enhancement & Design Specialist)
 
+**Prerequisites - Query Institutional Memory:**
+Before starting feature design, query Mem0 for design context:
+
+```python
+from scripts.mem0_agent_search import K1MemorySearch
+memory = K1MemorySearch(
+    api_key=os.environ["MEM0_API_KEY"],
+    reranker_model="llama3.2:latest",
+    use_ollama=True
+)
+
+# Query for feature design patterns and constraints
+results = memory.search(
+    query=f"What design patterns and constraints apply to {feature}?",
+    filters={"user_id": "spectrasynq"},
+    limit=5
+)
+```
+
+Review top 3-5 K1-reranked results to understand:
+- Existing design patterns and conventions
+- Performance budgets and resource constraints
+- Related features and integration points
+- SUPREME Analyst discoveries (build on existing bottleneck analysis)
+
+**Workflow:**
 - **Tier 2+: Pattern & Feature Design**
 - Outputs: pattern designs, choreography proposals, enhancement specifications.
 - Default destination: `docs/planning/` for forward-looking; `Implementation.plans/roadmaps/` for active design arcs.
@@ -123,6 +197,32 @@ If a step cannot be completed, halt and escalate rather than leaving a partially
 
 ### Embedded Firmware Engineer
 
+**Prerequisites - Query Institutional Memory:**
+Before implementing fixes, query Mem0 for code context:
+
+```python
+from scripts.mem0_agent_search import K1MemorySearch
+memory = K1MemorySearch(
+    api_key=os.environ["MEM0_API_KEY"],
+    reranker_model="llama3.2:latest",
+    use_ollama=True
+)
+
+# Query for implementation patterns and constraints
+results = memory.search(
+    query=f"What are the implementation patterns and constraints for {component}?",
+    filters={"user_id": "spectrasynq"},
+    limit=5
+)
+```
+
+Review top 3-5 K1-reranked results to understand:
+- Coding patterns and conventions
+- Performance constraints (FPS budget, memory limits)
+- Known pitfalls and anti-patterns
+- Related bottlenecks from SUPREME analysis
+
+**Workflow:**
 - **Tier 2: Parallel Implementation**
 - Outputs: fixed code, test cases, validation reports.
 - Default destination: `firmware/src/`, `firmware/test/`; document changes in `Implementation.plans/runbooks/`
@@ -135,6 +235,32 @@ If a step cannot be completed, halt and escalate rather than leaving a partially
 
 ### Code Reviewer & Quality Validator
 
+**Prerequisites - Query Institutional Memory:**
+Before starting code review, query Mem0 for quality context:
+
+```python
+from scripts.mem0_agent_search import K1MemorySearch
+memory = K1MemorySearch(
+    api_key=os.environ["MEM0_API_KEY"],
+    reranker_model="llama3.2:latest",
+    use_ollama=True
+)
+
+# Query for quality standards and known issues
+results = memory.search(
+    query=f"What are the quality standards and common issues for {phase}?",
+    filters={"user_id": "spectrasynq"},
+    limit=5
+)
+```
+
+Review top 3-5 K1-reranked results to understand:
+- Coding standards and quality thresholds
+- Known security vulnerabilities or patterns to watch for
+- Performance baselines and regression criteria
+- Historical test failures and their root causes
+
+**Workflow:**
 - **Tier 3: Quality Gates**
 - Outputs: security audits, performance profiles, test coverage reports.
 - Default destination: `docs/reports/` (phase summaries) + `Implementation.plans/backlog/` (lint debt)
@@ -147,6 +273,32 @@ If a step cannot be completed, halt and escalate rather than leaving a partially
 
 ### Multiplier Orchestrator (Workflow State Machine)
 
+**Prerequisites - Query Institutional Memory:**
+Before orchestrating workflows, query Mem0 for execution context:
+
+```python
+from scripts.mem0_agent_search import K1MemorySearch
+memory = K1MemorySearch(
+    api_key=os.environ["MEM0_API_KEY"],
+    reranker_model="llama3.2:latest",
+    use_ollama=True
+)
+
+# Query for workflow patterns and historical execution
+results = memory.search(
+    query=f"What workflow patterns and execution history exist for {phase}?",
+    filters={"user_id": "spectrasynq"},
+    limit=5
+)
+```
+
+Review top 3-5 K1-reranked results to understand:
+- Successful workflow patterns and anti-patterns
+- Known dependency chains and potential circular references
+- Historical bottlenecks and their resolutions
+- Phase transition preconditions and validation criteria
+
+**Workflow:**
 - **Meta-Layer: Continuous Optimization & Automation**
 - Outputs: workflow state, execution logs, phase transition records.
 - Default destination: `.taskmaster/workflow/` (internal state) + `docs/reports/` (public summaries)
@@ -159,6 +311,32 @@ If a step cannot be completed, halt and escalate rather than leaving a partially
 
 ### Documentation Curator
 
+**Prerequisites - Query Institutional Memory:**
+Before curating documentation, query Mem0 for documentation context:
+
+```python
+from scripts.mem0_agent_search import K1MemorySearch
+memory = K1MemorySearch(
+    api_key=os.environ["MEM0_API_KEY"],
+    reranker_model="llama3.2:latest",
+    use_ollama=True
+)
+
+# Query for documentation organization and standards
+results = memory.search(
+    query="What are the documentation organization standards and key reference materials?",
+    filters={"user_id": "spectrasynq"},
+    limit=5
+)
+```
+
+Review top 3-5 K1-reranked results to understand:
+- Documentation taxonomy and folder structure
+- Existing indices and navigation patterns
+- Key reference materials and their locations
+- Recent documentation reorganization decisions
+
+**Workflow:**
 - Outputs: indices, quick references, templates.
 - Default destination: `docs/resources/` or `docs/templates/`.
 - Responsibilities: maintain navigation consistency, prune stale links, coordinate with maintainers before
