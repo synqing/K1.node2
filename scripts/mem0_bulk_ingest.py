@@ -235,6 +235,33 @@ Type: {memory_type}
                     "Implementation.plans/poc/MEM0_ARCHITECTURE_REVIEW.md",
                     "docs/resources/mem0_production_integration_guide.md"
                 ]
+            },
+            7: {
+                "category": "WEBAPP_BEAT_TRACKING_PF5",
+                "memory_type": "reference",
+                "domain_tags": ["webapp", "beat_tracking", "pf5", "genesis", "design_system"],
+                "files": [
+                    # Webapp architecture
+                    "Implementation.plans/FIGMA_PROMPT_SONG_ANALYSIS.md",
+                    "Implementation.plans/FIGMA_MAKE_QUICK_START.md",
+                    "docs/reports/DESIGN_SYSTEM_UX_VALIDATION_REPORT.md",
+                    "Implementation.plans/P3 - Design Token System/src/K1-DESIGN-SYSTEM-README.md",
+                    # Beat tracking Phase 2B
+                    "firmware/K1.node2/beats/README.md",
+                    "firmware/K1.node2/beats/FIRMWARE_COMPATIBILITY_SHEET.md",
+                    "docs/analysis/MIREX_beat_tracking_evaluation_guide.md",
+                    "docs/implementation/Phase2B_Workflow.md",
+                    "docs/implementation/Phase2B_Workflow_Addendum.md",
+                    # PF-5 plans
+                    "docs/reports/PF5_RESEARCH_BRIEFING.md",
+                    "docs/reports/PF5_EXECUTIVE_BRIEF.md",
+                    "docs/reports/PF5_WEEK0_STATUS_DASHBOARD.md",
+                    "docs/reports/PF5_DOCUMENTATION_INDEX.md",
+                    "docs/reports/PF5_EXECUTION_READINESS_ASSESSMENT.md",
+                    # Genesis engine
+                    "Implementation.plans/GENESIS-ARCHITECTURE/INTEGRATION_GUIDE.md",
+                    "Implementation.plans/GENESIS-ARCHITECTURE/audio-sync-portal/ENHANCED_FEATURES.md"
+                ]
             }
         }
 
@@ -277,7 +304,7 @@ def main():
         "--tier",
         type=str,
         required=True,
-        help="Tier to ingest: 1-6 or 'all'"
+        help="Tier to ingest: 1-7 or 'all'"
     )
     parser.add_argument(
         "--dry-run",
@@ -294,12 +321,12 @@ def main():
 
     # Parse tier argument
     if args.tier.lower() == "all":
-        tiers = [1, 2, 3, 4, 5, 6]
+        tiers = [1, 2, 3, 4, 5, 6, 7]
     else:
         try:
             tiers = [int(args.tier)]
         except ValueError:
-            print(f"ERROR: Invalid tier '{args.tier}'. Use 1-6 or 'all'")
+            print(f"ERROR: Invalid tier '{args.tier}'. Use 1-7 or 'all'")
             sys.exit(1)
 
     # Run ingestion
