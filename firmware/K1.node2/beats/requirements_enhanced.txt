@@ -1,0 +1,58 @@
+# Enhanced Song Analysis Requirements
+# K1.reinvented LED Visualization System
+# Python 3.9+ required
+
+# Core Audio Processing
+librosa==0.10.1
+soundfile==0.12.1
+numpy==1.24.3
+scipy==1.11.4
+
+# Beat Detection
+madmom==0.16.1  # For comparison/validation
+essentia==2.1b6.dev1034  # Optional advanced features
+
+# Machine Learning
+scikit-learn==1.3.2
+torch==2.1.0  # Required for Demucs
+torchaudio==2.1.0
+
+# Stem Separation
+demucs==4.0.0  # Local stem separation (2GB model)
+
+# Web API
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.4.2
+python-multipart==0.0.6  # For file uploads
+aiofiles==23.2.1
+websockets==12.0
+
+# Queue & Caching
+redis==5.0.1
+celery==5.3.4  # Optional for production queue
+
+# API Clients (Optional)
+aiohttp==3.9.0  # For moises.ai API
+requests==2.31.0
+
+# Visualization (Optional for debugging)
+matplotlib==3.8.1
+seaborn==0.13.0
+
+# Utilities
+python-dotenv==1.0.0  # Environment variables
+tqdm==4.66.1  # Progress bars
+colorama==0.4.6  # Colored terminal output
+
+# Development & Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+black==23.11.0  # Code formatting
+mypy==1.7.0  # Type checking
+ipython==8.17.2  # Interactive shell
+
+# Performance Monitoring (Production)
+prometheus-client==0.19.0
+psutil==5.9.6  # System resource monitoring

@@ -97,36 +97,36 @@ This implementation plan transforms the Song Analysis Module from mock-based pro
 
 
 - [ ] 4. Artifact management endpoints
-- [-] 4.1 Implement GET /api/v1/tracks/{trackId}/versions/{version}/artefacts
+- [x] 4.1 Implement GET /api/v1/tracks/{trackId}/versions/{version}/artefacts
   - Fetch artifact manifest from database
   - Generate signed S3 URLs for each artifact (1-hour expiry)
   - Return JSON response with { artefacts: { genesis_map: url, metrics: url, ... } }
   - _Requirements: 2.2, 2.3, 2.4, 2.5, 2.6_
 
-- [ ] 4.2 Implement POST /api/v1/tracks/{trackId}/versions/{version}/artefacts/{artefactId}/copy-link
+- [x] 4.2 Implement POST /api/v1/tracks/{trackId}/versions/{version}/artefacts/{artefactId}/copy-link
   - Generate signed S3 URL with 1-hour expiry
   - Return JSON response with { url, expires_at }
   - _Requirements: 6.2_
 
-- [ ] 4.3 Implement DELETE /api/v1/tracks/{trackId}/versions/{version}/artefacts/{artefactId}
+- [x] 4.3 Implement DELETE /api/v1/tracks/{trackId}/versions/{version}/artefacts/{artefactId}
   - Soft-delete artifact (mark as deleted in manifest)
   - Generate undo token (valid 30 seconds)
   - Return JSON response with { undo_token }
   - _Requirements: 6.3_
 
-- [ ] 4.4 Implement POST /api/v1/tracks/{trackId}/versions/{version}/artefacts/{artefactId}/restore
+- [x] 4.4 Implement POST /api/v1/tracks/{trackId}/versions/{version}/artefacts/{artefactId}/restore
   - Validate undo token
   - Restore artifact (remove deleted flag)
   - Return JSON response with { ok }
   - _Requirements: 6.4_
 
-- [ ] 4.5 Implement GET /api/v1/storage/usage for storage metrics
+- [x] 4.5 Implement GET /api/v1/storage/usage for storage metrics
   - Calculate total and used bytes across all tracks
   - Identify top 10 largest artifacts
   - Return JSON response with { total_bytes, used_bytes, top_artefacts }
   - _Requirements: 6.5_
 
-- [ ] 4.6 Write integration tests for artifact management
+- [x] 4.6 Write integration tests for artifact management
   - Test artifact manifest fetching with signed URLs
   - Test copy link generation and expiry
   - Test soft-delete with undo token
@@ -135,20 +135,20 @@ This implementation plan transforms the Song Analysis Module from mock-based pro
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
 - [ ] 5. Telemetry streaming with Server-Sent Events
-- [ ] 5.1 Implement GET /api/v1/tracks/{trackId}/telemetry/stream SSE endpoint
+- [x] 5.1 Implement GET /api/v1/tracks/{trackId}/telemetry/stream SSE endpoint
   - Establish SSE connection with proper headers (Content-Type: text/event-stream)
   - Stream telemetry events from device or mock source
   - Format events as JSON: { timestamp, drift_ms, cpu_pct, temp_c, error }
   - Handle client disconnection and cleanup
   - _Requirements: 4.1, 4.2_
 
-- [ ] 5.2 Add auto-rollback event detection and streaming
+- [x] 5.2 Add auto-rollback event detection and streaming
   - Monitor drift_ms threshold (>100ms for 5 seconds)
   - Emit auto_rollback event with device_id and reason
   - Format event as JSON: { timestamp, event: "auto_rollback", details: { device_id, reason } }
   - _Requirements: 4.3, 4.4_
 
-- [ ] 5.3 Write integration tests for telemetry streaming
+- [x] 5.3 Write integration tests for telemetry streaming
   - Test SSE connection establishment
   - Test event streaming with mock telemetry data
   - Test auto-rollback event emission
@@ -157,27 +157,27 @@ This implementation plan transforms the Song Analysis Module from mock-based pro
 
 
 - [ ] 6. Deployment orchestration endpoints
-- [ ] 6.1 Implement GET /api/v1/tracks/{trackId}/versions/{version}/bundle
+- [x] 6.1 Implement GET /api/v1/tracks/{trackId}/versions/{version}/bundle
   - Fetch bundle metadata (manifest, runtime estimate, compatibility)
   - Query device firmware versions
   - Calculate compatibility status (ok, upgrade_required, incompatible)
   - Return JSON response with { manifest, runtime_estimate, compatibility }
   - _Requirements: 5.1, 5.2_
 
-- [ ] 6.2 Implement POST /api/v1/deployments for deployment initiation
+- [x] 6.2 Implement POST /api/v1/deployments for deployment initiation
   - Validate track_id, version, and device_ids
   - Create deployment record in database
   - Enqueue deployment jobs for each device
   - Return JSON response with { deployment_id, status }
   - _Requirements: 5.3_
 
-- [ ] 6.3 Implement GET /api/v1/deployments/{deploymentId} for deployment status
+- [x] 6.3 Implement GET /api/v1/deployments/{deploymentId} for deployment status
   - Fetch deployment record from database
   - Aggregate status from individual device jobs
   - Return JSON response with { deployment_id, status, logs, rollback_info }
   - _Requirements: 5.4, 5.5_
 
-- [ ] 6.4 Write integration tests for deployment orchestration
+- [x] 6.4 Write integration tests for deployment orchestration
   - Test bundle metadata fetching with compatibility checks
   - Test deployment initiation with multiple devices
   - Test deployment status polling

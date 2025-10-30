@@ -27,6 +27,9 @@ npm-debug.log*
 # Dependencies
 node_modules/
 package-lock.json
+
+# Figma-generated webapp bundle (not part of production app)
+webapp/
 Implementation.plans/Song\ Analysis\ Module/*
 !Implementation.plans/Song\ Analysis\ Module/
 !Implementation.plans/Song\ Analysis\ Module/integration_plan.md
