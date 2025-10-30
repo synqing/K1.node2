@@ -66,7 +66,7 @@ This implementation plan transforms the Song Analysis Module from mock-based pro
   - Return JSON response with { track_id, job_id, status }
   - _Requirements: 3.1, 3.2_
 
-- [ ] 3.2 Implement analysis worker with beat detection and spectral analysis
+- [x] 3.2 Implement analysis worker with beat detection and spectral analysis
   - Pull jobs from queue (RabbitMQ/Redis)
   - Download audio file from S3
   - Run beat detection using librosa/madmom
@@ -77,18 +77,18 @@ This implementation plan transforms the Song Analysis Module from mock-based pro
   - Update track status to "ready" or "failed"
   - _Requirements: 3.3, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 3.3 Implement GET /api/v1/analysis/jobs/{jobId} for job status
+- [x] 3.3 Implement GET /api/v1/analysis/jobs/{jobId} for job status
   - Fetch job from database
   - Calculate queue position and ETA
   - Return JSON response with { job_id, track_id, status, queue_position, estimated_seconds_remaining, log_tail }
   - _Requirements: 3.3_
 
-- [ ] 3.4 Implement GET /api/v1/analysis/jobs for queue monitoring
+- [x] 3.4 Implement GET /api/v1/analysis/jobs for queue monitoring
   - Fetch all jobs with optional status filter
   - Return JSON response with { jobs }
   - _Requirements: 9.1, 9.2, 9.3_
 
-- [ ] 3.5 Write integration tests for upload and analysis workflow
+- [x] 3.5 Write integration tests for upload and analysis workflow
   - Test successful upload with valid audio file
   - Test validation errors (file too large, invalid format)
   - Test job status polling until completion
@@ -97,7 +97,7 @@ This implementation plan transforms the Song Analysis Module from mock-based pro
 
 
 - [ ] 4. Artifact management endpoints
-- [ ] 4.1 Implement GET /api/v1/tracks/{trackId}/versions/{version}/artefacts
+- [-] 4.1 Implement GET /api/v1/tracks/{trackId}/versions/{version}/artefacts
   - Fetch artifact manifest from database
   - Generate signed S3 URLs for each artifact (1-hour expiry)
   - Return JSON response with { artefacts: { genesis_map: url, metrics: url, ... } }
