@@ -13,6 +13,7 @@
 #include "parameters.h"
 #include "pattern_registry.h"
 #include "palettes.h"
+#include "logging/logger.h"
 
 // Forward declaration for async web server
 class AsyncWebServerResponse;
@@ -173,7 +174,11 @@ static String build_palettes_json() {
 static void apply_params_json(const JsonObjectConst& root) {
     PatternParameters updated = get_params();
 
-    if (root.containsKey("brightness")) updated.brightness = root["brightness"].as<float>();
+    if (root.containsKey("brightness")) {
+        float req = root["brightness"].as<float>();
+        LOG_DEBUG(TAG_WEB, "Param update: brightness=%.3f", req);
+        updated.brightness = req;
+    }
     if (root.containsKey("softness")) updated.softness = root["softness"].as<float>();
     if (root.containsKey("color")) updated.color = root["color"].as<float>();
     if (root.containsKey("color_range")) updated.color_range = root["color_range"].as<float>();
@@ -187,5 +192,7 @@ static void apply_params_json(const JsonObjectConst& root) {
     if (root.containsKey("custom_param_2")) updated.custom_param_2 = root["custom_param_2"].as<float>();
     if (root.containsKey("custom_param_3")) updated.custom_param_3 = root["custom_param_3"].as<float>();
 
-    update_params_safe(updated);
+    bool ok = update_params_safe(updated);
+    const PatternParameters& applied = get_params();
+    LOG_DEBUG(TAG_WEB, "Applied params: brightness=%.3f (valid=%d)", applied.brightness, ok ? 1 : 0);
 }

@@ -46,10 +46,19 @@
 #include "connection_state.h"
 #include "wifi_monitor.h"
 #include "logging/logger.h"
+#include "beat_events.h"
+#include "diagnostics.h"
+#include "led_driver.h"   // Declare init_rmt_driver()
+#include "audio/tempo.h"  // For tempo_confidence, tempi_power_sum
+#include "audio/goertzel.h" // For spectrogram[]
 
 // Configuration (hardcoded for Phase A simplicity)
+// Updated per user request
+// SSID: VX220-013F
+// Password: 3232AA90E0F24
 #define WIFI_SSID "VX220-013F"
 #define WIFI_PASS "3232AA90E0F24"
+#define BEAT_EVENTS_DIAG 0
 // NUM_LEDS and LED_DATA_PIN are defined in led_driver.h
 
 // ============================================================================
@@ -62,6 +71,9 @@
 
 // Global LED buffer
 CRGBF leds[NUM_LEDS];
+
+// Global beat event rate limiter (shared across audio paths)
+static uint32_t g_last_beat_event_ms = 0;
 
 // Forward declaration for single-core audio pipeline helper
 static inline void run_audio_pipeline_once();
@@ -173,6 +185,23 @@ void audio_task(void* param) {
     LOG_INFO(TAG_CORE1, "AUDIO_TASK Starting on Core 1");
     
     while (true) {
+        // If audio reactivity is disabled, invalidate snapshot and idle
+        if (!EMOTISCOPE_ACTIVE) {
+            memset(audio_back.spectrogram, 0, sizeof(float) * NUM_FREQS);
+            memset(audio_back.spectrogram_smooth, 0, sizeof(float) * NUM_FREQS);
+            memset(audio_back.chromagram, 0, sizeof(float) * 12);
+            audio_back.vu_level = 0.0f;
+            audio_back.vu_level_raw = 0.0f;
+            memset(audio_back.tempo_magnitude, 0, sizeof(float) * NUM_TEMPI);
+            memset(audio_back.tempo_phase, 0, sizeof(float) * NUM_TEMPI);
+            audio_back.tempo_confidence = 0.0f;
+            audio_back.is_valid = false;
+            audio_back.timestamp_us = micros();
+            commit_audio_data();
+            vTaskDelay(pdMS_TO_TICKS(10));
+            continue;
+        }
+
         // Process audio chunk (I2S blocking isolated to Core 1)
         acquire_sample_chunk();        // Blocks on I2S if needed (acceptable here)
         calculate_magnitudes();        // ~15-25ms Goertzel computation
@@ -180,15 +209,17 @@ void audio_task(void* param) {
 
         // BEAT DETECTION PIPELINE
         // Calculate spectral novelty as peak energy in current frame
+        // Use live spectrogram (just computed) instead of stale audio_back buffer
         float peak_energy = 0.0f;
         for (int i = 0; i < NUM_FREQS; i++) {
-            peak_energy = fmaxf(peak_energy, audio_back.spectrogram[i]);
+            peak_energy = fmaxf(peak_energy, spectrogram[i]);
         }
 
         // Update novelty curve with spectral peak
         update_novelty_curve(peak_energy);
 
         // Smooth tempo magnitudes and detect beats
+        beat_events_probe_start();      // Start latency probe for audio→event
         smooth_tempi_curve();           // ~2-5ms tempo magnitude calculation
         detect_beats();                 // ~1ms beat confidence calculation
 
@@ -206,6 +237,35 @@ void audio_task(void* param) {
             audio_back.tempo_phase[i] = tempi[i].phase;          // -π to +π per bin
         }
 
+        // Beat event stub: push to ring buffer when confidence passes threshold
+        {
+            uint32_t now_ms = millis();
+            extern float tempo_confidence;  // From tempo.cpp
+            // TEMP diagnostic: lower threshold and widen spacing to validate end-to-end chain
+            const float threshold = 0.10f;   // temporarily lowered to validate chain
+            const uint32_t min_spacing_ms = 150; // allow more frequent events
+            if (tempo_confidence > threshold && (now_ms - g_last_beat_event_ms) >= min_spacing_ms) {
+                uint32_t ts_us = (uint32_t)esp_timer_get_time();
+                uint16_t conf_u16 = (uint16_t)(fminf(tempo_confidence, 1.0f) * 65535.0f);
+                bool ok = beat_events_push(ts_us, conf_u16);
+                if (!ok) {
+                    LOG_WARN(TAG_AUDIO, "Beat event buffer overwrite (capacity reached)");
+                }
+                g_last_beat_event_ms = now_ms;
+            }
+            // Always end probe; latency printing is internally rate-limited and disabled by default
+            beat_events_probe_end("audio_step");
+            // Runtime-gated diagnostics; interval controlled via /api/diag
+            static uint32_t last_diag_ms = 0;
+            if (diag_is_enabled()) {
+                uint32_t interval = diag_get_interval_ms();
+                if ((now_ms - last_diag_ms) >= interval) {
+                    Serial.printf("[diag] tempo_conf=%.3f power_sum=%.5f\n", tempo_confidence, tempi_power_sum);
+                    last_diag_ms = now_ms;
+                }
+            }
+        }
+
         // Lock-free buffer synchronization with Core 0
         finish_audio_frame();          // ~0-5ms buffer swap
 
@@ -219,6 +279,22 @@ void audio_task(void* param) {
 // SINGLE-SHOT AUDIO PIPELINE (used by Core 1 main loop cadence)
 // ============================================================================
 static inline void run_audio_pipeline_once() {
+    // If audio reactivity is disabled, invalidate snapshot and return
+    if (!EMOTISCOPE_ACTIVE) {
+        memset(audio_back.spectrogram, 0, sizeof(float) * NUM_FREQS);
+        memset(audio_back.spectrogram_smooth, 0, sizeof(float) * NUM_FREQS);
+        memset(audio_back.chromagram, 0, sizeof(float) * 12);
+        audio_back.vu_level = 0.0f;
+        audio_back.vu_level_raw = 0.0f;
+        memset(audio_back.tempo_magnitude, 0, sizeof(float) * NUM_TEMPI);
+        memset(audio_back.tempo_phase, 0, sizeof(float) * NUM_TEMPI);
+        audio_back.tempo_confidence = 0.0f;
+        audio_back.is_valid = false;
+        audio_back.timestamp_us = micros();
+        commit_audio_data();
+        return;
+    }
+
     // Process audio chunk (I2S blocking isolated to Core 1)
     acquire_sample_chunk();        // Blocks on I2S if needed (acceptable here)
     calculate_magnitudes();        // ~15-25ms Goertzel computation
@@ -231,6 +307,7 @@ static inline void run_audio_pipeline_once() {
     }
 
     update_novelty_curve(peak_energy);
+    beat_events_probe_start();     // Start latency probe for audio→event
     smooth_tempi_curve();          // ~2-5ms tempo magnitude calculation
     detect_beats();                // ~1ms beat confidence calculation
 
@@ -243,6 +320,22 @@ static inline void run_audio_pipeline_once() {
     for (uint16_t i = 0; i < NUM_TEMPI; i++) {
         audio_back.tempo_magnitude[i] = tempi[i].magnitude;
         audio_back.tempo_phase[i] = tempi[i].phase;
+    }
+
+    // Beat event stub: push to ring buffer when confidence high
+    {
+        uint32_t now_ms = millis();
+        extern float tempo_confidence;  // From tempo.cpp
+        if (tempo_confidence > 0.60f && (now_ms - g_last_beat_event_ms) >= 100) {
+            uint32_t ts_us = (uint32_t)esp_timer_get_time();
+            uint16_t conf_u16 = (uint16_t)(fminf(tempo_confidence, 1.0f) * 65535.0f);
+            bool ok = beat_events_push(ts_us, conf_u16);
+            beat_events_probe_end("audio_to_event");
+            if (!ok) {
+                LOG_WARN(TAG_AUDIO, "Beat event buffer overwrite (capacity reached)");
+            }
+            g_last_beat_event_ms = now_ms;
+        }
     }
 
     // Lock-free buffer synchronization with Core 0
@@ -371,6 +464,12 @@ void setup() {
     LOG_INFO(TAG_TEMPO, "Initializing tempo detection...");
     init_tempo_goertzel_constants();
 
+    // Initialize beat event ring buffer and latency probes
+    // Capacity 53 ≈ 10s history at ~5.3 beats/sec (p99 combined)
+    beat_events_init(53);
+    // Tone down latency probe logging: print at most every 5 seconds
+    beat_events_set_probe_interval_ms(5000);
+
     // Initialize parameter system
     LOG_INFO(TAG_CORE0, "Initializing parameters...");
     init_params();
@@ -458,6 +557,9 @@ void loop() {
     // Handle web server (includes WebSocket cleanup)
     handle_webserver();
 
+    // Advance WiFi state machine so callbacks fire and reconnection logic runs
+    wifi_monitor_loop();
+
     // Run audio processing at fixed cadence to avoid throttling render FPS
     static uint32_t last_audio_ms = 0;
     const uint32_t audio_interval_ms = 20; // ~50 Hz audio processing
@@ -475,6 +577,17 @@ void loop() {
         cpu_monitor.update();
         broadcast_realtime_data();
         last_broadcast_ms = now_ms;
+    }
+
+    // Drain beat event ring buffer and forward over Serial (USB)
+    // Limit per-loop drain to avoid starving other services
+    for (int drained = 0; drained < 20 && beat_events_count() > 0; ++drained) {
+        BeatEvent ev;
+        if (beat_events_pop(&ev)) {
+            Serial.printf("BEAT_EVENT ts_us=%lu conf=%u\n", (unsigned long)ev.timestamp_us, (unsigned)ev.confidence);
+        } else {
+            break;
+        }
     }
 
     // Track time for animation

@@ -1,0 +1,103 @@
+{
+  "gtzan_analysis": {
+    "dataset": "gtzan",
+    "total_files": 1000,
+    "reference_beats_per_second": {
+      "mean": 2.3101666666666665,
+      "std": 0.9830291544714037,
+      "min": 0.16666666666666666,
+      "max": 6.266666666666667,
+      "median": 2.033333333333333,
+      "p95": 4.433333333333334,
+      "p99": 5.3679999999999986
+    },
+    "estimated_beats_per_second": {
+      "mean": 1.5988,
+      "std": 0.409571154688627,
+      "min": 0.16666666666666666,
+      "max": 3.2666666666666666,
+      "median": 1.5666666666666667,
+      "p95": 2.3333333333333335,
+      "p99": 2.6669999999999994
+    },
+    "performance_metrics": {
+      "f_measure_mean": 0.6567113436130333,
+      "f_measure_std": 0.22814388965808266,
+      "cemgil_mean": 0.6371379911417642,
+      "cemgil_std": 0.25108592268694613,
+      "goto_mean": 0.001,
+      "goto_std": 0.03162277660168379
+    },
+    "timing": {}
+  },
+  "ballroom_analysis": {
+    "dataset": "ballroom",
+    "total_files": 698,
+    "reference_beats_per_second": {
+      "mean": 1.739809594232369,
+      "std": 0.5407491755172549,
+      "min": 0.41935483870967744,
+      "max": 2.870967741935484,
+      "median": 1.6451612903225807,
+      "p95": 2.7419354838709675,
+      "p99": 2.806451612903226
+    },
+    "estimated_beats_per_second": {
+      "mean": 1.458637582031611,
+      "std": 0.38773820237766593,
+      "min": 0.06451612903225806,
+      "max": 2.7096774193548385,
+      "median": 1.3870967741935485,
+      "p95": 2.225806451612903,
+      "p99": 2.4525806451612895
+    },
+    "performance_metrics": {
+      "f_measure_mean": 0.7022531705384836,
+      "f_measure_std": 0.27725937183324845,
+      "cemgil_mean": 0.6142642243338295,
+      "cemgil_std": 0.2592833755041671,
+      "goto_mean": 0.3638968481375358,
+      "goto_std": 0.48146446935934406
+    },
+    "timing": {}
+  },
+  "firmware_constraints": {
+    "beat_density_constraints": {
+      "max_beats_per_second_p99": 5.3679999999999986,
+      "recommended_buffer_size": 6,
+      "max_estimated_bps_p99": 2.6669999999999994,
+      "description": "Firmware should handle up to 5.4 beats/sec (99th percentile)"
+    },
+    "processing_constraints": {
+      "avg_detection_time_per_file": 0.0,
+      "real_time_factor": 0,
+      "description": "Desktop processing: 0.000s per 30s clip"
+    },
+    "memory_constraints": {
+      "max_beats_per_buffer": 26,
+      "recommended_ring_buffer_size": 53,
+      "description": "Memory allocation for beat event buffers"
+    },
+    "latency_constraints": {
+      "target_latency_ms": 50,
+      "max_acceptable_latency_ms": 100,
+      "description": "Real-time processing latency targets"
+    },
+    "performance_benchmarks": {
+      "gtzan_f_measure": 0.6567113436130333,
+      "ballroom_f_measure": 0.7022531705384836,
+      "target_f_measure": 0.6,
+      "description": "Performance targets for firmware validation"
+    }
+  },
+  "summary": {
+    "max_beats_per_second": 5.3679999999999986,
+    "recommended_buffer_size": 6,
+    "target_performance": 0.6,
+    "processing_requirements": {
+      "avg_detection_time_per_file": 0.0,
+      "real_time_factor": 0,
+      "description": "Desktop processing: 0.000s per 30s clip"
+    }
+  }
+}

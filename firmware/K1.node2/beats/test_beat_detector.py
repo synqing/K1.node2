@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-Test beat detector on synthetic audio with known ground truth.
+Synthetic validation harness for the Phase 2A beat detector.
 
-Creates synthetic audio at various tempos, generates reference beats,
+Creates deterministic synthetic audio at various tempos, generates reference beats,
 detects beats, and measures MIREX metrics using eval_single.py.
-
-Author: Claude (Week 2 Phase 2A)
-Date: 2025-10-30
 """
 
+import argparse
 import subprocess
 import numpy as np
 import soundfile as sf
 from beat_detector import BeatDetector, generate_synthetic_audio
 from pathlib import Path
 import json
+import mir_eval.beat
+import mir_eval.io
 
 
 def generate_reference_beats(tempo, duration, sr=22050, first_beat=0.5):
@@ -44,33 +44,25 @@ def save_beats(beat_times, output_file):
 
 def run_evaluation(ref_file, est_file):
     """
-    Run eval_single.py and return metrics.
+    Evaluate beats directly via mir_eval.
 
     Returns:
-        metrics: Dict with F-measure, Cemgil, Goto, etc.
+        metrics: Dict with MIREX metrics (F-measure, Cemgil, Goto, etc.)
     """
-    result = subprocess.run(
-        ["python", "eval_single.py", "--ref", ref_file, "--est", est_file],
-        capture_output=True,
-        text=True,
-    )
+    # MIREX convention: trim first 5 seconds
+    ref = mir_eval.beat.trim_beats(mir_eval.io.load_events(ref_file), min_beat_time=5.0)
+    est = mir_eval.beat.trim_beats(mir_eval.io.load_events(est_file), min_beat_time=5.0)
 
-    metrics = {}
-    for line in result.stdout.split("\n"):
-        if ":" in line:
-            parts = line.split(":")
-            if len(parts) == 2:
-                key = parts[0].strip()
-                try:
-                    value = float(parts[1].strip())
-                    metrics[key] = value
-                except ValueError:
-                    pass
-
-    return metrics
+    scores = mir_eval.beat.evaluate(ref, est)
+    return {k: float(v) for k, v in scores.items()}
 
 
-def test_detector_on_synthetic_suite():
+def _extract_scalar(value):
+    """Convert a numpy scalar/array/list to a Python float."""
+    return float(np.atleast_1d(value).astype(np.float64)[0])
+
+
+def test_detector_on_synthetic_suite(rng_seed=42):
     """
     Test beat detector on suite of synthetic audio files.
 
@@ -95,19 +87,22 @@ def test_detector_on_synthetic_suite():
     print("=" * 80)
     print()
 
-    for test_case in test_cases:
+    for index, test_case in enumerate(test_cases):
         name = test_case["name"]
         tempo = test_case["tempo"]
         duration = test_case["duration"]
         noise_level = test_case["noise"]
+        base_seed = rng_seed + index
 
         print(f"Test: {name}")
         print(f"  Tempo: {tempo} BPM, Duration: {duration}s, Noise: {noise_level}")
 
         # Generate synthetic audio
-        y, sr = generate_synthetic_audio(tempo=tempo, duration=duration)
+        audio_rng = np.random.default_rng(base_seed)
+        extra_noise_rng = np.random.default_rng(base_seed + 10_000)
+        y, sr = generate_synthetic_audio(tempo=tempo, duration=duration, rng=audio_rng)
         if noise_level > 0:
-            y = y + np.random.normal(0, noise_level, len(y))
+            y = y + extra_noise_rng.normal(0, noise_level, len(y))
 
         audio_file = f"/tmp/test_{name}.wav"
         sf.write(audio_file, y, sr)
@@ -124,7 +119,8 @@ def test_detector_on_synthetic_suite():
         est_file = f"/tmp/test_{name}_est.txt"
         save_beats(est_beats, est_file)
         print(f"  Detected beats:  {len(est_beats)} beats")
-        print(f"  Detected tempo:  {float(detected_result['tempo']):.1f} BPM")
+        det_tempo = _extract_scalar(detected_result["tempo"])
+        print(f"  Detected tempo:  {det_tempo:.1f} BPM")
 
         # Run evaluation
         metrics = run_evaluation(ref_file, est_file)
@@ -141,7 +137,7 @@ def test_detector_on_synthetic_suite():
                 "noise": noise_level,
                 "ref_beats": len(ref_beats),
                 "det_beats": len(est_beats),
-                "det_tempo": float(detected_result["tempo"]),
+                "det_tempo": det_tempo,
                 "metrics": metrics,
             }
         )
@@ -180,16 +176,37 @@ def test_detector_on_synthetic_suite():
     return results
 
 
-if __name__ == "__main__":
-    results = test_detector_on_synthetic_suite()
+def _dump_results(results, output_path):
+    """Persist results in JSON form for auditability."""
+    serializable = []
+    for item in results:
+        record = dict(item)
+        record["det_tempo"] = float(record["det_tempo"])
+        record["metrics"] = {k: float(v) for k, v in record["metrics"].items()}
+        serializable.append(record)
 
-    # Save results to JSON
-    results_json = "/tmp/beat_detector_test_results.json"
-    with open(results_json, "w") as f:
-        json.dump(
-            results,
-            f,
-            indent=2,
-            default=lambda x: float(x) if isinstance(x, np.number) else str(x),
-        )
-    print(f"\nResults saved to {results_json}")
+    with open(output_path, "w") as f:
+        json.dump(serializable, f, indent=2)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run Phase 2A synthetic validation suite.")
+    parser.add_argument(
+        "--results-json",
+        default="results/phase2a_synthetic_metrics.json",
+        help="Path for JSON summary output (default: results/phase2a_synthetic_metrics.json)",
+    )
+    parser.add_argument(
+        "--rng-seed",
+        type=int,
+        default=42,
+        help="Seed for deterministic synthetic audio generation (default: 42)",
+    )
+    args = parser.parse_args()
+
+    results = test_detector_on_synthetic_suite(rng_seed=args.rng_seed)
+
+    output_path = Path(args.results_json)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    _dump_results(results, output_path)
+    print(f"\nResults saved to {output_path}")

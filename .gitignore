@@ -27,6 +27,13 @@ npm-debug.log*
 # Dependencies
 node_modules/
 package-lock.json
+Implementation.plans/Song\ Analysis\ Module/*
+!Implementation.plans/Song\ Analysis\ Module/
+!Implementation.plans/Song\ Analysis\ Module/integration_plan.md
+!Implementation.plans/Song\ Analysis\ Module/backend_frontend_spec.md
+.mem0_local/
+.venv/
+.venv311/
 
 # Temporary
 *.tmp

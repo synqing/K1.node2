@@ -19,30 +19,62 @@ Output:
 """
 
 import argparse
-import os
-import json
 import csv
+import json
+import os
 import sys
-import numpy as np
+from pathlib import Path
+
 import mir_eval.beat
 import mir_eval.io
+import numpy as np
 
 TRIM_SECONDS = 5.0  # Trim first 5 seconds per MIREX convention
 
 
 def load_beats(path: str) -> np.ndarray:
-    """Load beats from text file, trim first 5 seconds."""
-    beats = mir_eval.io.load_events(path)
+    """Load beats from annotation file, trim first 5 seconds.
+
+    Primary format: one time (seconds) per line.
+    Fallback: if parsing fails (e.g., Ballroom .beats with two columns),
+    read the first whitespace-separated column as time in seconds.
+    """
+    try:
+        beats = mir_eval.io.load_events(path)
+    except Exception:
+        times: list[float] = []
+        with open(path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split()
+                try:
+                    times.append(float(parts[0]))
+                except Exception:
+                    # Skip malformed lines
+                    continue
+        beats = np.asarray(times, dtype=float)
     return mir_eval.beat.trim_beats(beats, min_beat_time=TRIM_SECONDS)
 
 
-def list_pairs(ref_dir: str, est_dir: str) -> list:
+def list_pairs(ref_dir: str | os.PathLike, est_dir: str | os.PathLike) -> list:
     """
-    Find all .txt files present in both directories.
-    Returns list of (basename, ref_path, est_path) tuples, sorted by basename.
+    Find all beat annotation files present in both directories.
+    Supports .txt (GTZAN-style) and .beats (Ballroom-style) extensions.
+
+    Returns list of (filename, ref_path, est_path) tuples, sorted by filename.
     """
-    ref_files = {f for f in os.listdir(ref_dir) if f.endswith(".txt")}
-    est_files = {f for f in os.listdir(est_dir) if f.endswith(".txt")}
+    ref_dir = os.fspath(ref_dir)
+    est_dir = os.fspath(est_dir)
+
+    exts = (".txt", ".beats")
+
+    def _list_with_ext(dir_path: str) -> set[str]:
+        return {f for f in os.listdir(dir_path) if any(f.endswith(ext) for ext in exts)}
+
+    ref_files = _list_with_ext(ref_dir)
+    est_files = _list_with_ext(est_dir)
     shared = sorted(ref_files & est_files)
 
     pairs = [
@@ -50,6 +82,132 @@ def list_pairs(ref_dir: str, est_dir: str) -> list:
         for f in shared
     ]
     return pairs
+
+
+def run_batch_evaluation(
+    reference_dir: str | os.PathLike,
+    estimate_dir: str | os.PathLike,
+    out_csv: str | os.PathLike,
+    out_json: str | os.PathLike,
+    *,
+    log=print,
+    warn_log=lambda msg: print(msg, file=sys.stderr),
+) -> dict:
+    """
+    Evaluate (reference, estimate) beat pairs and persist CSV/JSON summaries.
+
+    Args:
+        reference_dir: Directory containing ground-truth beat .txt files.
+        estimate_dir: Directory containing estimated beat .txt files.
+        out_csv: Destination path for per-file CSV metrics.
+        out_json: Destination path for aggregate JSON metrics.
+        log: Callable for informational messages (default: print).
+        warn_log: Callable for warnings/errors (default: stderr print).
+
+    Returns:
+        Dictionary with aggregate metrics, output paths, and warning list.
+    """
+    reference_dir = Path(reference_dir)
+    estimate_dir = Path(estimate_dir)
+    out_csv = Path(out_csv)
+    out_json = Path(out_json)
+
+    metric_names = [
+        "F-measure",
+        "Cemgil",
+        "Information Gain",
+        "Goto",
+        "CMLc",
+        "CMLt",
+        "AMLc",
+        "AMLt",
+        "PScore",
+    ]
+
+    pairs = list_pairs(reference_dir, estimate_dir)
+    if not pairs:
+        raise FileNotFoundError(
+            f"No matching .txt/.beats files in {reference_dir} and {estimate_dir}"
+        )
+
+    if log:
+        log(f"Found {len(pairs)} matching pairs")
+
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
+    out_json.parent.mkdir(parents=True, exist_ok=True)
+
+    warnings: list[str] = []
+    rows = []
+
+    with out_csv.open("w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["file", "n_ref", "n_est"] + metric_names)
+
+        for base, ref_path, est_path in pairs:
+            try:
+                ref = load_beats(ref_path)
+                est = load_beats(est_path)
+            except Exception as exc:
+                message = f"Warning: failed to load {base}: {exc}"
+                warnings.append(message)
+                if warn_log:
+                    warn_log(message)
+                continue
+
+            if len(ref) == 0 or len(est) == 0:
+                message = f"Warning: empty beats in {base} after trim"
+                warnings.append(message)
+                if warn_log:
+                    warn_log(message)
+                continue
+
+            scores = mir_eval.beat.evaluate(ref, est)
+            metric_values = [scores.get(name, float("nan")) for name in metric_names]
+
+            writer.writerow([base, len(ref), len(est)] + metric_values)
+            rows.append({name: val for name, val in zip(metric_names, metric_values)})
+
+    if log:
+        log(f"Wrote {out_csv}")
+
+    if not rows:
+        raise RuntimeError("No valid (reference, estimate) pairs were evaluated.")
+
+    agg = {"count": len(rows)}
+
+    for metric_name in metric_names:
+        values = np.array([row[metric_name] for row in rows], dtype=float)
+        finite_values = values[np.isfinite(values)]
+
+        if finite_values.size > 0:
+            agg[f"{metric_name}_mean"] = float(np.mean(finite_values))
+            agg[f"{metric_name}_std"] = float(
+                np.std(finite_values, ddof=1) if finite_values.size > 1 else 0.0
+            )
+            agg[f"{metric_name}_min"] = float(np.min(finite_values))
+            agg[f"{metric_name}_max"] = float(np.max(finite_values))
+
+    with out_json.open("w") as f:
+        json.dump(agg, f, indent=2)
+
+    if log:
+        log(f"Wrote {out_json}")
+        log("")
+        log("=== AGGREGATE SUMMARY ===")
+        log(f"Evaluated {agg['count']} files")
+        for metric_name in metric_names:
+            mean_key = f"{metric_name}_mean"
+            if mean_key in agg:
+                log(f"{metric_name:>18} mean: {agg[mean_key]:.6f}")
+
+    return {
+        "aggregate": agg,
+        "count": agg["count"],
+        "metric_names": metric_names,
+        "per_file_csv": str(out_csv),
+        "aggregate_json": str(out_json),
+        "warnings": warnings,
+    }
 
 
 def main():
@@ -62,93 +220,21 @@ def main():
     ap.add_argument("--out_json", default="aggregate.json", help="output JSON path")
     args = ap.parse_args()
 
-    # Find matching pairs
-    pairs = list_pairs(args.reference_dir, args.estimate_dir)
-    if not pairs:
-        print(
-            f"No matching .txt files in {args.reference_dir} and {args.estimate_dir}",
-            file=sys.stderr,
+    try:
+        run_batch_evaluation(
+            args.reference_dir,
+            args.estimate_dir,
+            args.out_csv,
+            args.out_json,
+            log=print,
+            warn_log=lambda msg: print(msg, file=sys.stderr),
         )
+    except FileNotFoundError as exc:
+        print(exc, file=sys.stderr)
         return 2
-
-    print(f"Found {len(pairs)} matching pairs")
-
-    # Metric column names (standard MIREX order)
-    metric_names = [
-        "F-measure",
-        "Cemgil",
-        "Information Gain",
-        "Goto",
-        "CMLc",
-        "CMLt",
-        "AMLc",
-        "AMLt",
-        "PScore"
-    ]
-
-    # Evaluate all pairs, write CSV
-    rows = []
-    with open(args.out_csv, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["file", "n_ref", "n_est"] + metric_names)
-
-        for base, ref_path, est_path in pairs:
-            try:
-                ref = load_beats(ref_path)
-                est = load_beats(est_path)
-            except Exception as e:
-                print(f"Warning: failed to load {base}: {e}", file=sys.stderr)
-                continue
-
-            if len(ref) == 0 or len(est) == 0:
-                print(f"Warning: empty beats in {base} after trim", file=sys.stderr)
-                continue
-
-            # Compute metrics
-            scores = mir_eval.beat.evaluate(ref, est)
-
-            # Extract metric values in order
-            metric_values = [scores.get(name, float("nan")) for name in metric_names]
-
-            # Write row
-            writer.writerow([base, len(ref), len(est)] + metric_values)
-
-            # Store for aggregation
-            rows.append({name: val for name, val in zip(metric_names, metric_values)})
-
-    print(f"Wrote {args.out_csv}")
-
-    # Compute aggregate statistics
-    agg = {"count": len(rows)}
-
-    for metric_name in metric_names:
-        values = np.array(
-            [row[metric_name] for row in rows],
-            dtype=float
-        )
-        # Only use finite values
-        finite_values = values[np.isfinite(values)]
-
-        if finite_values.size > 0:
-            agg[f"{metric_name}_mean"] = float(np.mean(finite_values))
-            agg[f"{metric_name}_std"] = float(
-                np.std(finite_values, ddof=1) if finite_values.size > 1 else 0.0
-            )
-            agg[f"{metric_name}_min"] = float(np.min(finite_values))
-            agg[f"{metric_name}_max"] = float(np.max(finite_values))
-
-    # Write JSON
-    with open(args.out_json, "w") as f:
-        json.dump(agg, f, indent=2)
-
-    print(f"Wrote {args.out_json}")
-    print()
-    print("=== AGGREGATE SUMMARY ===")
-    print(f"Evaluated {agg['count']} files")
-    for metric_name in metric_names:
-        mean_key = f"{metric_name}_mean"
-        if mean_key in agg:
-            print(f"{metric_name:>18} mean: {agg[mean_key]:.6f}")
+    except RuntimeError as exc:
+        print(exc, file=sys.stderr)
+        return 3
 
     return 0
 

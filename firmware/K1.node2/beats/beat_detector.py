@@ -11,10 +11,16 @@ Status: MVP - Tier 2 Implementation
 """
 
 import argparse
+import os
+from pathlib import Path
+
 import numpy as np
+
+# Ensure numba (used internally by librosa) has a writable cache location.
+os.environ.setdefault("NUMBA_CACHE_DIR", "/tmp/k1_numba_cache")
+
 import librosa
 import soundfile as sf
-from pathlib import Path
 
 
 class BeatDetector:
@@ -43,6 +49,30 @@ class BeatDetector:
         self.sr = sr
         self.hop_length = hop_length
 
+    def compute_features(self, y, sr):
+        """
+        Compute core features used by beat detection.
+
+        Returns:
+            onset_env: Onset strength envelope
+            onset_frames: Peak-picked onset frame indices
+            onset_times: Onset times in seconds
+        """
+        onset_env = librosa.onset.onset_strength(y=y, sr=sr, hop_length=self.hop_length)
+        onset_frames = librosa.util.peak_pick(
+            onset_env,
+            pre_max=3,
+            post_max=3,
+            pre_avg=3,
+            post_avg=3,
+            delta=0.1,
+            wait=10,
+        )
+        onset_times = librosa.frames_to_time(
+            onset_frames, sr=sr, hop_length=self.hop_length
+        )
+        return onset_env, onset_frames, onset_times
+
     def detect_beats(self, audio_path, units="time", filter_beats=True):
         """
         Detect beats in audio file.
@@ -57,47 +87,51 @@ class BeatDetector:
             tempo: Estimated tempo (BPM)
             onsets: Onset times for debugging
         """
-        # Load audio
-        y, sr = librosa.load(audio_path, sr=self.sr)
+        # Load audio at native sample rate (avoid unnecessary resampling)
+        y, sr = librosa.load(audio_path, sr=None)
 
         # Method 1: librosa.beat.beat_track (simple, effective)
         # This combines onset detection + tempogram + beat linking
         tempo, frames = librosa.beat.beat_track(
             y=y,
-            sr=self.sr,
+            sr=sr,
             hop_length=self.hop_length,
             units="frames",
         )
 
         # Convert frames to time
-        times = librosa.frames_to_time(frames, sr=self.sr, hop_length=self.hop_length)
+        times = librosa.frames_to_time(frames, sr=sr, hop_length=self.hop_length)
 
-        # Filter out beats that are too close together
-        # If beats are closer than 0.3s, they're likely octave confusion
+        # Adaptive filtering to reduce octave confusion and boundary artifacts
         if filter_beats and len(times) > 1:
-            beat_interval = np.median(np.diff(times))
-            min_interval = beat_interval * 0.4  # Allow some variation
+            beat_interval = float(np.median(np.diff(times)))
+            # Minimum interval: 40% of median or 70ms, whichever is larger
+            min_interval = max(0.4 * beat_interval, 0.070)
 
-            filtered_times = [times[0]]
-            for t in times[1:]:
-                if t - filtered_times[-1] >= min_interval:
+            # Track duration for boundary handling
+            duration = len(y) / float(sr)
+            start_guard = 0.05  # drop beats within first 50ms
+            end_guard = 0.05    # drop beats within last 50ms
+
+            filtered_times = []
+            last_time = None
+            for t in times:
+                if t < start_guard or t > (duration - end_guard):
+                    continue
+                if last_time is None or (t - last_time) >= min_interval:
                     filtered_times.append(t)
+                    last_time = t
             times = np.array(filtered_times)
 
         # Also compute onsets for analysis
-        onset_env = librosa.onset.onset_strength(y=y, sr=self.sr)
-        onsets_frames = librosa.util.peak_pick(
-            onset_env, pre_max=3, post_max=3, pre_avg=3, post_avg=3, delta=0.1, wait=10
-        )
-        onsets_times = librosa.frames_to_time(
-            onsets_frames, sr=self.sr, hop_length=self.hop_length
-        )
+        onset_env, onsets_frames, onsets_times = self.compute_features(y, sr)
 
         return {
             "beats": times,
             "tempo": tempo,
             "onsets": onsets_times,
             "frames": frames,
+            "sr": sr,
         }
 
     def detect_beats_custom(self, audio_path, onset_threshold=0.1, tempo_range=(80, 180)):
@@ -117,10 +151,10 @@ class BeatDetector:
         Returns:
             Dictionary with beats, tempo, onsets
         """
-        y, sr = librosa.load(audio_path, sr=self.sr)
+        y, sr = librosa.load(audio_path, sr=None)
 
         # Step 1: Onset detection (spectral flux)
-        onset_env = librosa.onset.onset_strength(y=y, sr=self.sr)
+        onset_env = librosa.onset.onset_strength(y=y, sr=sr)
 
         # Step 2: Peak-pick onsets
         onset_frames = librosa.util.peak_pick(
@@ -133,24 +167,24 @@ class BeatDetector:
             wait=10,
         )
         onset_times = librosa.frames_to_time(
-            onset_frames, sr=self.sr, hop_length=self.hop_length
+            onset_frames, sr=sr, hop_length=self.hop_length
         )
 
         # Step 3: Tempogram for tempo estimation
-        hop_length = 512
-        oenv = librosa.onset.onset_strength(y=y, sr=self.sr, hop_length=hop_length)
+        hop_length = self.hop_length
+        oenv = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop_length)
 
         # Autocorrelation tempogram
-        tempogram = librosa.feature.tempogram(onset_env=oenv, sr=self.sr)
+        tempogram = librosa.feature.tempogram(onset_env=oenv, sr=sr)
 
         # Find dominant tempo (at different lags)
         # Tempo hypothesis space
         tempo_min, tempo_max = tempo_range
         n_fft = 4096
-        frequencies = librosa.fft_frequencies(sr=self.sr, n_fft=n_fft)
+        frequencies = librosa.fft_frequencies(sr=sr, n_fft=n_fft)
         # Map frequencies to tempos
         # Actually, let's just use librosa's built-in tempo estimation
-        tempo = librosa.feature.tempo(onset_env=oenv, sr=self.sr)[0]
+        tempo = librosa.feature.tempo(onset_env=oenv, sr=sr)[0]
 
         # Clamp to valid range
         tempo = np.clip(tempo, tempo_min, tempo_max)
@@ -200,7 +234,14 @@ class BeatDetector:
         return np.array(beats)
 
 
-def generate_synthetic_audio(tempo=120, duration=30, sr=22050, click_freq=1000, first_beat=0.5):
+def generate_synthetic_audio(
+    tempo=120,
+    duration=30,
+    sr=22050,
+    click_freq=1000,
+    first_beat=0.5,
+    rng=None,
+):
     """
     Generate synthetic audio with known tempo for testing.
 
@@ -238,7 +279,10 @@ def generate_synthetic_audio(tempo=120, duration=30, sr=22050, click_freq=1000, 
             y[beat_sample : beat_sample + click_samples] += click * 0.7
 
     # Add some background noise (less than before)
-    noise = np.random.normal(0, 0.02, len(y))
+    if rng is None:
+        rng = np.random.default_rng()
+
+    noise = rng.normal(0, 0.02, len(y))
     y = y + noise
 
     # Normalize

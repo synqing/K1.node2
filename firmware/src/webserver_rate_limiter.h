@@ -37,6 +37,17 @@ static const char* ROUTE_TEST_CONNECTION = "/api/test-connection";
 static const char* ROUTE_DEVICE_PERFORMANCE = "/api/device/performance";
 static const char* ROUTE_CONFIG_BACKUP = "/api/config/backup";
 static const char* ROUTE_CONFIG_RESTORE = "/api/config/restore";
+static const char* ROUTE_DIAG = "/api/diag";
+static const char* ROUTE_BEAT_EVENTS_INFO = "/api/beat-events/info";
+static const char* ROUTE_LATENCY_PROBE = "/api/latency/probe";
+static const char* ROUTE_BEAT_EVENTS_RECENT = "/api/beat-events/recent";
+static const char* ROUTE_BEAT_EVENTS_DUMP = "/api/beat-events/dump";
+static const char* ROUTE_AUDIO_TEMPO = "/api/audio/tempo";
+static const char* ROUTE_AUDIO_SNAPSHOT = "/api/audio/snapshot";
+static const char* ROUTE_AUDIO_ARRAYS = "/api/audio/arrays";
+static const char* ROUTE_WIFI_STATUS = "/api/wifi/status";
+static const char* ROUTE_PATTERN_CURRENT = "/api/pattern/current";
+static const char* ROUTE_REALTIME_CONFIG = "/api/realtime/config";
 
 // Spinlock for protecting rate limiter state against concurrent access
 // Prevents race condition where two requests could both pass the rate limit check
@@ -49,9 +60,11 @@ static RouteWindow control_windows[] = {
     {ROUTE_SELECT, ROUTE_POST, 200, 0},
     {ROUTE_AUDIO_CONFIG, ROUTE_POST, 300, 0},
     {ROUTE_RESET, ROUTE_POST, 1000, 0},
+    {ROUTE_DIAG, ROUTE_POST, 300, 0},
     {ROUTE_METRICS, ROUTE_GET, 200, 0},
     {ROUTE_PARAMS, ROUTE_GET, 150, 0},
     {ROUTE_AUDIO_CONFIG, ROUTE_GET, 500, 0},
+    {ROUTE_DIAG, ROUTE_GET, 200, 0},
     {ROUTE_WIFI_LINK_OPTIONS, ROUTE_GET, 500, 0},
     {ROUTE_PATTERNS, ROUTE_GET, 1000, 0},
     {ROUTE_PALETTES, ROUTE_GET, 2000, 0},
@@ -60,6 +73,17 @@ static RouteWindow control_windows[] = {
     {ROUTE_DEVICE_PERFORMANCE, ROUTE_GET, 500, 0},
     {ROUTE_CONFIG_BACKUP, ROUTE_GET, 2000, 0},
     {ROUTE_CONFIG_RESTORE, ROUTE_POST, 2000, 0},
+    {ROUTE_BEAT_EVENTS_INFO, ROUTE_GET, 200, 0},
+    {ROUTE_LATENCY_PROBE, ROUTE_GET, 200, 0},
+    {ROUTE_BEAT_EVENTS_RECENT, ROUTE_GET, 300, 0},
+    {ROUTE_BEAT_EVENTS_DUMP, ROUTE_GET, 500, 0},
+    {ROUTE_AUDIO_TEMPO, ROUTE_GET, 200, 0},
+    {ROUTE_AUDIO_SNAPSHOT, ROUTE_GET, 300, 0},
+    {ROUTE_AUDIO_ARRAYS, ROUTE_GET, 200, 0},
+    {ROUTE_WIFI_STATUS, ROUTE_GET, 500, 0},
+    {ROUTE_PATTERN_CURRENT, ROUTE_GET, 200, 0},
+    {ROUTE_REALTIME_CONFIG, ROUTE_GET, 200, 0},
+    {ROUTE_REALTIME_CONFIG, ROUTE_POST, 300, 0},
 };
 
 /**

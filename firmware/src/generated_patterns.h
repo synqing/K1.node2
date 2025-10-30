@@ -452,6 +452,9 @@ void draw_bloom(float time, const PatternParameters& params) {
 		leds[i].g = color.g * params.brightness;
 		leds[i].b = color.b * params.brightness;
 	}
+
+	// Enforce center-origin symmetry
+	apply_mirror_mode(leds, true);
 }
 
 /**
@@ -528,7 +531,7 @@ void draw_pulse(float time, const PatternParameters& params) {
 	if (now - last_diagnostic > 1000) {
 		last_diagnostic = now;
 		LOG_DEBUG(TAG_GPU, "[PULSE] audio_available=%d, tempo_confidence=%.2f, brightness=%.2f, speed=%.2f",
-			(int)audio_available, AUDIO_TEMPO_CONFIDENCE, params.brightness, params.speed);
+			(int)AUDIO_IS_AVAILABLE(), AUDIO_TEMPO_CONFIDENCE, params.brightness, params.speed);
 	}
 
 	// Fallback to ambient if no audio
@@ -694,11 +697,15 @@ void draw_tempiscope(float time, const PatternParameters& params) {
 		// Use palette system directly from web UI selection
 		CRGBF color = color_from_palette(params.palette_id, hue_progress, brightness);
 
-		// Apply brightness and saturation
-		leds[i].r = color.r * params.brightness * params.saturation;
-		leds[i].g = color.g * params.brightness * params.saturation;
-		leds[i].b = color.b * params.brightness * params.saturation;
+		// Apply brightness, saturation, and tempo confidence gating
+		float conf = AUDIO_TEMPO_CONFIDENCE;
+		leds[i].r = color.r * params.brightness * params.saturation * conf;
+		leds[i].g = color.g * params.brightness * params.saturation * conf;
+		leds[i].b = color.b * params.brightness * params.saturation * conf;
 	}
+
+	// Enforce center-origin symmetry
+	apply_mirror_mode(leds, true);
 }
 
 // ============================================================================
@@ -891,7 +898,12 @@ void draw_perlin(float time, const PatternParameters& params) {
 
 	// Update Perlin noise position with time
 	beat_perlin_position_x = 0.0f;  // Fixed X
-	beat_perlin_position_y += 0.001f;  // Animated Y
+	// Audio-driven momentum (Emotiscope-inspired): vu^4 controls flow speed
+	{
+		float vu = AUDIO_IS_AVAILABLE() ? AUDIO_VU : 0.3f;
+		float momentum = (0.0008f + 0.004f * params.speed) * (0.2f + powf(vu, 4.0f) * 0.8f);
+		beat_perlin_position_y += momentum;
+	}
 
 	// Generate Perlin noise for downsampled positions
 	for (uint16_t i = 0; i < (NUM_LEDS >> 2); i++) {
@@ -929,6 +941,9 @@ void draw_perlin(float time, const PatternParameters& params) {
 		leds[i].g = color.g * params.brightness * params.saturation;
 		leds[i].b = color.b * params.brightness * params.saturation;
 	}
+
+	// Enforce center-origin symmetry
+	apply_mirror_mode(leds, true);
 }
 
 // ============================================================================
@@ -1122,8 +1137,19 @@ void void_render_flowing_stream(float time, const PatternParameters& params) {
 
 // Main Void Trail pattern with switchable modes
 void draw_void_trail(float time, const PatternParameters& params) {
-	// Select mode based on custom_param_1 (0.0-1.0 -> 0-2)
-	int mode = (int)(params.custom_param_1 * 3.0f);
+	// Handle true OFF mode when custom_param_1 is very low
+	if (params.custom_param_1 < 0.1f) {
+		// True OFF: clear all LEDs to black (no flickering, no trails)
+		for (int i = 0; i < NUM_LEDS; i++) {
+			leds[i] = CRGBF(0.0f, 0.0f, 0.0f);
+		}
+		return;
+	}
+
+	// Select mode based on custom_param_1 (0.1-1.0 -> 0-2)
+	// Remap range: 0.1-1.0 becomes 0.0-1.0 for mode selection
+	float remapped = (params.custom_param_1 - 0.1f) / 0.9f;
+	int mode = (int)(remapped * 3.0f);
 	mode = fmaxf(0, fminf(2, mode));  // Clamp to [0, 2]
 
 	switch (mode) {
@@ -1140,6 +1166,9 @@ void draw_void_trail(float time, const PatternParameters& params) {
 			void_render_fade_to_black(time, params);
 			break;
 	}
+
+	// Enforce center-origin symmetry across modes
+	apply_mirror_mode(leds, true);
 }
 
 // ============================================================================
@@ -1452,7 +1481,7 @@ const PatternInfo g_pattern_registry[] = {
 		"perlin",
 		"Procedural noise field animation",
 		draw_perlin,
-		false
+		true
 	},
 	{
 		"Void Trail",

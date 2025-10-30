@@ -19,6 +19,16 @@
 #include "webserver_param_validator.h"    // Parameter validation utilities
 #include <SPIFFS.h>                       // For serving static web files
 #include "logging/logger.h"               // Centralized logging
+#include "diagnostics.h"                  // Runtime diagnostics control
+#include "beat_events.h"                  // Latency probe controls
+#include "audio/tempo.h"                   // Tempo telemetry
+// Debug telemetry defaults (compile-time overrides)
+#ifndef REALTIME_WS_ENABLED_DEFAULT
+#define REALTIME_WS_ENABLED_DEFAULT 1
+#endif
+#ifndef REALTIME_WS_DEFAULT_INTERVAL_MS
+#define REALTIME_WS_DEFAULT_INTERVAL_MS 250
+#endif
 
 // Forward declaration: WebSocket event handler
 static void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
@@ -228,8 +238,32 @@ public:
             }
         }
 
+        // Update audio active flag if provided
+        if (json.containsKey("active")) {
+            bool active = json["active"].as<bool>();
+            EMOTISCOPE_ACTIVE = active;
+            LOG_INFO(TAG_AUDIO, "Audio reactivity %s", active ? "ENABLED" : "DISABLED");
+
+            // Immediately reflect availability by invalidating current snapshot when disabling
+            // This ensures UI patterns see AUDIO_IS_AVAILABLE() == false right away
+            if (!active) {
+                // Zero out and mark back buffer invalid, then commit
+                memset(audio_back.spectrogram, 0, sizeof(float) * NUM_FREQS);
+                memset(audio_back.spectrogram_smooth, 0, sizeof(float) * NUM_FREQS);
+                memset(audio_back.chromagram, 0, sizeof(float) * 12);
+                audio_back.vu_level = 0.0f;
+                audio_back.vu_level_raw = 0.0f;
+                memset(audio_back.tempo_magnitude, 0, sizeof(float) * NUM_TEMPI);
+                memset(audio_back.tempo_phase, 0, sizeof(float) * NUM_TEMPI);
+                audio_back.is_valid = false;
+                audio_back.timestamp_us = esp_timer_get_time();
+                commit_audio_data();
+            }
+        }
+
         StaticJsonDocument<128> response_doc;
         response_doc["microphone_gain"] = configuration.microphone_gain;
+        response_doc["active"] = EMOTISCOPE_ACTIVE;
         String response;
         serializeJson(response_doc, response);
         ctx.sendJson(200, response);
@@ -284,6 +318,7 @@ public:
     void handle(RequestContext& ctx) override {
         StaticJsonDocument<128> doc;
         doc["microphone_gain"] = configuration.microphone_gain;
+        doc["active"] = EMOTISCOPE_ACTIVE;
         String response;
         serializeJson(doc, response);
         ctx.sendJson(200, response);
@@ -422,6 +457,431 @@ public:
     }
 };
 
+// GET /api/diag - Read current diagnostics configuration
+class GetDiagHandler : public K1RequestHandler {
+public:
+    GetDiagHandler() : K1RequestHandler(ROUTE_DIAG, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        StaticJsonDocument<128> resp;
+        resp["enabled"] = diag_is_enabled();
+        resp["interval_ms"] = diag_get_interval_ms();
+        resp["probe_logging"] = diag_is_enabled();
+        String output;
+        serializeJson(resp, output);
+        ctx.sendJson(200, output);
+    }
+};
+
+// GET /api/beat-events/info - Ring buffer summary
+class GetBeatEventsInfoHandler : public K1RequestHandler {
+public:
+    GetBeatEventsInfoHandler() : K1RequestHandler(ROUTE_BEAT_EVENTS_INFO, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        StaticJsonDocument<128> resp;
+        resp["count"] = beat_events_count();
+        resp["capacity"] = beat_events_capacity();
+        String output;
+        serializeJson(resp, output);
+        ctx.sendJson(200, output);
+    }
+};
+
+// GET /api/latency/probe - Last latency probe snapshot
+class GetLatencyProbeHandler : public K1RequestHandler {
+public:
+    GetLatencyProbeHandler() : K1RequestHandler(ROUTE_LATENCY_PROBE, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        StaticJsonDocument<192> resp;
+        resp["active"] = beat_events_probe_active();
+        resp["last_latency_ms"] = ((float)beat_events_last_latency_us()) / 1000.0f;
+        resp["timestamp_us"] = beat_events_last_probe_timestamp_us();
+        const char* label = beat_events_last_probe_label();
+        if (label && label[0] != '\0') {
+            resp["label"] = label;
+        }
+        String output;
+        serializeJson(resp, output);
+        ctx.sendJson(200, output);
+    }
+};
+
+// GET /api/beat-events/recent - Non-destructive recent events snapshot
+class GetBeatEventsRecentHandler : public K1RequestHandler {
+public:
+    GetBeatEventsRecentHandler() : K1RequestHandler(ROUTE_BEAT_EVENTS_RECENT, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        uint16_t limit = 10;
+        if (ctx.request->hasParam("limit")) {
+            auto p = ctx.request->getParam("limit");
+            limit = (uint16_t)strtoul(p->value().c_str(), nullptr, 10);
+        }
+        if (limit == 0) limit = 10;
+        if (limit > 32) limit = 32;
+        BeatEvent tmp[32];
+        uint16_t copied = beat_events_peek(tmp, limit);
+
+        StaticJsonDocument<768> resp;
+        resp["count"] = beat_events_count();
+        resp["capacity"] = beat_events_capacity();
+        JsonArray events = resp.createNestedArray("events");
+        for (uint16_t i = 0; i < copied; ++i) {
+            JsonObject ev = events.createNestedObject();
+            ev["timestamp_us"] = tmp[i].timestamp_us;
+            ev["confidence"] = tmp[i].confidence;
+        }
+        String output;
+        serializeJson(resp, output);
+        ctx.sendJson(200, output);
+    }
+};
+
+// GET /api/audio/tempo - Current tempo/beat telemetry snapshot
+class GetAudioTempoHandler : public K1RequestHandler {
+public:
+    GetAudioTempoHandler() : K1RequestHandler(ROUTE_AUDIO_TEMPO, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        const uint8_t K = 5;
+        struct Bin { uint16_t idx; float mag; } top[K];
+        for (uint8_t i = 0; i < K; ++i) { top[i] = {0, 0.0f}; }
+        for (uint16_t i = 0; i < NUM_TEMPI; ++i) {
+            float mag = tempi_smooth[i];
+            for (uint8_t k = 0; k < K; ++k) {
+                if (mag > top[k].mag) {
+                    for (int j = K-1; j > k; --j) top[j] = top[j-1];
+                    top[k] = {i, mag};
+                    break;
+                }
+            }
+        }
+
+        StaticJsonDocument<512> resp;
+        resp["tempo_confidence"] = tempo_confidence;
+        resp["tempi_power_sum"] = tempi_power_sum;
+        resp["silence_detected"] = silence_detected;
+        resp["silence_level"] = silence_level;
+        resp["max_tempo_range"] = MAX_TEMPO_RANGE;
+        JsonArray top_bins = resp.createNestedArray("top_bins");
+        for (uint8_t i = 0; i < K; ++i) {
+            uint16_t idx = top[i].idx;
+            JsonObject b = top_bins.createNestedObject();
+            b["idx"] = idx;
+            b["bpm"] = tempi_bpm_values_hz[idx] * 60.0f;
+            b["magnitude"] = tempi_smooth[idx];
+            b["phase"] = tempi[idx].phase;
+            b["beat"] = tempi[idx].beat;
+        }
+        String output;
+        serializeJson(resp, output);
+        ctx.sendJson(200, output);
+    }
+};
+
+// GET /api/audio/arrays - Downsampled spectrogram_smooth and tempi_smooth slices
+class GetAudioArraysHandler : public K1RequestHandler {
+public:
+    GetAudioArraysHandler() : K1RequestHandler(ROUTE_AUDIO_ARRAYS, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        // Query: count (default 16, clamp 4..64), offset (default 0), stride (default auto)
+        // Optional: history=true to return recent frames (spectrogram_average)
+        //           frames=N (clamped to available slots and bounds)
+        uint16_t count = 16;
+        uint16_t offset = 0;
+        uint16_t stride = 0; // 0 => auto based on count
+        bool history = false;
+        uint16_t frames = 0; // 0 => auto (use available)
+
+        if (ctx.request->hasParam("count")) {
+            auto p = ctx.request->getParam("count");
+            count = (uint16_t)strtoul(p->value().c_str(), nullptr, 10);
+        }
+        if (ctx.request->hasParam("offset")) {
+            auto p = ctx.request->getParam("offset");
+            offset = (uint16_t)strtoul(p->value().c_str(), nullptr, 10);
+        }
+        if (ctx.request->hasParam("stride")) {
+            auto p = ctx.request->getParam("stride");
+            stride = (uint16_t)strtoul(p->value().c_str(), nullptr, 10);
+        }
+        if (ctx.request->hasParam("history")) {
+            auto p = ctx.request->getParam("history");
+            String v = p->value();
+            history = (v == "1" || v == "true" || v == "True");
+        }
+        if (ctx.request->hasParam("frames")) {
+            auto p = ctx.request->getParam("frames");
+            frames = (uint16_t)strtoul(p->value().c_str(), nullptr, 10);
+        }
+
+        if (count < 4) count = 4;
+        if (count > 64) count = 64;
+
+        uint16_t spec_bins = NUM_FREQS;
+        uint16_t tempi_bins = NUM_TEMPI;
+        if (offset >= spec_bins) offset = spec_bins - 1;
+        if (stride == 0) stride = spec_bins / count;
+        if (stride == 0) stride = 1; // fallback
+        if (stride > spec_bins) stride = spec_bins;
+
+        StaticJsonDocument<1024> resp;
+        if (!history) {
+            JsonArray spec_out = resp.createNestedArray("spectrogram");
+            for (uint16_t i = offset; i < spec_bins && spec_out.size() < count; i += stride) {
+                spec_out.add(spectrogram_smooth[i]);
+            }
+        } else {
+            // History window bounds: conservative 4..NUM_SPECTROGRAM_AVERAGE_SAMPLES
+            uint16_t max_slots = NUM_SPECTROGRAM_AVERAGE_SAMPLES;
+            if (frames == 0) frames = max_slots; // auto: use all available
+            if (frames < 4) frames = 4;
+            if (frames > max_slots) frames = max_slots;
+
+            JsonArray spec_hist = resp.createNestedArray("spectrogram_history");
+            // Iterate newest→oldest using spectrogram_average ring buffer
+            // Assume spectrogram_average_index points to next write slot
+            for (uint16_t f = 0; f < frames; ++f) {
+                int idx = (int)spectrogram_average_index - 1 - (int)f;
+                while (idx < 0) idx += max_slots;
+                JsonArray frame_out = spec_hist.createNestedArray();
+                for (uint16_t i = offset; i < spec_bins && frame_out.size() < count; i += stride) {
+                    frame_out.add(spectrogram_average[idx][i]);
+                }
+            }
+            resp["frames"] = frames;
+        }
+
+        // Tempo slice uses same offset/stride concept but clamps to tempi_bins
+        if (offset >= tempi_bins) offset = tempi_bins - 1;
+        if (stride > tempi_bins) stride = tempi_bins;
+        JsonArray tempi_out = resp.createNestedArray("tempi");
+        for (uint16_t i = offset; i < tempi_bins && tempi_out.size() < count; i += stride) {
+            tempi_out.add(tempi_smooth[i]);
+        }
+
+        resp["count"] = count;
+        resp["offset"] = offset;
+        resp["stride"] = stride;
+        resp["source_bins"] = spec_bins;
+        resp["source_tempi"] = tempi_bins;
+        resp["history"] = history;
+
+        String output;
+        serializeJson(resp, output);
+        ctx.sendJson(200, output);
+    }
+};
+
+// GET /api/audio/snapshot - Minimal audio state snapshot for UI
+class GetAudioSnapshotHandler : public K1RequestHandler {
+public:
+    GetAudioSnapshotHandler() : K1RequestHandler(ROUTE_AUDIO_SNAPSHOT, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        StaticJsonDocument<256> resp;
+        resp["vu_level"] = audio_back.vu_level;
+        resp["vu_level_raw"] = audio_back.vu_level_raw;
+        resp["tempo_confidence"] = audio_back.tempo_confidence;
+        resp["update_counter"] = audio_back.update_counter;
+        resp["timestamp_us"] = audio_back.timestamp_us;
+        resp["is_valid"] = audio_back.is_valid;
+        String output;
+        serializeJson(resp, output);
+        ctx.sendJson(200, output);
+    }
+};
+
+// GET /api/wifi/status - Link status snapshot
+class GetWifiStatusHandler : public K1RequestHandler {
+public:
+    GetWifiStatusHandler() : K1RequestHandler(ROUTE_WIFI_STATUS, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        WifiLinkOptions opts;
+        wifi_monitor_get_link_options(opts);
+        StaticJsonDocument<256> resp;
+        resp["ssid"] = WiFi.SSID();
+        resp["rssi"] = WiFi.RSSI();
+        resp["ip"] = WiFi.localIP().toString();
+        resp["mac"] = WiFi.macAddress();
+        #ifdef ESP_ARDUINO_VERSION
+        resp["firmware"] = String(ESP.getSdkVersion());
+        #endif
+        resp["force_bg_only"] = opts.force_bg_only;
+        resp["force_ht20"] = opts.force_ht20;
+        String output;
+        serializeJson(resp, output);
+        ctx.sendJson(200, output);
+    }
+};
+
+// GET /api/pattern/current - Current pattern metadata
+class GetPatternCurrentHandler : public K1RequestHandler {
+public:
+    GetPatternCurrentHandler() : K1RequestHandler(ROUTE_PATTERN_CURRENT, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        const PatternInfo& p = get_current_pattern();
+        StaticJsonDocument<192> resp;
+        resp["index"] = g_current_pattern_index;
+        resp["id"] = p.id;
+        resp["name"] = p.name;
+        resp["is_audio_reactive"] = p.is_audio_reactive;
+        String output;
+        serializeJson(resp, output);
+        ctx.sendJson(200, output);
+    }
+};
+
+// GET /metrics - Prometheus-style metrics
+class GetMetricsHandler : public K1RequestHandler {
+public:
+    GetMetricsHandler() : K1RequestHandler(ROUTE_METRICS, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        float frames = FRAMES_COUNTED > 0 ? (float)FRAMES_COUNTED : 1.0f;
+        float avg_render_us = (float)ACCUM_RENDER_US / frames;
+        float avg_quantize_us = (float)ACCUM_QUANTIZE_US / frames;
+        float avg_rmt_wait_us = (float)ACCUM_RMT_WAIT_US / frames;
+        float avg_rmt_tx_us = (float)ACCUM_RMT_TRANSMIT_US / frames;
+        float frame_time_us = avg_render_us + avg_quantize_us + avg_rmt_wait_us + avg_rmt_tx_us;
+
+        String m;
+        m.reserve(512);
+        m += "k1_fps "; m += String(FPS_CPU); m += "\n";
+        m += "k1_frame_time_us "; m += String(frame_time_us); m += "\n";
+        m += "k1_cpu_percent "; m += String(cpu_monitor.getAverageCPUUsage()); m += "\n";
+        m += "k1_memory_free_kb "; m += String(ESP.getFreeHeap()/1024); m += "\n";
+        m += "k1_beat_events_count "; m += String(beat_events_count()); m += "\n";
+        m += "k1_tempo_confidence "; m += String(tempo_confidence); m += "\n";
+        ctx.sendText(200, m);
+    }
+};
+
+// GET /api/beat-events/dump - Ring-buffer snapshot with attachment headers
+class GetBeatEventsDumpHandler : public K1RequestHandler {
+public:
+    GetBeatEventsDumpHandler() : K1RequestHandler(ROUTE_BEAT_EVENTS_DUMP, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        uint16_t count = beat_events_count();
+        uint16_t cap = beat_events_capacity();
+        BeatEvent* tmp = new BeatEvent[cap];
+        uint16_t copied = beat_events_peek(tmp, count);
+
+        StaticJsonDocument<2048> resp;
+        resp["count"] = count;
+        resp["capacity"] = cap;
+        JsonArray events = resp.createNestedArray("events");
+        for (uint16_t i = 0; i < copied; ++i) {
+            JsonObject ev = events.createNestedObject();
+            ev["timestamp_us"] = tmp[i].timestamp_us;
+            ev["confidence"] = tmp[i].confidence;
+        }
+        String output;
+        serializeJson(resp, output);
+        delete[] tmp;
+        ctx.sendJsonWithHeaders(200, output, "Content-Disposition", "attachment; filename=\"beat-events.json\"");
+    }
+};
+
+// GET /api/realtime/config - WebSocket realtime telemetry configuration
+static bool s_realtime_ws_enabled = (REALTIME_WS_ENABLED_DEFAULT != 0);
+static uint32_t s_realtime_ws_interval_ms = REALTIME_WS_DEFAULT_INTERVAL_MS;
+class GetRealtimeConfigHandler : public K1RequestHandler {
+public:
+    GetRealtimeConfigHandler() : K1RequestHandler(ROUTE_REALTIME_CONFIG, ROUTE_GET) {}
+    void handle(RequestContext& ctx) override {
+        StaticJsonDocument<192> resp;
+        resp["enabled"] = s_realtime_ws_enabled;
+        resp["interval_ms"] = s_realtime_ws_interval_ms;
+        String output;
+        serializeJson(resp, output);
+        ctx.sendJson(200, output);
+    }
+};
+
+// POST /api/realtime/config - Update WebSocket telemetry config
+class PostRealtimeConfigHandler : public K1RequestHandler {
+public:
+    PostRealtimeConfigHandler() : K1RequestHandler(ROUTE_REALTIME_CONFIG, ROUTE_POST) {}
+    void handle(RequestContext& ctx) override {
+        if (!ctx.hasJson()) {
+            ctx.sendError(400, "invalid_json", "Missing or invalid JSON body");
+            return;
+        }
+        JsonObjectConst body = ctx.getJson();
+        bool updated = false;
+
+        // Validate and apply 'enabled' (optional)
+        if (body.containsKey("enabled")) {
+            if (!body["enabled"].is<bool>()) {
+                ctx.sendError(400, "invalid_param", "enabled must be boolean");
+                return;
+            }
+            s_realtime_ws_enabled = body["enabled"].as<bool>();
+            updated = true;
+        }
+
+        // Validate and apply 'interval_ms' (optional, clamp 100..5000)
+        if (body.containsKey("interval_ms")) {
+            if (!body["interval_ms"].is<uint32_t>()) {
+                ctx.sendError(400, "invalid_param", "interval_ms must be integer");
+                return;
+            }
+            uint32_t v = body["interval_ms"].as<uint32_t>();
+            if (v < 100 || v > 5000) {
+                ctx.sendError(400, "invalid_param", "interval_ms must be between 100 and 5000");
+                return;
+            }
+            s_realtime_ws_interval_ms = v;
+            updated = true;
+        }
+
+        if (!updated) {
+            ctx.sendError(400, "no_fields", "Provide enabled and/or interval_ms");
+            return;
+        }
+
+        StaticJsonDocument<192> resp;
+        resp["enabled"] = s_realtime_ws_enabled;
+        resp["interval_ms"] = s_realtime_ws_interval_ms;
+        String output;
+        serializeJson(resp, output);
+        ctx.sendJson(200, output);
+    }
+};
+
+// POST /api/diag - Enable/disable diagnostics and set print interval
+class PostDiagHandler : public K1RequestHandler {
+public:
+    PostDiagHandler() : K1RequestHandler(ROUTE_DIAG, ROUTE_POST) {}
+    void handle(RequestContext& ctx) override {
+        if (!ctx.hasJson()) {
+            ctx.sendError(400, "invalid_json", "Request body contains invalid JSON");
+            return;
+        }
+
+        JsonObjectConst json = ctx.getJson();
+
+        // Partial updates supported
+        if (json.containsKey("enabled")) {
+            bool enabled = json["enabled"].as<bool>();
+            diag_set_enabled(enabled);
+            // Mirror to latency probe logging so host request gates both
+            beat_events_set_probe_logging(enabled);
+        }
+
+        if (json.containsKey("interval_ms")) {
+            uint32_t interval_ms = json["interval_ms"].as<uint32_t>();
+            diag_set_interval_ms(interval_ms);
+            // Apply same interval to latency probe prints
+            beat_events_set_probe_interval_ms(interval_ms);
+        }
+
+        StaticJsonDocument<128> resp;
+        resp["enabled"] = diag_is_enabled();
+        resp["interval_ms"] = diag_get_interval_ms();
+        resp["probe_logging"] = diag_is_enabled();
+        String output;
+        serializeJson(resp, output);
+        ctx.sendJson(200, output);
+    }
+};
+
 // ============================================================================
 // Handler Memory Management Note
 //
@@ -452,6 +912,22 @@ void init_webserver() {
     registerPostHandler(server, ROUTE_AUDIO_CONFIG, new PostAudioConfigHandler());
     registerPostHandler(server, ROUTE_WIFI_LINK_OPTIONS, new PostWifiLinkOptionsHandler());
     registerPostHandler(server, ROUTE_CONFIG_RESTORE, new PostConfigRestoreHandler());
+    registerPostHandler(server, ROUTE_DIAG, new PostDiagHandler());
+
+    // Register GET handlers for diagnostics
+    registerGetHandler(server, ROUTE_DIAG, new GetDiagHandler());
+    registerGetHandler(server, ROUTE_BEAT_EVENTS_INFO, new GetBeatEventsInfoHandler());
+    registerGetHandler(server, ROUTE_LATENCY_PROBE, new GetLatencyProbeHandler());
+    registerGetHandler(server, ROUTE_BEAT_EVENTS_RECENT, new GetBeatEventsRecentHandler());
+    registerGetHandler(server, ROUTE_AUDIO_TEMPO, new GetAudioTempoHandler());
+    registerGetHandler(server, ROUTE_AUDIO_SNAPSHOT, new GetAudioSnapshotHandler());
+    registerGetHandler(server, ROUTE_WIFI_STATUS, new GetWifiStatusHandler());
+    registerGetHandler(server, ROUTE_PATTERN_CURRENT, new GetPatternCurrentHandler());
+    registerGetHandler(server, ROUTE_METRICS, new GetMetricsHandler());
+    registerGetHandler(server, ROUTE_BEAT_EVENTS_DUMP, new GetBeatEventsDumpHandler());
+    registerGetHandler(server, ROUTE_AUDIO_ARRAYS, new GetAudioArraysHandler());
+    registerGetHandler(server, ROUTE_REALTIME_CONFIG, new GetRealtimeConfigHandler());
+    registerPostHandler(server, ROUTE_REALTIME_CONFIG, new PostRealtimeConfigHandler());
 
     // Register remaining GET handlers
     registerGetHandler(server, ROUTE_AUDIO_CONFIG, new GetAudioConfigHandler());
@@ -701,15 +1177,16 @@ static void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *clien
 
 // Broadcast real-time data to all connected WebSocket clients
 void broadcast_realtime_data() {
-    if (ws.count() == 0) return; // No clients connected
+    if (!s_realtime_ws_enabled || ws.count() == 0) return; // Disabled or no clients
 
     // Lightweight rate limiting based on current WiFi link options
-    // - Default interval: 100ms
-    // - If forced b/g-only or HT20 (narrow bandwidth), relax to 200ms
+    // Interval: compile-time default (e.g. 250ms). If forced b/g-only or HT20,
+    // apply a minimum floor of 200ms to avoid congesting narrow-band links.
     static uint32_t last_broadcast_ms = 0;
     WifiLinkOptions opts;
     wifi_monitor_get_link_options(opts);
-    const uint32_t interval_ms = (opts.force_bg_only || opts.force_ht20) ? 200u : 100u;
+    const uint32_t floor_wifi_ms = (opts.force_bg_only || opts.force_ht20) ? 200u : s_realtime_ws_interval_ms;
+    const uint32_t interval_ms = floor_wifi_ms > s_realtime_ws_interval_ms ? floor_wifi_ms : s_realtime_ws_interval_ms;
     uint32_t now = millis();
     if (now - last_broadcast_ms < interval_ms) {
         return;

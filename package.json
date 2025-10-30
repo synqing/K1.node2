@@ -4,5 +4,7 @@
     "@types/node": "^24.9.1",
     "jest-axe": "^10.0.0"
   },
-  "scripts": {}
+  "scripts": {
+    "k1:diagnose": "node tools/k1-diagnose/k1-diagnose.mjs"
+  }
 }

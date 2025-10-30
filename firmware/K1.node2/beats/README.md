@@ -61,8 +61,8 @@ Example estimate file (algorithm output):
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (pinned)
+pip install -r requirements.lock
 ```
 
 ## Week 1: Single-File Learning
@@ -179,6 +179,47 @@ See `data/GTZAN_DATASET_SETUP.md` and `data/HARMONIX_DATASET_SETUP.md` for compl
 
 For historical context and broader MIREX reference, see `docs/analysis/MIREX_BEAT_TRACKING_COMPLETE_GUIDE.md`.
 
+## Phase 2B Preparation
+
+Use the automation harness to validate datasets and generate real-audio metrics:
+
+```bash
+# Validate dataset integrity
+python phase2b_prep.py validate --dataset gtzan --dataset ballroom --summary-json results/dataset_validation.json
+
+# Run beat detection + evaluation on GTZAN
+python phase2b_prep.py run --dataset gtzan --results-dir results/phase2b_gtzan
+
+# Parallel run with workers (defaults to CPU cores minus one)
+python phase2b_prep.py run --dataset gtzan --workers 8
+
+# Resume mode: skip already-computed estimates
+python phase2b_prep.py run --dataset gtzan --resume
+
+# Optional per-file progress log (CSV)
+python phase2b_prep.py run --dataset gtzan \
+  --workers 8 \
+  --log-csv results/phase2b_gtzan/progress.csv
+```
+
+Note on dependencies:
+- `validate` runs without audio libraries; if `soundfile` is unavailable, audio metadata (sample rate, channels, durations) is skipped.
+- `run` requires audio/evaluation libraries (e.g., `librosa`, `soundfile`, `mir-eval`). Prefer Python 3.11 for best compatibility.
+
+Flags:
+- `--limit N` processes a subset for smoke testing.
+- `--overwrite` regenerates existing estimate files.
+- `--estimate-dir PATH` places beat estimates in a custom location.
+- `--workers` parallelizes beat detection across multiple processes (set `1` to disable).
+- `--resume` skips files where estimate outputs already exist (incremental runs).
+- `--log-csv` writes a per-file progress log with timestamps, filenames, status, beats count, and error info.
+
+### Outputs
+- `results/phase2b_<dataset>/per_file.csv` — Per-file metrics
+- `results/phase2b_<dataset>/aggregate.json` — Aggregate statistics
+- `results/phase2b_<dataset>/run_summary.json` — Run metadata and paths
+- Optional `progress.csv` (if `--log-csv` is provided)
+
 ## Troubleshooting
 
 **"No matching .txt basenames"**: Check that reference/ and estimates/ have same filenames.
@@ -196,6 +237,19 @@ Once metrics are validated:
 - [ ] Commit dataset pinning (DATASET.md) for reproducibility
 
 For now, focus on understanding raw metrics and algorithm performance.
+
+## CI Smoke-Gate
+
+Use `smoke_gate.py` to run a minimal validation/detection to keep CI green and produce small artifacts:
+
+```bash
+python firmware/K1.node2/beats/smoke_gate.py --log-csv results/smoke/progress.csv
+```
+
+Behavior:
+- Checks for dataset folders before attempting to run; skips gracefully if absent.
+- Invokes `phase2b_prep.py` via subprocess, mirroring CLI behavior.
+- Exits `0` even if datasets are missing, so CI remains stable in data-less environments.
 
 ## See Also
 

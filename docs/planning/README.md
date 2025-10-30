@@ -92,6 +92,9 @@ This directory contains forward-looking design specifications, migration plans, 
 
 | Document | Purpose | Status |
 |----------|---------|--------|
+| [song_analysis_refined_architecture.md](song_analysis_refined_architecture.md) | **NEW** - Refined architecture for Song Analysis Module with 10-133x performance gains | ✅ Published |
+| [fastapi_implementation_guide.md](fastapi_implementation_guide.md) | FastAPI implementation guide for Song Analysis backend | ✅ Published |
+| [song_analysis_ml_architecture.md](song_analysis_ml_architecture.md) | ML/AI architecture for audio analysis pipeline | ✅ Published |
 | [webserver_split_proposal.md](webserver_split_proposal.md) | Splitting webserver into reusable modules | ✅ Published |
 | [PF5_IMPLEMENTATION_STRATEGY.md](PF5_IMPLEMENTATION_STRATEGY.md) | PlatformIO Firebase 5 integration strategy | ✅ Published |
 | [WORKFLOW_ORCHESTRATOR_IMPLEMENTATION.yaml](WORKFLOW_ORCHESTRATOR_IMPLEMENTATION.yaml) | Workflow orchestration config | ✅ Published |
@@ -248,6 +251,9 @@ When creating new planning documents:
 
 | Date | Document | Change |
 |------|----------|--------|
+| 2025-10-31 | song_analysis_refined_architecture.md | Created refined architecture with expert agent reviews - 10-133x performance improvements |
+| 2025-10-31 | fastapi_implementation_guide.md | Created FastAPI implementation guide for Song Analysis backend |
+| 2025-10-31 | song_analysis_ml_architecture.md | Created ML/AI architecture for audio analysis pipeline |
 | 2025-10-28 | i2s_timeout_fix_summary.md | Created executive summary for I2S timeout fix |
 | 2025-10-28 | i2s_nonblocking_audio_acquisition_design.md | Created full design specification |
 | 2025-10-28 | /Implementation.plans/runbooks/i2s_timeout_fix_runbook.md | Created step-by-step implementation guide |

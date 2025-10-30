@@ -82,6 +82,26 @@ Watch the output. Every step should complete cleanly:
 
 If any step fails, you now have work to do. Fix it. Don't work around it.
 
+### Troubleshooting: Device Control Diagnostics
+
+If the web dashboard controls (palettes, sliders) don't appear to change the device:
+
+1. Run the automated diagnostics tool to validate the device API end‑to‑end:
+
+   ```bash
+   npm run k1:diagnose -- --ip=192.168.1.103
+   ```
+
+2. Inspect the generated report under:
+
+   - `tools/k1-diagnose/reports/` (JSON with detailed PASS/FAIL per step)
+
+3. Read the tool guide:
+
+   - `docs/K1_DEVICE_DIAGNOSTICS_TOOL.md`
+
+Use this before debugging the UI. If parameters don't round‑trip on the device, the webapp can't make them work.
+
 ### Fourth: Verify the Three Patterns
 
 Once all three patterns (departure, lava, twilight) build and run on your device without error:
