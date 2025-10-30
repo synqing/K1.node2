@@ -38,6 +38,56 @@ Implementation.plans/Song\ Analysis\ Module/*
 .venv/
 .venv311/
 
+# Additional local-only planning/data directories
+Implementation.plans/Audio Signal Processing - Artificial Intelligence/
+Implementation.plans/Audio-Reactive LED Control Dashboard/
+Implementation.plans/Beattracking.dataset/
+Implementation.plans/GENESIS-ARCHITECTURE/
+Implementation.plans/Harmonix_melspecs/
+Implementation.plans/VP_DECODER/
+Implementation.plans/genesis_engine/
+Implementation.plans/giantsteps-key-dataset-master/
+Implementation.plans/harmonixset-main/
+Implementation.plans/kaggle.json
+Implementation.plans/trace.functions/
+
+# Archived bundles / datasets / generated payloads
+archive/
+artifacts/
+data/
+datasets/
+giantsteps-key-dataset/
+results/
+
+# Tool runtime outputs
+tools/k1-diagnose/reports/
+
+# Misc generated docs / guides not for source control
+AGENTS.md
+FIGMA_MAKE_AGENT_PROMPT_UNIFIED.md
+GIANTSTEPS_IMPLEMENTATION_PLAN.md
+GIANTSTEPS_QUICK_REFERENCE.md
+GIANTSTEPS_STATUS_REPORT.md
+Implementation.plans/GENESIS_REINTEGRATION_PRD.md
+docs/analysis/claude_code_ecosystem_research.md
+docs/resources/recommended_mcp_servers_installation.md
+Implementation.plans/runbooks/phase1_mcp_installation_guide.md
+docs/PALETTE_TUNING_DESIGN.md
+z3.md
+z4.md
+z5.css
+z6.md
+z7.md
+z7.UNIFIED.md
+
+# Scripts/prototypes not part of production toolchain
+scripts/make_dummy_dataset.py
+scripts/phase2b_link.py
+scripts/phase2b_run.sh
+tools/beat_event_drain.py
+tools/build_datasets_manifest.py
+webapp-backend/
+
 # Temporary
 *.tmp
 *.bak
