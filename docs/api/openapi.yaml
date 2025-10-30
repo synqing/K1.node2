@@ -1,0 +1,108 @@
+openapi: 3.0.3
+info:
+  title: K1 Firmware REST API
+  version: 2.0.0
+  description: REST endpoints for diagnostics, audio telemetry, and realtime config
+servers:
+  - url: http://{deviceHost}
+    variables:
+      deviceHost:
+        default: k1-reinvented.local
+paths:
+  /api/realtime/config:
+    get:
+      summary: Get realtime WebSocket telemetry configuration
+      responses:
+        '200':
+          description: Current configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                  interval_ms:
+                    type: integer
+                    minimum: 100
+                    maximum: 5000
+    post:
+      summary: Update realtime WebSocket telemetry configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                interval_ms:
+                  type: integer
+                  minimum: 100
+                  maximum: 5000
+      responses:
+        '200':
+          description: Updated configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                  interval_ms:
+                    type: integer
+                    minimum: 100
+                    maximum: 5000
+        '400':
+          description: Invalid parameters
+  /api/audio/arrays:
+    get:
+      summary: Downsampled audio arrays (spectrogram and tempo bins)
+      parameters:
+        - in: query
+          name: count
+          schema:
+            type: integer
+            minimum: 4
+            maximum: 64
+          description: Number of samples to return (default 16)
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+          description: Starting bin index (default 0)
+        - in: query
+          name: stride
+          schema:
+            type: integer
+            minimum: 1
+          description: Sampling stride (default auto based on count)
+      responses:
+        '200':
+          description: Audio arrays
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  spectrogram:
+                    type: array
+                    items:
+                      type: number
+                  tempi:
+                    type: array
+                    items:
+                      type: number
+                  count:
+                    type: integer
+                  offset:
+                    type: integer
+                  stride:
+                    type: integer
+                  source_bins:
+                    type: integer
+                  source_tempi:
+                    type: integer

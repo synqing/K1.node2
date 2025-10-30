@@ -9,13 +9,13 @@ intent: Desktop implementation of beat detection algorithm. Validates MIREX metr
 
 ## Overview
 
-**Phase 2A** implements a beat detection algorithm on desktop, validates it against synthetic and real audio, and measures MIREX metrics (F-measure, Cemgil, Goto).
+**Phase 2A** implements a beat detection algorithm on desktop, validates it against synthetic audio, and measures MIREX metrics (F-measure, Cemgil, Goto).
 
 **Goal:** Achieve F-measure > 0.80 on validation dataset
 
 **Duration:** ~8 hours
 
-**Status:** COMPLETE - F-measure = 0.9949 ✓
+**Status:** COMPLETE - Average F-measure = 0.9890 ✓
 
 ---
 
@@ -84,12 +84,14 @@ Four test cases with known ground truth:
 
 | Test Case | Tempo | Noise | Ref Beats | Det Beats | F-measure | Cemgil | Goto |
 |-----------|-------|-------|-----------|-----------|-----------|--------|------|
-| tempo_90  | 90    | 0.00  | 45        | 42        | 1.0000    | 0.6747 | 1.0  |
-| tempo_120 | 120   | 0.00  | 59        | 57        | 0.9796    | 0.6502 | 1.0  |
-| tempo_140 | 140   | 0.00  | 69        | 69        | 1.0000    | 0.6508 | 1.0  |
-| tempo_120_noisy | 120 | 0.10 | 59 | 60 | 1.0000 | 0.6261 | 1.0 |
+| tempo_90  | 90    | 0.00  | 45        | 43        | 0.9867    | 0.6356 | 1.0  |
+| tempo_120 | 120   | 0.00  | 59        | 56        | 0.9796    | 0.6570 | 1.0  |
+| tempo_140 | 140   | 0.00  | 69        | 69        | 1.0000    | 0.6572 | 1.0  |
+| tempo_120_noisy | 120 | 0.10 | 59 | 59 | 0.9899 | 0.6465 | 1.0 |
 
-**Average F-measure: 0.9949** ✓ PASS (target: >0.80)
+**Average F-measure: 0.9890** ✓ PASS (target: >0.80)
+
+Results exported to `firmware/K1.node2/beats/results/phase2a_synthetic_metrics.json` for auditability.
 
 ### Key Observations
 
@@ -107,7 +109,7 @@ Four test cases with known ground truth:
    - Real audio will show Goto=0.0 if tempo estimation is off (as seen in Week 1 learning)
 
 4. **Noise robustness**
-   - Algorithm maintains F=1.0 even with 0.1 RMS noise
+   - Algorithm maintains ≈0.99 F-measure even with 0.1 RMS noise (tempo_120_noisy case: 0.9899)
    - Indicates strong robustness to typical audio conditions
 
 ---
@@ -197,6 +199,27 @@ Phase 2B will:
 
 ---
 
+## Phase 2B Dataset Staging (Ready)
+
+- **GTZAN-Rhythm (1000 tracks)** — audio symlinked at `firmware/K1.node2/beats/data/gtzan/audio`, annotations in `.../reference/`.
+- **Ballroom (698 tracks)** — audio symlinked via `firmware/K1.node2/beats/data/ballroom/audio`, beat/downbeat annotations cloned into `.../annotations/`.
+- **SMC NPZ bundle** — consolidated beat arrays at `firmware/K1.node2/beats/data/smc/smc.npz` for expressive/swing validation.
+
+These datasets can be consumed immediately by new Phase 2B harnesses.
+
+---
+
+### Phase 2B Automation Utilities
+
+- `python phase2b_prep.py validate --dataset gtzan --dataset ballroom` verifies audio/reference integrity and reports sample-rate stats.
+- `python phase2b_prep.py run --dataset gtzan` generates beat estimates, stores them in `data/<dataset>/estimates`, and produces aggregate metrics under `results/phase2b_<dataset>/`.
+- Optional flags:
+  - `--limit N` to process a quick subset,
+  - `--overwrite` to regenerate existing estimates,
+  - `--summary-json path/to/report.json` for machine-readable validation output.
+
+---
+
 ## Code Quality
 
 ### Test Coverage
@@ -225,7 +248,7 @@ Phase 2B will:
 
 ## Files Summary
 
-### beat_detector.py (~300 lines)
+### beat_detector.py (~347 lines)
 
 **Main Classes:**
 - `BeatDetector` — Beat tracking algorithm
@@ -244,10 +267,10 @@ python beat_detector.py audio.wav -o beats.txt
 python beat_detector.py audio.wav -m custom
 ```
 
-### test_beat_detector.py (~200 lines)
+### test_beat_detector.py (~223 lines)
 
 **Test Suite:**
-- 4 synthetic test cases (90/120/140 BPM, with noise)
+- 4 synthetic test cases (90/120/140 BPM, deterministic RNG seed, optional noise)
 - Generates reference beats at known tempos
 - Runs beat detector
 - Evaluates with eval_single.py
@@ -255,9 +278,20 @@ python beat_detector.py audio.wav -m custom
 
 **Output:**
 ```
-JSON: /tmp/beat_detector_test_results.json
+JSON: results/phase2a_synthetic_metrics.json
 Summary table with F-measure, Cemgil, Goto per test case
 ```
+
+- NUMBA cache location auto-configured in `beat_detector.py` (`/tmp/k1_numba_cache`) to keep runs sandbox-safe.
+- Deterministic RNG seeds inside `test_beat_detector.py` ensure reproducible metrics (average F-measure 0.9890).
+
+### Reproducing the Evidence
+
+1. Install dependencies: `pip install -r firmware/K1.node2/beats/requirements.lock`.
+2. From `firmware/K1.node2/beats/`, run `python test_beat_detector.py`.
+   - The script manages `NUMBA_CACHE_DIR`; no manual export required.
+   - Metrics are printed to stdout and saved to `results/phase2a_synthetic_metrics.json`.
+3. Confirm the JSON matches the table in this section (average F-measure 0.9890 with deterministic seeds).
 
 ---
 
@@ -265,7 +299,7 @@ Summary table with F-measure, Cemgil, Goto per test case
 
 | Criterion | Target | Result | Status |
 |-----------|--------|--------|--------|
-| F-measure | > 0.80 | 0.9949 | ✓ PASS |
+| F-measure | > 0.80 | 0.9890 | ✓ PASS |
 | Algorithm implemented | Yes | Python beat_detector.py | ✓ PASS |
 | Test suite created | Yes | test_beat_detector.py | ✓ PASS |
 | Metrics measured | F, Cemgil, Goto | All measured | ✓ PASS |
@@ -339,7 +373,7 @@ Key features:
 - Full MIREX metric evaluation (F, Cemgil, Goto)
 
 Results:
-- F-measure: 0.9949 (average across 4 test cases)
+- F-measure: 0.9890 (average across 4 test cases)
 - Cemgil: 0.6504
 - Goto: 1.0000 (perfect on synthetic)
 - All metrics measured via eval_single.py
@@ -355,6 +389,6 @@ References:
 
 ## Author Notes
 
-Phase 2A establishes a high-quality baseline for beat detection. The 0.9949 F-measure on synthetic audio demonstrates the algorithm's correctness and robustness. The next challenge (Phase 2B) is integrating with real audio and firmware constraints.
+Phase 2A establishes a high-quality baseline for beat detection. The 0.9890 average F-measure on synthetic audio demonstrates the algorithm's correctness and robustness. The next challenge (Phase 2B) is integrating with real audio and firmware constraints.
 
 The Week 1 learning investments paid off: understanding MIREX metrics allowed rapid iteration and validation without guessing at parameters.

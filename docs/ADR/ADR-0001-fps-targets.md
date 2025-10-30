@@ -15,7 +15,7 @@ Status: Accepted
 Date: 2025-10-24
 
 ## Context
-Earlier drafts referenced a 450+ FPS target. That was never an explicit requirement and misaligned expectations and research priorities.
+Earlier drafts referenced a + FPS target. That was never an explicit requirement and misaligned expectations and research priorities.
 
 ## Decision
 - Target frame rate: 120 FPS

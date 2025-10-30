@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "generatedAt": "",
+  "version": "2.0.0",
+  "items": [
+    {
+      "name": "Realtime WebSocket Config",
+      "key": "realtime_config",
+      "description": "Configure realtime WebSocket telemetry publishing",
+      "dataType": "object",
+      "defaults": { "enabled": true, "interval_ms": 250 },
+      "endpoints": [
+        { "method": "GET", "path": "/api/realtime/config", "channel": "REST" },
+        { "method": "POST", "path": "/api/realtime/config", "channel": "REST" }
+      ],
+      "fields": [
+        { "name": "enabled", "type": "boolean", "default": true, "description": "Enable realtime WS publishing" },
+        { "name": "interval_ms", "type": "integer", "default": 250, "description": "Publish interval in milliseconds" }
+      ],
+      "versionHistory": [
+        { "version": "2.0.0", "change": "Added GET/POST endpoints with runtime control" }
+      ],
+      "owner": "firmware/webserver"
+    },
+    {
+      "name": "Audio Arrays",
+      "key": "audio_arrays",
+      "description": "Downsampled spectrogram_smooth and tempi_smooth slices",
+      "dataType": "object",
+      "defaults": { "count": 16, "offset": 0, "stride": null },
+      "endpoints": [
+        { "method": "GET", "path": "/api/audio/arrays", "channel": "REST" }
+      ],
+      "fields": [
+        { "name": "spectrogram", "type": "array[number]", "description": "Downsampled spectrum bins" },
+        { "name": "tempi", "type": "array[number]", "description": "Downsampled tempo bins" },
+        { "name": "count", "type": "integer", "default": 16 },
+        { "name": "offset", "type": "integer", "default": 0 },
+        { "name": "stride", "type": "integer", "default": null }
+      ],
+      "versionHistory": [
+        { "version": "2.0.0", "change": "Added offset/stride parameters" }
+      ],
+      "owner": "firmware/audio"
+    }
+    ,
+    {
+      "name": "Core REST Endpoints",
+      "key": "core_rest_endpoints",
+      "description": "Baseline firmware REST endpoints documented for alignment",
+      "dataType": "object",
+      "defaults": {},
+      "endpoints": [
+        { "method": "GET", "path": "/api/patterns", "channel": "REST" },
+        { "method": "GET", "path": "/api/params", "channel": "REST" },
+        { "method": "GET", "path": "/api/palettes", "channel": "REST" },
+        { "method": "GET", "path": "/api/device/info", "channel": "REST" },
+        { "method": "GET", "path": "/api/device/performance", "channel": "REST" },
+        { "method": "GET", "path": "/api/test-connection", "channel": "REST" },
+        { "method": "GET", "path": "/api/diag", "channel": "REST" },
+        { "method": "GET", "path": "/api/beat-events/info", "channel": "REST" },
+        { "method": "GET", "path": "/api/latency/probe", "channel": "REST" },
+        { "method": "GET", "path": "/api/beat-events/recent", "channel": "REST" },
+        { "method": "GET", "path": "/api/audio/tempo", "channel": "REST" },
+        { "method": "GET", "path": "/api/audio/snapshot", "channel": "REST" },
+        { "method": "GET", "path": "/api/wifi/status", "channel": "REST" },
+        { "method": "GET", "path": "/api/pattern/current", "channel": "REST" },
+        { "method": "GET", "path": "/metrics", "channel": "REST" },
+        { "method": "GET", "path": "/api/beat-events/dump", "channel": "REST" },
+        { "method": "GET", "path": "/api/audio-config", "channel": "REST" },
+        { "method": "GET", "path": "/api/config/backup", "channel": "REST" },
+        { "method": "GET", "path": "/api/wifi/link-options", "channel": "REST" },
+        { "method": "POST", "path": "/api/params", "channel": "REST" },
+        { "method": "POST", "path": "/api/select", "channel": "REST" },
+        { "method": "POST", "path": "/api/reset", "channel": "REST" },
+        { "method": "POST", "path": "/api/audio-config", "channel": "REST" },
+        { "method": "POST", "path": "/api/wifi/link-options", "channel": "REST" },
+        { "method": "POST", "path": "/api/config/restore", "channel": "REST" },
+        { "method": "POST", "path": "/api/diag", "channel": "REST" }
+      ],
+      "fields": [],
+      "versionHistory": [
+        { "version": "2.0.0", "change": "Baseline inventory coverage added" }
+      ],
+      "owner": "firmware/webserver"
+    }
+  ]
+}
