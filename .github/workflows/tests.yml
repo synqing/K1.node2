@@ -44,3 +44,30 @@ jobs:
           path: |
             tools/artifacts/
             playwright-report/
+
+  beat-detector:
+    name: Beat Detector Synthetic Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r firmware/K1.node2/beats/requirements.lock
+
+      - name: Run synthetic test suite
+        working-directory: firmware/K1.node2/beats
+        run: python test_beat_detector.py
+
+      - name: Upload beat detector metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: beat-detector-metrics
+          path: firmware/K1.node2/beats/results/phase2a_synthetic_metrics.json

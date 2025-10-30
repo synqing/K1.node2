@@ -1,0 +1,42 @@
+name: Phase2B Desktop Regression CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-datasets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install minimal deps
+        run: |
+          python -m pip install --upgrade pip
+          # Validation path does not require audio libs; keep CI lean
+          python -m pip install numpy
+
+      - name: Build datasets manifest
+        run: |
+          python tools/build_datasets_manifest.py --root datasets --out datasets/datasets.json || true
+
+      - name: Validate Phase 2B datasets
+        working-directory: firmware/K1.node2/beats
+        run: |
+          python phase2b_prep.py validate --dataset gtzan --dataset ballroom --summary-json ../../results/dataset_validation.json
+
+      - name: Upload validation results
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase2b-validation
+          path: results/dataset_validation.json
+
