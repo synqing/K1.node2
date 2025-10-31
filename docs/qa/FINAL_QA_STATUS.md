@@ -260,3 +260,31 @@ related_docs: []
 The critical issues implementation has successfully transformed the K1 control app from a complex, error-prone interface (77/100) into a professional, user-friendly application (90/100) that exceeds production readiness standards.
 
 **Mission Accomplished: Ready for Production Deployment** 🚀
+
+---
+
+## 🔬 Firmware HTTP API Test Results
+
+- Target: `192.168.1.103` (auto-selected via subnet candidates)
+- Suite: `tools/scripts/api_tests.js`
+- Result: `18/18` passed in ~5.4s
+- Key endpoints validated: `GET/POST /api/params`, `GET /api/audio/*`, `GET /api/patterns`, `POST /api/select`
+
+### Rate Limiter Timing Notes
+- Initial GET pre-delay: `1000ms` prevents 429 on first requests
+- Verification delay: `700ms` allows POST effects to settle before GET verification
+- Delays are now configurable via:
+  - Env: `PRE_DELAY_MS`, `VERIFY_DELAY_MS`
+  - Config: `tools/k1.config.json` → `pre_delay_ms`, `verify_delay_ms`
+
+### Test Runner Discovery Enhancements
+- Subnet scan candidates can be provided to auto-select the first responsive device:
+  - Env: `SCAN_SUBNET_PREFIX` (e.g., `192.168.1`), `SCAN_HOSTS` (e.g., `102,103,104,105`)
+  - Config: `tools/k1.config.json` → `scan_subnet_prefix`, `scan_hosts`
+- Discovery uses quick GET with timeout to avoid long hangs.
+
+### Current Device Parameters Restored
+- `beat_threshold`: `0.35` (echoed as ~`0.349999994`)
+- `beat_squash_power`: `0.70` (echoed as ~`0.699999988`)
+
+These values confirm correct POST echo and subsequent GET behavior with clamping verified for invalid inputs.

@@ -95,6 +95,8 @@ This directory contains forward-looking design specifications, migration plans, 
 | [song_analysis_refined_architecture.md](song_analysis_refined_architecture.md) | **NEW** - Refined architecture for Song Analysis Module with 10-133x performance gains | ✅ Published |
 | [fastapi_implementation_guide.md](fastapi_implementation_guide.md) | FastAPI implementation guide for Song Analysis backend | ✅ Published |
 | [song_analysis_ml_architecture.md](song_analysis_ml_architecture.md) | ML/AI architecture for audio analysis pipeline | ✅ Published |
+| [phase3_mcp_executive_summary.md](phase3_mcp_executive_summary.md) | **NEW** - **START HERE** - Phase 3 custom MCP servers one-page summary | ✅ Published |
+| [phase3_custom_mcp_servers_research.md](phase3_custom_mcp_servers_research.md) | **NEW** - Phase 3: Full research & specifications (5 MCP servers, 12-18 day timeline, code templates) | ✅ Published |
 | [webserver_split_proposal.md](webserver_split_proposal.md) | Splitting webserver into reusable modules | ✅ Published |
 | [PF5_IMPLEMENTATION_STRATEGY.md](PF5_IMPLEMENTATION_STRATEGY.md) | PlatformIO Firebase 5 integration strategy | ✅ Published |
 | [WORKFLOW_ORCHESTRATOR_IMPLEMENTATION.yaml](WORKFLOW_ORCHESTRATOR_IMPLEMENTATION.yaml) | Workflow orchestration config | ✅ Published |
@@ -251,6 +253,7 @@ When creating new planning documents:
 
 | Date | Document | Change |
 |------|----------|--------|
+| 2025-10-31 | phase3_custom_mcp_servers_research.md | **NEW** - Comprehensive research for 5 custom MCP servers (K1-Monitor, FastLED-Sim, Audio-DSP, Beat-Validator, Stem-Separator) |
 | 2025-10-31 | song_analysis_refined_architecture.md | Created refined architecture with expert agent reviews - 10-133x performance improvements |
 | 2025-10-31 | fastapi_implementation_guide.md | Created FastAPI implementation guide for Song Analysis backend |
 | 2025-10-31 | song_analysis_ml_architecture.md | Created ML/AI architecture for audio analysis pipeline |

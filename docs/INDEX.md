@@ -107,7 +107,8 @@ related_docs: [docs/templates/Docs_Index_Template.md, docs/templates/Documentati
 - Figma Make Prompt Suite — `Implementation.plans/FigmaMake_PromptSuite_NodeUI_v1.md`] [status: draft] [owner: [Docs Maintainers]]
 
 ## Firmware Webserver
-- Firmware API — `docs/api/K1_FIRMWARE_API.md`] [status: draft] [owner: [Docs Maintainers]]
+- Firmware API — `docs/api/API.md` [status: approved] [owner: [Engineering Leads]]
+- LED TX & Latency — `docs/api/LED_TX_AND_LATENCY.md` [status: approved] [owner: [Engineering Leads]]
 - Webserver Analysis — 
 `docs/analysis/webserver/`
 - Source Anchors: `firmware/src/webserver.cpp`, `firmware/src/main.cpp`, `firmware/src/parameters.cpp`
@@ -139,6 +140,8 @@ related_docs: [docs/templates/Docs_Index_Template.md, docs/templates/Documentati
 - Generate documentation inventory: `node tools/src/docs-inventory.js` (outputs `docs/docs_index.json`).
 - CI frontmatter validation runs on PR via `.github/workflows/docs-check.yml`.
 
+## QA & Test Guides
+- API Test Guide — `docs/qa/API_TESTS.md` [status: approved] [owner: [Docs Maintainers]]
+
 ## Changelog
 - 2025-10-28 — v1.0 — Initial curated index created with critical areas and quick actions.
-

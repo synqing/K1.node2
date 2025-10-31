@@ -277,7 +277,7 @@ This implementation plan transforms the Song Analysis Module from mock-based pro
   - _Requirements: 11.1, 12.1, 12.2, 12.3_
 
 - [ ] 10. Frontend track catalogue components
-- [ ] 10.1 Update TrackList component to use useTracksQuery hook
+- [-] 10.1 Update TrackList component to use useTracksQuery hook
   - Replace MOCK_TRACKS with useTracksQuery
   - Implement search input with 150ms debounce
   - Implement status filter dropdown

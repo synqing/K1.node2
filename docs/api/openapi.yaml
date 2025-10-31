@@ -26,6 +26,12 @@ paths:
                     type: integer
                     minimum: 100
                     maximum: 5000
+              examples:
+                live:
+                  summary: Live capture
+                  value:
+                    enabled: true
+                    interval_ms: 250
     post:
       summary: Update realtime WebSocket telemetry configuration
       requestBody:
@@ -55,6 +61,12 @@ paths:
                     type: integer
                     minimum: 100
                     maximum: 5000
+              examples:
+                liveUpdate:
+                  summary: Live capture
+                  value:
+                    enabled: true
+                    interval_ms: 250
         '400':
           description: Invalid parameters
   /api/audio/arrays:
@@ -106,3 +118,721 @@ paths:
                     type: integer
                   source_tempi:
                     type: integer
+              examples:
+                live:
+                  summary: Live capture
+                  value:
+                    spectrogram:
+                      - 0.103141971
+                      - 0.03400052
+                      - 0.01048212
+                      - 0.009857478
+                      - 0.012506546
+                      - 0.010231076
+                      - 0.013865503
+                      - 0.01374162
+                      - 0.01984662
+                      - 0.023265772
+                      - 0.028358432
+                      - 0.036292538
+                      - 0.039888076
+                      - 0.048196215
+                      - 0.048279967
+                      - 0.046097934
+                    tempi:
+                      - 0.15452081
+                      - 0.273492426
+                      - 0.212280944
+                      - 0.0218911
+                      - 0.019605124
+                      - 0.014922694
+                      - 0.028740471
+                      - 0.004827331
+                      - 0.120241545
+                      - 0.004158691
+                      - 0.020286329
+                      - 0.066315927
+                      - 0.061336443
+                      - 0.007099328
+                      - 0.052755121
+                      - 0.003783236
+                    chromagram:
+                      - 0.190018803
+                      - 0.194690973
+                      - 0.146841764
+                      - 0.138638645
+                      - 0.136803329
+                      - 0.128634408
+                      - 0.115247041
+                      - 0.117508925
+                      - 0.125132322
+                      - 0.11953298
+                      - 0.132668495
+                      - 0.163637474
+                    novelty_curve:
+                      - 0.07512898
+                      - 0.06485948
+                      - 0.077162199
+                      - 0.100847229
+                      - 0.100847229
+                      - 0.141918108
+                      - 0.145269632
+                      - 0.145820543
+                      - 0.146485522
+                      - 0.129611343
+                      - 0.096600719
+                      - 0.081038654
+                      - 0.123420566
+                      - 0.118205123
+                      - 0.108108886
+                      - 0.108108886
+                    novelty_count: 16
+                    novelty_total: 1024
+                    order: newest
+                    count: 16
+                    offset: 0
+                    stride: 4
+                    source_bins: 64
+                    source_tempi: 64
+                    history: false
+                    include_chromagram: true
+                    include_novelty: true
+  /api/params:
+    get:
+      summary: Get current device parameters
+      responses:
+        '200':
+          description: Current parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  brightness:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                  softness:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                  color:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                  color_range:
+                    type: integer
+                  saturation:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                  warmth:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                  background:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                  dithering:
+                    type: integer
+                  speed:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                  palette_id:
+                    type: integer
+                  beat_threshold:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                  beat_squash_power:
+                    type: number
+                    minimum: 0.2
+                    maximum: 1
+                required:
+                  - brightness
+                  - softness
+                  - color
+                  - color_range
+                  - saturation
+                  - warmth
+                  - background
+                  - dithering
+                  - speed
+                  - palette_id
+                  - beat_threshold
+                  - beat_squash_power
+    post:
+      summary: Update device parameters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                brightness:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                softness:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                color:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                color_range:
+                  type: integer
+                saturation:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                warmth:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                background:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                dithering:
+                  type: integer
+                speed:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                palette_id:
+                  type: integer
+                beat_threshold:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                beat_squash_power:
+                  type: number
+                  minimum: 0.2
+                  maximum: 1
+      responses:
+        '200':
+          description: Applied parameters
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/audio/metrics:
+    get:
+      summary: Device performance and audio metrics
+      responses:
+        '200':
+          description: Metrics snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fps:
+                    type: number
+                  frame_time_us:
+                    type: integer
+                  cpu_percent:
+                    type: number
+                  memory_free_kb:
+                    type: integer
+                  beat_events_count:
+                    type: integer
+                  tempo_confidence:
+                    type: number
+                  audio_update_counter:
+                    type: integer
+                  audio_timestamp_us:
+                    type: integer
+                required:
+                  - fps
+                  - frame_time_us
+                  - cpu_percent
+                  - memory_free_kb
+                  - beat_events_count
+                  - tempo_confidence
+                  - audio_update_counter
+                  - audio_timestamp_us
+              examples:
+                live:
+                  summary: Live capture
+                  value:
+                    fps: 169.9615784
+                    frame_time_us: 5220.777832
+                    cpu_percent: 25.617939
+                    memory_free_kb: 117
+                    beat_events_count: 0
+                    tempo_confidence: 0.110499978
+                    audio_update_counter: 136430
+                    audio_timestamp_us: 3821383607
+  /api/patterns:
+    get:
+      summary: Returns available patterns (shape may vary)
+      responses:
+        '200':
+          description: Pattern catalog
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                  - type: object
+                    properties:
+                      patterns:
+                        type: array
+                      current_pattern:
+                        type: integer
+              examples:
+                live:
+                  summary: Live capture
+                  value:
+                    patterns:
+                      - index: 0
+                        id: departure
+                        name: Departure
+                        description: 'Transformation: earth → light → growth'
+                        is_audio_reactive: false
+                      - index: 1
+                        id: lava
+                        name: Lava
+                        description: 'Intensity: black → red → orange → white'
+                        is_audio_reactive: false
+                      - index: 2
+                        id: twilight
+                        name: Twilight
+                        description: 'Peace: amber → purple → blue'
+                        is_audio_reactive: false
+                      - index: 3
+                        id: spectrum
+                        name: Spectrum
+                        description: Frequency visualization
+                        is_audio_reactive: true
+                      - index: 4
+                        id: octave
+                        name: Octave
+                        description: Octave band response
+                        is_audio_reactive: true
+                      - index: 5
+                        id: bloom
+                        name: Bloom
+                        description: VU-meter with persistence
+                        is_audio_reactive: true
+                      - index: 6
+                        id: pulse
+                        name: Pulse
+                        description: Beat-synchronized radial waves
+                        is_audio_reactive: true
+                      - index: 7
+                        id: tempiscope
+                        name: Tempiscope
+                        description: Tempo visualization with phase
+                        is_audio_reactive: true
+                      - index: 8
+                        id: beat_tunnel
+                        name: Beat Tunnel
+                        description: Animated tunnel with beat persistence
+                        is_audio_reactive: true
+                      - index: 9
+                        id: perlin
+                        name: Perlin
+                        description: Procedural noise field animation
+                        is_audio_reactive: true
+                      - index: 10
+                        id: void_trail
+                        name: Void Trail
+                        description: Ambient audio-responsive with 3 switchable modes (custom_param_1)
+                        is_audio_reactive: true
+                      - index: 11
+                        id: analog
+                        name: Analog
+                        description: VU meter with precise dot positioning
+                        is_audio_reactive: true
+                      - index: 12
+                        id: metronome
+                        name: Metronome
+                        description: Beat phase dots for tempo visualization
+                        is_audio_reactive: true
+                      - index: 13
+                        id: hype
+                        name: Hype
+                        description: Energy threshold activation with dual colors
+                        is_audio_reactive: true
+                    current_pattern: 8
+  /api/pattern/current:
+    get:
+      summary: Returns current pattern metadata
+      responses:
+        '200':
+          description: Current pattern
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  index:
+                    type: integer
+                  id:
+                    type: string
+                  name:
+                    type: string
+                required:
+                  - index
+                  - id
+                  - name
+              examples:
+                live:
+                  summary: Live capture
+                  value:
+                    index: 8
+                    id: beat_tunnel
+                    name: Beat Tunnel
+                    is_audio_reactive: true
+  /api/select:
+    post:
+      summary: Switches to a pattern index
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                index:
+                  type: integer
+                  minimum: 0
+              required:
+                - index
+      responses:
+        '200':
+          description: Selection accepted
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                      index:
+                        type: integer
+                        minimum: 0
+                    required:
+                      - index
+                  - type: object
+                    properties:
+                      index:
+                        type: integer
+                      id:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                      - index
+                      - id
+                      - name
+              examples:
+                liveUpdate:
+                  summary: Live capture
+                  value:
+                    current_pattern: 8
+                    id: beat_tunnel
+                    name: Beat Tunnel
+
+  /api/led-tx/info:
+    get:
+      summary: Get LED transmit (TX) buffer info
+      responses:
+        '200':
+          description: Buffer metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  capacity:
+                    type: integer
+                  count:
+                    type: integer
+                required:
+                  - capacity
+                  - count
+              examples:
+                live:
+                  summary: Live buffer info
+                  value:
+                    capacity: 64
+                    count: 37
+
+  /api/led-tx/recent:
+    get:
+      summary: Get recent LED TX events with filters
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 64
+            default: 16
+          description: Maximum events to return
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [newest, oldest, asc]
+            default: newest
+          description: Sort direction
+        - in: query
+          name: since_us
+          schema:
+            type: integer
+          description: Include events strictly after this timestamp
+        - in: query
+          name: until_us
+          schema:
+            type: integer
+          description: Include events strictly before this timestamp
+        - in: query
+          name: around_us
+          schema:
+            type: integer
+          description: Center timestamp for delta window (used with max_delta_us)
+        - in: query
+          name: max_delta_us
+          schema:
+            type: integer
+          description: Include events within ±max_delta_us of around_us
+      responses:
+        '200':
+          description: Filtered recent LED TX events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  capacity:
+                    type: integer
+                  order:
+                    type: string
+                  since_us:
+                    type: integer
+                  until_us:
+                    type: integer
+                  around_us:
+                    type: integer
+                  max_delta_us:
+                    type: integer
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp_us:
+                          type: integer
+                      required:
+                        - timestamp_us
+                required:
+                  - count
+                  - capacity
+                  - order
+                  - events
+              examples:
+                oldest:
+                  summary: Oldest-first sample
+                  value:
+                    count: 32
+                    capacity: 64
+                    order: oldest
+                    events:
+                      - timestamp_us: 3821500001
+                      - timestamp_us: 3821500123
+                window:
+                  summary: Time window sample
+                  value:
+                    count: 12
+                    capacity: 64
+                    order: newest
+                    since_us: 3821000000
+                    until_us: 3822000000
+                    events:
+                      - timestamp_us: 3821501234
+                around:
+                  summary: Around center ±delta sample
+                  value:
+                    count: 5
+                    capacity: 64
+                    order: asc
+                    around_us: 3821500000
+                    max_delta_us: 5000
+                    events:
+                      - timestamp_us: 3821498500
+                      - timestamp_us: 3821502000
+
+  /api/led-tx/dump:
+    get:
+      summary: Dump LED TX ring buffer with filters
+      parameters:
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [newest, oldest, asc]
+            default: newest
+          description: Sort direction
+        - in: query
+          name: since_us
+          schema:
+            type: integer
+          description: Include events strictly after this timestamp
+        - in: query
+          name: until_us
+          schema:
+            type: integer
+          description: Include events strictly before this timestamp
+        - in: query
+          name: around_us
+          schema:
+            type: integer
+          description: Center timestamp for delta window (used with max_delta_us)
+        - in: query
+          name: max_delta_us
+          schema:
+            type: integer
+          description: Include events within ±max_delta_us of around_us
+      responses:
+        '200':
+          description: Dumped LED TX events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  capacity:
+                    type: integer
+                  order:
+                    type: string
+                  since_us:
+                    type: integer
+                  until_us:
+                    type: integer
+                  around_us:
+                    type: integer
+                  max_delta_us:
+                    type: integer
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp_us:
+                          type: integer
+                      required:
+                        - timestamp_us
+                required:
+                  - count
+                  - capacity
+                  - order
+                  - events
+              examples:
+                dumpOldest:
+                  summary: Full dump oldest-first
+                  value:
+                    count: 64
+                    capacity: 64
+                    order: oldest
+                    events:
+                      - timestamp_us: 3821400001
+                      - timestamp_us: 3821412345
+                dumpAround:
+                  summary: Dump around center ±delta
+                  value:
+                    count: 9
+                    capacity: 64
+                    order: asc
+                    around_us: 3821500000
+                    max_delta_us: 3000
+                    events:
+                      - timestamp_us: 3821498500
+                      - timestamp_us: 3821502000
+
+  /api/latency/align:
+    get:
+      summary: Align host timestamp to nearest LED TX
+      parameters:
+        - in: query
+          name: t_us
+          required: true
+          schema:
+            type: integer
+          description: Target device timestamp (microseconds)
+        - in: query
+          name: strategy
+          schema:
+            type: string
+            enum: [nearest, older, newer]
+            default: nearest
+          description: Constrain selection direction
+        - in: query
+          name: max_delta_us
+          schema:
+            type: integer
+          description: If best match exceeds this delta, mark found=false
+      responses:
+        '200':
+          description: Alignment result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  capacity:
+                    type: integer
+                  t_us:
+                    type: integer
+                  strategy:
+                    type: string
+                  max_delta_us:
+                    type: integer
+                  nearest_timestamp_us:
+                    type: integer
+                  delta_us:
+                    type: integer
+                  found:
+                    type: boolean
+                required:
+                  - count
+                  - capacity
+                  - t_us
+                  - delta_us
+                  - found
+              examples:
+                nearest:
+                  summary: Nearest match
+                  value:
+                    count: 64
+                    capacity: 64
+                    t_us: 3821501234
+                    nearest_timestamp_us: 3821501240
+                    delta_us: 6
+                    found: true
+                olderThreshold:
+                  summary: Older within threshold
+                  value:
+                    count: 64
+                    capacity: 64
+                    t_us: 3821501234
+                    strategy: older
+                    max_delta_us: 3000
+                    nearest_timestamp_us: 3821499001
+                    delta_us: 2233
+                    found: true
