@@ -85,6 +85,16 @@ redis_client = redis.Redis(
 )
 
 
+async def _delayed_remove(path: str, delay: float = 3600.0) -> None:
+    """Remove a file after a delay without blocking the event loop."""
+    try:
+        await asyncio.sleep(delay)
+        if os.path.exists(path):
+            os.remove(path)
+    except Exception as exc:
+        print(f"⚠️  Failed to clean up {path}: {exc}")
+
+
 # Lifespan context manager for startup/shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -182,9 +192,12 @@ class AnalysisOrchestrator:
         """
         options = options or {}
 
+        # Ensure per-job clean state on the mapper
+        self.effect_mapper.reset()
+
         # Load audio
         await self._update_progress(job_id, 0.05, "Loading audio...")
-        y, sr = librosa.load(audio_path, sr=None)
+        y, sr = await asyncio.to_thread(librosa.load, audio_path, sr=None)
         duration = len(y) / sr
 
         # Metadata
@@ -197,7 +210,9 @@ class AnalysisOrchestrator:
 
         # 1. Beat detection (20%)
         await self._update_progress(job_id, 0.1, "Detecting beats and drops...")
-        beats, tempo, downbeats, drops = self.beat_detector.detect(y, sr)
+        beats, tempo, downbeats, drops = await asyncio.to_thread(
+            self.beat_detector.detect, y, sr
+        )
 
         beats_data = {
             'tempo': float(tempo),
@@ -213,25 +228,29 @@ class AnalysisOrchestrator:
 
         # 2. Harmonic analysis (30%)
         await self._update_progress(job_id, 0.3, "Analyzing harmony...")
-        key, confidence = self.harmonic_analyzer.detect_key(y, sr)
-        chords = self.harmonic_analyzer.detect_chords(y, sr)
+        key, confidence = await asyncio.to_thread(self.harmonic_analyzer.detect_key, y, sr)
+        chords = await asyncio.to_thread(self.harmonic_analyzer.detect_chords, y, sr)
+        chords = self.harmonic_analyzer.smooth_chord_events(chords)
+        harmonic_change = await asyncio.to_thread(self.harmonic_analyzer.compute_harmonic_change, y, sr)
 
-        harmony_data = {
-            'key': key,
-            'key_confidence': confidence,
-            'progression': chords,
-            'color_palette': self.harmonic_analyzer.key_to_color_palette(key)
-        }
+        harmony_data = self.harmonic_analyzer.to_genesis_map_format(
+            key, confidence, chords, harmonic_change
+        )['harmony']
 
         # 3. Structural analysis (40%)
         await self._update_progress(job_id, 0.4, "Analyzing song structure...")
-        segments = self.structure_analyzer.analyze(y, sr, beat_frames=None)
+        beat_frames = librosa.time_to_frames(
+            beats, sr=sr, hop_length=self.structure_analyzer.hop_length
+        )
+        segments = await asyncio.to_thread(
+            self.structure_analyzer.analyze, y, sr, beat_frames
+        )
 
         structure_data = self.structure_analyzer.to_genesis_map_format(segments)['structure']
 
         # 4. Emotional analysis (50%)
         await self._update_progress(job_id, 0.5, "Analyzing emotional content...")
-        emotional_states = self.emotional_analyzer.analyze(y, sr)
+        emotional_states = await asyncio.to_thread(self.emotional_analyzer.analyze, y, sr)
         mood_segments = self.emotional_analyzer.segment_by_mood(emotional_states)
 
         emotion_data = self.emotional_analyzer.to_genesis_map_format(
@@ -240,15 +259,19 @@ class AnalysisOrchestrator:
 
         # 5. Stem separation (optional, 60-80%)
         stems_data = {}
+        stem_features_raw = {}
         if options.get('extract_stems', False):
             await self._update_progress(job_id, 0.6, "Separating stems (this may take a minute)...")
 
             # Use local Demucs by default
-            stems = self.stem_separator.separate_local(audio_path)
-            stem_features = self.stem_separator.extract_stem_features(stems)
-            stems_data = self.stem_separator.to_genesis_map_format(stem_features)['stems']
+            stems = await asyncio.to_thread(self.stem_separator.separate_local, audio_path)
+            stem_features_raw = await asyncio.to_thread(self.stem_separator.extract_stem_features, stems)
+            stems_data = self.stem_separator.to_genesis_map_format(stem_features_raw)['stems']
+            self.effect_mapper.set_stem_features(stem_features_raw)
 
             await self._update_progress(job_id, 0.8, "Stem separation complete")
+        else:
+            self.effect_mapper.set_stem_features(None)
 
         # 6. Generate effects (90%)
         await self._update_progress(job_id, 0.9, "Generating LED effects...")
@@ -258,8 +281,9 @@ class AnalysisOrchestrator:
         self.effect_mapper.set_mood_segments(emotion_data['mood_segments'])
         self.effect_mapper.set_structural_segments(structure_data['segments'])
         self.effect_mapper.set_harmonic_data(harmony_data)
+        self.effect_mapper.set_emotional_states(emotional_states)
 
-        effects = self.effect_mapper.generate_effects()
+        effects = await asyncio.to_thread(self.effect_mapper.generate_effects)
 
         # Convert to serializable format
         effects_data = [
@@ -384,6 +408,9 @@ async def analyze_upload(
         try:
             result = await orchestrator.analyze(upload_path, job_id, options)
 
+            # Schedule cleanup of the uploaded file after processing completes
+            asyncio.create_task(_delayed_remove(upload_path))
+
             # Save result
             result_path = f"results/{job_id}.json"
             with open(result_path, 'w') as f:
@@ -409,6 +436,7 @@ async def analyze_upload(
             )
 
         except Exception as e:
+            asyncio.create_task(_delayed_remove(upload_path))
             # Update job with error
             redis_client.hset(f"job:{job_id}", mapping={
                 'status': 'failed',
@@ -493,10 +521,8 @@ async def process_analysis_job(audio_path: str, job_id: str, options: Dict):
         )
 
     finally:
-        # Clean up uploaded file after 1 hour
-        await asyncio.sleep(3600)
-        if os.path.exists(audio_path):
-            os.remove(audio_path)
+        # Schedule cleanup without blocking the event loop
+        asyncio.create_task(_delayed_remove(audio_path))
 
 
 @app.get("/status/{job_id}", response_model=AnalysisStatus)

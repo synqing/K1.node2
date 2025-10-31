@@ -19,10 +19,13 @@ Status: Production-ready effect mapping
 """
 
 import numpy as np
-from typing import Dict, List, Tuple, Optional, Any
-from dataclasses import dataclass, asdict
+from typing import Dict, List, Tuple, Optional, Any, TYPE_CHECKING
+from dataclasses import dataclass
 import json
 from enum import Enum
+
+if TYPE_CHECKING:
+    from stem_separator import StemFeatures
 
 
 class EffectType(Enum):
@@ -170,19 +173,29 @@ class EffectMapper:
         """
         self.led_count = led_count
         self.fps_target = fps_target
-        self.frame_duration_ms = 1000 // fps_target
+        self.frame_duration_ms = max(1, 1000 // max(1, fps_target))
 
-        # Audio feature data
-        self.beats = []
-        self.drops = []
-        self.mood_segments = []
-        self.structural_segments = []
-        self.harmonic_data = {}
-        self.stem_features = {}
-        self.emotional_states = []
+        self.reset()
+
+    def reset(self) -> None:
+        """Clear cached analysis inputs."""
+        self.beats: List[int] = []
+        self.downbeats: List[int] = []
+        self.drops: List[Dict] = []
+        self.mood_segments: List[Dict] = []
+        self.structural_segments: List[Dict] = []
+        self.harmonic_data: Dict[str, Any] = {}
+        self.stem_features: Dict[str, Any] = {}
+        self.emotional_states: List[Any] = []
 
     def set_beats(self, beat_times: List[float], downbeats: Optional[List[float]] = None):
         """Set beat timing information."""
+        # Convert numpy arrays to lists if needed
+        if isinstance(beat_times, np.ndarray):
+            beat_times = beat_times.tolist()
+        if isinstance(downbeats, np.ndarray):
+            downbeats = downbeats.tolist()
+        
         self.beats = [int(t * 1000) for t in beat_times]
         self.downbeats = [int(t * 1000) for t in (downbeats or [])]
 
@@ -202,13 +215,18 @@ class EffectMapper:
         """Set harmonic analysis results."""
         self.harmonic_data = data
 
-    def set_stem_features(self, features: Dict):
+    def set_stem_features(self, features: Optional[Dict[str, Any]]):
         """Set stem separation features."""
-        self.stem_features = features
+        self.stem_features = features or {}
 
-    def set_emotional_states(self, states: List[Dict]):
+    def set_emotional_states(self, states: Any):
         """Set emotional analysis results."""
-        self.emotional_states = states
+        if states is None:
+            self.emotional_states = []
+        elif isinstance(states, list):
+            self.emotional_states = states
+        else:
+            self.emotional_states = [states]
 
     def generate_effects(self, duration_ms: int = None) -> List[LEDEffect]:
         """
@@ -324,42 +342,29 @@ class EffectMapper:
         """Generate bass-triggered wave effects."""
         effects = []
 
-        if 'bass' not in self.stem_features:
+        stem = self.stem_features.get('bass')
+        if not stem:
             return effects
 
-        bass_data = self.stem_features['bass']
+        peak_times_ms, intensities = self._stem_peaks_with_intensity(stem)
 
-        # Find bass hits (peaks in bass RMS)
-        if 'rms' in bass_data:
-            rms_curve = bass_data['rms']
-            threshold = np.percentile(rms_curve, 80)  # Top 20% energy
+        for time_ms, intensity in zip(peak_times_ms, intensities):
+            colors = [
+                (255, 100, 0),
+                (255, 50, 0),
+                (200, 50, 0)
+            ]
 
-            # Simple peak detection
-            for i in range(1, len(rms_curve) - 1):
-                if (rms_curve[i] > threshold and
-                    rms_curve[i] > rms_curve[i-1] and
-                    rms_curve[i] > rms_curve[i+1]):
-
-                    # Convert frame to milliseconds
-                    time_ms = int(i * self.frame_duration_ms * 10)  # Rough estimate
-
-                    # Warm colors for bass
-                    colors = [
-                        (255, 100, 0),   # Orange
-                        (255, 50, 0),    # Red-orange
-                        (200, 50, 0)     # Dark orange
-                    ]
-
-                    effects.append(LEDEffect(
-                        type=EffectType.WAVE,
-                        layer=EffectLayer.RHYTHM,
-                        start_ms=time_ms,
-                        duration_ms=300,
-                        intensity=float(rms_curve[i]),
-                        speed=0.6,
-                        colors=colors,
-                        params={'direction': 'outward'}
-                    ))
+            effects.append(LEDEffect(
+                type=EffectType.WAVE,
+                layer=EffectLayer.RHYTHM,
+                start_ms=time_ms,
+                duration_ms=300,
+                intensity=float(np.clip(intensity, 0.2, 1.0)),
+                speed=0.6,
+                colors=colors,
+                params={'direction': 'outward'}
+            ))
 
         return effects
 
@@ -367,51 +372,70 @@ class EffectMapper:
         """Generate vocal-triggered breathing effects."""
         effects = []
 
-        if 'vocals' not in self.stem_features:
+        stem = self.stem_features.get('vocals')
+        if not stem:
             return effects
 
-        vocal_data = self.stem_features['vocals']
+        presence, frame_hop_ms = self._stem_presence(stem)
+        if presence is None or frame_hop_ms is None:
+            return effects
 
-        # Vocal presence creates breathing/glow effects
-        if 'presence' in vocal_data:
-            presence = vocal_data['presence']
-            in_vocal = False
-            start_time = 0
+        in_vocal = False
+        start_time = 0
 
-            for i, present in enumerate(presence):
-                time_ms = int(i * self.frame_duration_ms * 10)
+        for i, present in enumerate(presence):
+            time_ms = int(i * frame_hop_ms)
 
-                if present and not in_vocal:
-                    # Vocal section starts
-                    in_vocal = True
-                    start_time = time_ms
-                elif not present and in_vocal:
-                    # Vocal section ends
-                    in_vocal = False
+            if present and not in_vocal:
+                in_vocal = True
+                start_time = time_ms
+            elif not present and in_vocal:
+                in_vocal = False
+                duration = max(500, time_ms - start_time)
 
-                    # Bright, centered colors for vocals
-                    colors = [
-                        (255, 255, 200),  # Warm white
-                        (200, 200, 255),  # Cool white
-                        (255, 200, 255)   # Pink white
-                    ]
+                colors = [
+                    (255, 255, 200),
+                    (200, 200, 255),
+                    (255, 200, 255)
+                ]
 
-                    effects.append(LEDEffect(
-                        type=EffectType.BREATHE,
-                        layer=EffectLayer.MELODY,
-                        start_ms=start_time,
-                        duration_ms=time_ms - start_time,
-                        intensity=0.6,
-                        speed=0.3,
-                        colors=colors,
-                        params={'center_focus': True}
-                    ))
+                effects.append(LEDEffect(
+                    type=EffectType.BREATHE,
+                    layer=EffectLayer.MELODY,
+                    start_ms=start_time,
+                    duration_ms=duration,
+                    intensity=0.6,
+                    speed=0.3,
+                    colors=colors,
+                    params={'center_focus': True}
+                ))
+
+        # Handle trailing vocal section that runs to end
+        if in_vocal:
+            end_time = int(len(presence) * frame_hop_ms)
+            duration = max(500, end_time - start_time)
+            effects.append(LEDEffect(
+                type=EffectType.BREATHE,
+                layer=EffectLayer.MELODY,
+                start_ms=start_time,
+                duration_ms=duration,
+                intensity=0.6,
+                speed=0.3,
+                colors=[
+                    (255, 255, 200),
+                    (200, 200, 255),
+                    (255, 200, 255)
+                ],
+                params={'center_focus': True}
+            ))
 
         return effects
 
     def _generate_drop_effects(self) -> List[LEDEffect]:
         """Generate drop and buildup effects."""
         effects = []
+        min_spacing_ms = 8000  # enforce at most one major drop every ~8 seconds
+        last_drop_ms: Optional[int] = None
 
         for drop in self.drops:
             drop_time_ms = int(drop.get('timestamp', 0) * 1000)
@@ -419,6 +443,11 @@ class EffectMapper:
             confidence = drop.get('confidence', 0.5)
 
             if drop_type == 'drop':
+                if confidence < 0.65:
+                    continue
+                if last_drop_ms is not None and drop_time_ms - last_drop_ms < min_spacing_ms:
+                    continue
+
                 # Explosion effect for drops
                 effects.append(LEDEffect(
                     type=EffectType.EXPLOSION,
@@ -446,6 +475,7 @@ class EffectMapper:
                     colors=[(255, 255, 255)],
                     params={'frequency_hz': 10}
                 ))
+                last_drop_ms = drop_time_ms
 
             elif drop_type == 'buildup':
                 # Sweep effect for buildups
@@ -550,13 +580,20 @@ class EffectMapper:
         progression = self.harmonic_data['progression']
 
         for chord_event in progression:
-            time_ms = chord_event.get('time_ms', 0)
-            chord = chord_event.get('chord', 'C')
-            confidence = chord_event.get('confidence', 0.5)
+            if hasattr(chord_event, "time_ms"):
+                time_ms = getattr(chord_event, "time_ms", 0)
+                chord = getattr(chord_event, "chord", "C")
+                confidence = getattr(chord_event, "confidence", 0.5)
+            elif isinstance(chord_event, dict):
+                time_ms = chord_event.get('time_ms', 0)
+                chord = chord_event.get('chord', 'C')
+                confidence = chord_event.get('confidence', 0.5)
+            else:
+                continue
 
             if confidence > 0.3:
                 # Get color for chord root
-                root = chord.split(':')[0] if ':' in chord else chord[0]
+                root = chord.split(':')[0] if ':' in chord else chord[:1]
                 hue = self.KEY_TO_HUE.get(root, 0)
                 color = self._hue_to_rgb(hue)
 
@@ -570,6 +607,37 @@ class EffectMapper:
                     speed=0.6,
                     colors=[color],
                     params={'density': 0.3}
+                ))
+
+        # Add harmonic-change accent effects
+        harmonic_change = self.harmonic_data.get('harmonic_change')
+        if harmonic_change:
+            peaks = harmonic_change.get('peaks', [])
+            curve_strength = harmonic_change.get('curve_strength', [])
+            if curve_strength:
+                strength_arr = np.asarray(curve_strength)
+                dynamic_threshold = np.percentile(strength_arr, 85)
+            else:
+                dynamic_threshold = 0.0
+
+            for peak in peaks:
+                strength = peak.get('strength', 0.0)
+                if strength < dynamic_threshold or strength <= 0:
+                    continue
+
+                time_ms = peak.get('time_ms', 0)
+                color = self._get_color_at_time(time_ms)
+                secondary_color = tuple(min(255, int(c * 1.2)) for c in color)
+
+                effects.append(LEDEffect(
+                    type=EffectType.GRADIENT,
+                    layer=EffectLayer.MELODY,
+                    start_ms=time_ms,
+                    duration_ms=800,
+                    intensity=float(np.clip(strength, 0.3, 1.0)),
+                    speed=0.4,
+                    colors=[color, secondary_color],
+                    params={'harmonic_peak': True}
                 ))
 
         return effects
@@ -689,6 +757,60 @@ class EffectMapper:
         commands.sort(key=lambda c: (c.timestamp_ms, c.priority))
 
         return commands
+
+    def _stem_peaks_with_intensity(self, stem: Any) -> Tuple[List[int], List[float]]:
+        """Return peak times (ms) and normalized intensities for a stem entry."""
+        if hasattr(stem, "peak_times"):
+            peak_times_ms = [int(t * 1000) for t in stem.peak_times]
+            rms = np.asarray(getattr(stem, "rms", []))
+            if rms.size:
+                norm = rms / (np.max(rms) + 1e-6)
+                intensities = [
+                    float(norm[min(idx, norm.size - 1)])
+                    for idx in getattr(stem, "peak_frames", [])
+                ]
+            else:
+                intensities = [0.5] * len(peak_times_ms)
+            return peak_times_ms, intensities
+
+        peak_times_ms = stem.get('peak_times_ms', [])
+        rms = np.asarray(stem.get('rms', []), dtype=float)
+        hop_ms = float(stem.get('frame_hop_ms', self.frame_duration_ms * 10))
+
+        if not peak_times_ms and rms.size:
+            threshold = np.percentile(rms, 80)
+            candidates = np.where(
+                (rms[1:-1] > threshold) &
+                (rms[1:-1] > rms[:-2]) &
+                (rms[1:-1] > rms[2:])
+            )[0] + 1
+            peak_times_ms = [int(idx * hop_ms) for idx in candidates]
+            if rms.size:
+                norm = rms / (np.max(rms) + 1e-6)
+                intensities = [float(norm[idx]) for idx in candidates]
+            else:
+                intensities = [0.5] * len(peak_times_ms)
+        else:
+            intensities_arr = rms if rms.size else np.array([])
+            if intensities_arr.size:
+                intensities = list(np.clip(intensities_arr, 0.2, 1.0))
+            else:
+                intensities = [0.5] * len(peak_times_ms)
+
+        return peak_times_ms, intensities
+
+    def _stem_presence(self, stem: Any) -> Tuple[Optional[List[bool]], Optional[float]]:
+        """Extract presence curve and hop duration in ms for a stem."""
+        if hasattr(stem, "presence"):
+            hop_ms = stem.hop_length / stem.sample_rate * 1000.0
+            return stem.presence.tolist(), hop_ms
+
+        presence = stem.get('presence')
+        hop_ms = stem.get('frame_hop_ms', self.frame_duration_ms * 10)
+        if presence is None or hop_ms is None:
+            return None, None
+        presence_list = [bool(p) for p in presence]
+        return presence_list, float(hop_ms)
 
     def export_to_file(self, effects: List[LEDEffect],
                        output_path: str, format: str = 'json'):
