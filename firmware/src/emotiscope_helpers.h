@@ -8,9 +8,10 @@
 #pragma once
 
 #include "types.h"
-#include <math.h>
 #include "audio/goertzel.h"  // For clip_float()
 #include "led_driver.h"      // For NUM_LEDS (must be after types.h)
+#include <cmath>
+#include <cstddef>
 
 // Constants from original Emotiscope
 #define NUM_RESERVED_DOTS 8
@@ -58,3 +59,96 @@ inline float clip_float(float value) {
     return fmaxf(0.0f, fminf(1.0f, value));
 }
 #endif
+
+/**
+ * SUB-PIXEL INTERPOLATION - THE MISSING PIECE!
+ * Smoothly interpolates between array values for fluid frequency mapping.
+ * This fixes the stepping artifacts in spectrum visualization.
+ *
+ * @param position - Position (0.0-1.0) to sample
+ * @param array - Array to interpolate from
+ * @param array_size - Size of the array
+ * @return Interpolated value
+ */
+inline float interpolate(float position, const float* array, int array_size) {
+    if (array == nullptr || array_size <= 0) {
+        return 0.0f;
+    }
+
+    if (array_size == 1) {
+        return array[0];
+    }
+
+    float clamped_pos = clip_float(position);
+    float scaled = clamped_pos * static_cast<float>(array_size - 1);
+
+    int index_low = static_cast<int>(std::floor(scaled));
+    float frac = scaled - static_cast<float>(index_low);
+
+    if (index_low < 0) {
+        index_low = 0;
+        frac = 0.0f;
+    } else if (index_low >= array_size - 1) {
+        index_low = array_size - 1;
+        frac = 0.0f;
+    }
+
+    int index_high = index_low + 1;
+    if (index_high >= array_size) {
+        index_high = index_low;
+    }
+
+    float left_val = array[index_low];
+    float right_val = array[index_high];
+
+    return left_val * (1.0f - frac) + right_val * frac;
+}
+
+/**
+ * Draw scrolling sprite effect (critical for beat_tunnel pattern)
+ * Creates motion layers by scrolling previous frame with decay
+ *
+ * @param target - Destination LED array
+ * @param source - Source LED array (previous frame)
+ * @param target_size - Size of target array
+ * @param source_size - Size of source array
+ * @param position - Scroll position (0.0-1.0)
+ * @param decay - Decay factor per frame (0.95 = 5% fade per frame)
+ */
+void draw_sprite(CRGBF* target, CRGBF* source, int target_size,
+                 int source_size, float position, float decay);
+
+void draw_sprite_float(float* target, const float* source, int target_size,
+                       int source_size, float position, float decay);
+
+void draw_sprite_float(float* target, const float* source, int target_size,
+                       int source_size, float position, float decay);
+
+/**
+ * RESPONSE CURVE FUNCTIONS
+ * Different curves emphasize different musical characteristics:
+ * - sqrt: Enhances quiet frequencies, smooths loud ones (most musical)
+ * - square: Emphasizes loud beats, suppresses quiet noise
+ * - cube: Extreme emphasis on peaks only
+ */
+inline float response_sqrt(float x) {
+    return sqrtf(clip_float(x));
+}
+
+inline float response_square(float x) {
+    x = clip_float(x);
+    return x * x;
+}
+
+inline float response_cube(float x) {
+    x = clip_float(x);
+    return x * x * x;
+}
+
+/**
+ * Smooth exponential response (most natural for human perception)
+ * Maps linear input to exponential curve matching human loudness perception
+ */
+inline float response_exp(float x, float exponent = 2.2f) {
+    return powf(clip_float(x), exponent);
+}

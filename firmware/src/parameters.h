@@ -27,6 +27,10 @@ struct PatternParameters {
     float custom_param_1;      // 0.0 - 1.0 (pattern-specific control)
     float custom_param_2;      // 0.0 - 1.0 (pattern-specific control)
     float custom_param_3;      // 0.0 - 1.0 (pattern-specific control)
+
+    // Beat gating controls (runtime-tunable)
+    float beat_threshold;      // 0.0 - 1.0 (minimum confidence to consider beat)
+    float beat_squash_power;   // 0.2 - 1.0 (exponent to squash confidence)
 };
 
 // Default parameter values (from Emotiscope reference)
@@ -48,14 +52,19 @@ inline PatternParameters get_default_params() {
     params.custom_param_1 = 0.5f;
     params.custom_param_2 = 0.5f;
     params.custom_param_3 = 0.5f;
+
+    // Beat gating defaults
+    params.beat_threshold = 0.20f;     // Gate low confidence to reduce flicker
+    params.beat_squash_power = 0.50f;  // sqrt-style squash; 1.0 = linear
     return params;
 }
 
 // Double-buffered parameter storage (prevents torn reads)
 // Web handler writes to inactive buffer, then atomically swaps
 // LED loop always reads from active buffer
-static PatternParameters g_params_buffers[2];
-static std::atomic<uint8_t> g_active_buffer{0};
+// NOTE: Defined in parameters.cpp to ensure a single shared instance
+extern PatternParameters g_params_buffers[2];
+extern std::atomic<uint8_t> g_active_buffer;
 
 // Thread-safe parameter update (call from web handler on Core 0)
 // Uses release-acquire memory ordering for cache coherency

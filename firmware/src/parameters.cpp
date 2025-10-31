@@ -4,6 +4,10 @@
 #include "parameters.h"
 #include "palettes.h"  // Use central NUM_PALETTES definition from palettes.h
 
+// Shared parameter buffers and active index
+PatternParameters g_params_buffers[2];
+std::atomic<uint8_t> g_active_buffer{0};
+
 // Validate and clamp parameters to safe ranges
 // Returns true if any parameter was clamped (indicates invalid input)
 bool validate_and_clamp(PatternParameters& params) {
@@ -43,6 +47,15 @@ bool validate_and_clamp(PatternParameters& params) {
     validate_float_0_1(params.custom_param_1, 0.5f);
     validate_float_0_1(params.custom_param_2, 0.5f);
     validate_float_0_1(params.custom_param_3, 0.5f);
+
+    // Beat gating parameters: 0.0 - 1.0
+    validate_float_0_1(params.beat_threshold, 0.20f);
+    validate_float_0_1(params.beat_squash_power, 0.50f);
+    // Enforce lower bound for squash power (prevent extreme flattening)
+    if (params.beat_squash_power < 0.20f) {
+        params.beat_squash_power = 0.20f;
+        clamped = true;
+    }
 
     return clamped;
 }

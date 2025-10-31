@@ -33,7 +33,43 @@
 // ============================================================================
 
 #include "audio/goertzel.h"
+#include "audio/tempo.h"
+#include "parameters.h"
+#include <cmath>
 #include <esp_timer.h>
+#include "emotiscope_helpers.h"  // For interpolate() and response curves
+
+// ============================================================================
+// Phase wrapping helper for beat synchronization
+static inline float wrap_phase(float phase_delta) {
+	while (phase_delta > M_PI) {
+		phase_delta -= static_cast<float>(2.0 * M_PI);
+	}
+	while (phase_delta < -M_PI) {
+		phase_delta += static_cast<float>(2.0 * M_PI);
+	}
+	return phase_delta;
+}
+
+// Convert phase error to milliseconds and compare against tolerance
+static inline bool is_beat_phase_locked_ms(const AudioDataSnapshot& audio_snapshot,
+		uint16_t bin,
+		float target_phase,
+		float tolerance_ms) {
+	if (bin >= NUM_TEMPI || tolerance_ms < 0.0f) {
+		return false;
+	}
+
+	const float tempo_hz = tempi_bpm_values_hz[bin];
+	if (tempo_hz <= 0.0f) {
+		return false;
+	}
+
+	const float delta = wrap_phase(audio_snapshot.tempo_phase[bin] - target_phase);
+	const float delta_time_ms = std::fabs(delta) * 1000.0f / (static_cast<float>(2.0 * M_PI) * tempo_hz);
+
+	return delta_time_ms <= tolerance_ms;
+}
 
 // ============================================================================
 // PRIMARY INTERFACE MACRO
@@ -113,6 +149,17 @@
 #define AUDIO_VU_RAW            (audio.vu_level_raw)
 #define AUDIO_NOVELTY           (audio.novelty_curve)
 #define AUDIO_TEMPO_CONFIDENCE  (audio.tempo_confidence)
+
+// Helper: Adaptive beat gating for patterns
+// Returns a squashed confidence with a minimum threshold to prevent flicker
+static inline float beat_gate(float conf) {
+    const PatternParameters& p = get_params();
+    const float thresh = fmaxf(p.beat_threshold, 0.0f);
+    if (conf < thresh) return 0.0f;
+    // Squash high densities using configurable exponent
+    const float exponent = fminf(fmaxf(p.beat_squash_power, 0.20f), 1.0f);
+    return powf(fminf(conf, 1.0f), exponent);
+}
 
 // ============================================================================
 // QUERY MACROS
@@ -271,6 +318,30 @@ inline float get_audio_band_energy(const AudioDataSnapshot& audio,
 #define AUDIO_BASS()     get_audio_band_energy(audio, 0, 8)    // 55-220 Hz
 #define AUDIO_MIDS()     get_audio_band_energy(audio, 16, 32)  // 440-880 Hz
 #define AUDIO_TREBLE()   get_audio_band_energy(audio, 48, 63)  // 1.76-6.4 kHz
+
+// Precise instrument-specific frequency bands
+#define KICK_START    0
+#define KICK_END      4    // 55-110 Hz (kick drum fundamental)
+#define SNARE_START   8
+#define SNARE_END     16   // 220-440 Hz (snare body)
+#define VOCAL_START   16
+#define VOCAL_END     40   // 440-1760 Hz (vocal range)
+#define HATS_START    48
+#define HATS_END      63   // 3.5-6.4 kHz (hi-hats/cymbals)
+
+// Instrument-specific energy accessors
+#define AUDIO_KICK()     get_audio_band_energy(audio, KICK_START, KICK_END)
+#define AUDIO_SNARE()    get_audio_band_energy(audio, SNARE_START, SNARE_END)
+#define AUDIO_VOCAL()    get_audio_band_energy(audio, VOCAL_START, VOCAL_END)
+#define AUDIO_HATS()     get_audio_band_energy(audio, HATS_START, HATS_END)
+
+// INTERPOLATED SPECTRUM ACCESS - Fixes stepping artifacts!
+#define AUDIO_SPECTRUM_INTERP(pos) \
+    interpolate(clip_float(pos), audio.spectrogram_smooth, NUM_FREQS)
+
+// Phase-locked beat detection for precise synchronization
+#define AUDIO_BEAT_PHASE_LOCKED(bin, phase_target, tolerance_ms) \
+    (is_beat_phase_locked_ms(audio, (bin), (phase_target), (tolerance_ms)))
 
 // ============================================================================
 // TEMPO BIN ACCESS (Advanced: Per-Tempo-Bin Beat Detection & Phase Tracking)
